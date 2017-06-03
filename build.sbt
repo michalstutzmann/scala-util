@@ -37,7 +37,7 @@ lazy val root = (project in file(".")).
   enablePlugins(JavaServerAppPackaging, ReleasePlugin, LogbackPlugin, ScalafmtPlugin).
   settings(
     name := "scala-util",
-    organization := "com.gihub.mwegrz",
+    organization := "com.github.mwegrz",
 
     scalacOptions in ThisBuild ++= Seq("-feature"),
 
