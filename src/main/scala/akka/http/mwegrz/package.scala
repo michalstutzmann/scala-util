@@ -13,7 +13,7 @@ import akka.stream.scaladsl.{Flow, Keep}
 
 import scala.concurrent.Future
 
-package object netemera {
+package object mwegrz {
   implicit class HttpExtOps(httpExt: HttpExt) {
     import httpExt.system
 

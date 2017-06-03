@@ -1,4 +1,4 @@
-package akka.http.netemera
+package akka.http.mwegrz
 
 import akka.event.LoggingAdapter
 import akka.http.impl.engine.ws.WebSocket
