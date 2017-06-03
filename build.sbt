@@ -36,7 +36,7 @@ val JwtCoreVersion = "0.12.0"
 lazy val root = (project in file(".")).
   enablePlugins(JavaServerAppPackaging, ReleasePlugin, LogbackPlugin, ScalafmtPlugin).
   settings(
-    name := "Scala Util",
+    name := "scala-util",
     organization := "com.gihub.mwegrz",
 
     scalacOptions in ThisBuild ++= Seq("-feature"),
