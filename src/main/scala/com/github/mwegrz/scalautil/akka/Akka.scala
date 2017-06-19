@@ -9,11 +9,11 @@ import com.github.mwegrz.scalastructlog.KeyValueLogging
 import com.typesafe.config.Config
 import com.github.mwegrz.scalautil.ConfigOps
 
-import scala.concurrent.{Await, ExecutionContext}
+import scala.concurrent.{ Await, ExecutionContext }
 import scala.concurrent.duration._
 
 class Akka private (config: Config)(implicit executor: ExecutionContext) extends Shutdownable with KeyValueLogging {
-  implicit val actorSystem       = ActorSystem(UUID.randomUUID().toString, config)
+  implicit val actorSystem = ActorSystem(UUID.randomUUID().toString, config)
   implicit val actorMaterializer = ActorMaterializer()
 
   log.debug("Initialized")

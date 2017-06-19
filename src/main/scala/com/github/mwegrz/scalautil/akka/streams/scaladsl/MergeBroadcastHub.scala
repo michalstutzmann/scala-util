@@ -1,7 +1,7 @@
 package com.github.mwegrz.scalautil.akka.streams.scaladsl
 
 import akka.stream.KillSwitches
-import akka.stream.scaladsl.{BroadcastHub, Flow, Keep, MergeHub}
+import akka.stream.scaladsl.{ BroadcastHub, Flow, Keep, MergeHub }
 import com.github.mwegrz.app.Shutdownable
 import com.github.mwegrz.scalautil.akka.Akka
 

@@ -13,11 +13,11 @@ import org.apache.commons.pool.BasePoolableObjectFactory
 import org.apache.commons.pool.impl.GenericObjectPool
 import org.apache.commons.vfs2._
 import org.apache.commons.vfs2.auth.StaticUserAuthenticator
-import org.apache.commons.vfs2.impl.{DefaultFileSystemConfigBuilder, StandardFileSystemManager}
+import org.apache.commons.vfs2.impl.{ DefaultFileSystemConfigBuilder, StandardFileSystemManager }
 import org.apache.commons.vfs2.provider.ftp.FtpFileSystemConfigBuilder
 import org.apache.commons.vfs2.provider.sftp.SftpFileSystemConfigBuilder
 
-import scala.io.{BufferedSource, Codec, Source}
+import scala.io.{ BufferedSource, Codec, Source }
 
 class FileSystem private (conf: Config) extends Shutdownable {
   import FileSystem._
@@ -80,7 +80,7 @@ class FileSystem private (conf: Config) extends Shutdownable {
     val pool = new GenericObjectPool(factory)
     val maxActive = conf.getString("max-pool-size") match {
       case "auto" => 1
-      case _      => conf.getInt("max-pool-size")
+      case _ => conf.getInt("max-pool-size")
     }
     val maxIdle = maxActive
     pool.setMaxActive(maxActive)
@@ -88,7 +88,7 @@ class FileSystem private (conf: Config) extends Shutdownable {
 
     val minIdle = conf.getString("min-idle") match {
       case "auto" => 1
-      case _      => conf.getInt("max-idle")
+      case _ => conf.getInt("max-idle")
     }
 
     pool.setMinIdle(minIdle)
@@ -104,8 +104,8 @@ class FileSystem private (conf: Config) extends Shutdownable {
   def readBytes(path: String)(implicit compression: Option[Compression] = None,
                               bufferSize: BufferSize = DefaultBufferSize): Array[Byte] =
     withInputStream(path) { is =>
-      val buf   = new Array[Byte](bufferSize.value)
-      val baos  = new ByteArrayOutputStream()
+      val buf = new Array[Byte](bufferSize.value)
+      val baos = new ByteArrayOutputStream()
       var nread = 0
       while ({
         nread = is.read(buf, 0, buf.length)
@@ -239,8 +239,8 @@ class FileSystem private (conf: Config) extends Shutdownable {
 
   def inputStream(path: String): InputStream = new InputStream {
     private val manager = pool.borrowObject()
-    private val file    = manager.resolveFile(path, opts)
-    private val is      = file.getContent.getInputStream
+    private val file = manager.resolveFile(path, opts)
+    private val is = file.getContent.getInputStream
 
     override def read(): Int = is.read()
 
@@ -259,8 +259,8 @@ class FileSystem private (conf: Config) extends Shutdownable {
 
   def outputStream(path: String): OutputStream = new OutputStream {
     private val manager = pool.borrowObject()
-    private val file    = manager.resolveFile(path, opts)
-    private val os      = file.getContent.getOutputStream
+    private val file = manager.resolveFile(path, opts)
+    private val os = file.getContent.getOutputStream
 
     override def write(b: Int): Unit = os.write(b)
 
@@ -311,7 +311,7 @@ class FileSystem private (conf: Config) extends Shutdownable {
 }
 
 object FileSystem {
-  val DefaultEncoding   = Encoding("UTF-8")
+  val DefaultEncoding = Encoding("UTF-8")
   val DefaultBufferSize = BufferSize(8192)
   //private val DefaultConfigPath = "file-system"
   //private val defaultReference = ConfigFactory.defaultReference.getConfig(DefaultConfigPath)
@@ -323,11 +323,11 @@ object FileSystem {
 
   object FileInfo {
     def fromFileObject(file: FileObject, baseName: FileName): FileInfo = {
-      val uri          = file.getName
-      def name         = baseName.getRelativeName(uri)
+      val uri = file.getName
+      def name = baseName.getRelativeName(uri)
       val lastModified = Option(Instant.ofEpochMilli(file.getContent.getLastModifiedTime))
-      val isDirectory  = file.getType == FileType.FOLDER
-      val size         = if (isDirectory) None else Option(file.getContent.getSize)
+      val isDirectory = file.getType == FileType.FOLDER
+      val size = if (isDirectory) None else Option(file.getContent.getSize)
       FileInfo(name, lastModified, isDirectory, size)
     }
   }
@@ -366,14 +366,14 @@ object FileSystem {
         new RandomAccessFile(toFs.basePath + "/" + toPath, "rw").getChannel
       ) { (from, to) =>
         val position = 0
-        val count    = from.size()
+        val count = from.size()
         from.transferTo(position, count, to)
       }
     } else {
       // Do buffered copy
       fromFs.withInputStream(fromPath) { is =>
         toFs.withOutputStream(toPath) { os =>
-          val buf   = new Array[Byte](bufferSize.value)
+          val buf = new Array[Byte](bufferSize.value)
           var nread = 0
           while ({
             nread = is.read(buf, 0, buf.length)

@@ -4,7 +4,7 @@ import java.util.UUID
 
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.{Route, ValidationRejection}
+import akka.http.scaladsl.server.{ Route, ValidationRejection }
 import akka.http.scaladsl.server.directives.Credentials
 import akka.http.scaladsl.server.directives.Credentials.Provided
 import com.github.mwegrz.app.Shutdownable

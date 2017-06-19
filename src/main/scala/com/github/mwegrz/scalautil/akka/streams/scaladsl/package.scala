@@ -3,7 +3,7 @@ package com.github.mwegrz.scalautil.akka.streams
 import java.net.InetSocketAddress
 
 import akka.NotUsed
-import akka.stream.scaladsl.{Flow, Keep, Sink, Source}
+import akka.stream.scaladsl.{ Flow, Keep, Sink, Source }
 import akka.util.ByteString
 
 package object scaladsl {

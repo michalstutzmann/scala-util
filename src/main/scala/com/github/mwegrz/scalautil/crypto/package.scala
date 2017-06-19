@@ -1,13 +1,13 @@
 package com.github.mwegrz.scalautil
 
 import javax.crypto.Cipher
-import javax.crypto.spec.{IvParameterSpec, SecretKeySpec}
+import javax.crypto.spec.{ IvParameterSpec, SecretKeySpec }
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import scodec.bits.ByteVector
 
 package object crypto {
   private val Provider = new BouncyCastleProvider()
-  private val ZeroIv   = new IvParameterSpec(new Array[Byte](16))
+  private val ZeroIv = new IvParameterSpec(new Array[Byte](16))
 
   def aes128Cmac(key: ByteVector, data: ByteVector): ByteVector = {
     import com.github.mwegrz.scalautil.AesCmac
@@ -25,8 +25,8 @@ package object crypto {
 
     def shiftBitsLeftBy1(data: Array[Byte]): Array[Byte] = {
       def msb(byte: Byte): Byte = (byte & 128).toByte
-      var carry: Byte           = if (data.length > 1) msb(data(1)) else 0
-      val result                = new Array[Byte](data.length)
+      var carry: Byte = if (data.length > 1) msb(data(1)) else 0
+      val result = new Array[Byte](data.length)
       for (i <- data.indices) {
         result(i) = (data(i) << 1 | carry).toByte
         carry = msb(data(i))
@@ -47,8 +47,8 @@ package object crypto {
 
     def generateSubKey(k: Array[Byte]): (Array[Byte], Array[Byte]) = {
       val ConstZero = new Array[Byte](16)
-      val ConstRb   = new Array[Byte](15) ++ Array(0x87).map(_.toByte)
-      val l         = aes128(k, ConstZero)
+      val ConstRb = new Array[Byte](15) ++ Array(0x87).map(_.toByte)
+      val l = aes128(k, ConstZero)
       val k1 =
         if (msb(l) == 0) shiftBitsLeftBy1(l)
         else xor(shiftBitsLeftBy1(l), ConstRb)
@@ -104,17 +104,17 @@ package object crypto {
    +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
      */
 
-    val k               = key
-    val m               = data
-    val len             = m.length
-    val ConstZero       = new Array[Byte](16)
-    val ConstBsize      = 16
-    val (k1, k2)        = generateSubKey(key)
+    val k = key
+    val m = data
+    val len = m.length
+    val ConstZero = new Array[Byte](16)
+    val ConstBsize = 16
+    val (k1, k2) = generateSubKey(key)
     val ms: Array[Byte] = ???
-    val mLast: Byte     = ???
-    var n               = Math.ceil(len.toDouble / ConstBsize).toInt
-    var r: Int          = ???
-    var flag: Boolean   = ???
+    val mLast: Byte = ???
+    var n = Math.ceil(len.toDouble / ConstBsize).toInt
+    var r: Int = ???
+    var flag: Boolean = ???
 
     if (n == 0) {
       n = 1

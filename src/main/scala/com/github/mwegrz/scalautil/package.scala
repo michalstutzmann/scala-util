@@ -2,7 +2,7 @@ package com.github.mwegrz
 
 import java.util.concurrent.TimeUnit
 
-import com.typesafe.config.{Config, ConfigFactory}
+import com.typesafe.config.{ Config, ConfigFactory }
 
 import scala.concurrent.duration.FiniteDuration
 import scala.language.implicitConversions
@@ -15,7 +15,7 @@ package object scalautil {
     def withReferenceDefaults(path: String): Config = {
 
       lazy val referenceExists = ConfigFactory.defaultReference.hasPath(path)
-      lazy val defaults        = ConfigFactory.defaultReference.getConfig(path)
+      lazy val defaults = ConfigFactory.defaultReference.getConfig(path)
 
       if (referenceExists) config.withFallback(defaults) else config
     }

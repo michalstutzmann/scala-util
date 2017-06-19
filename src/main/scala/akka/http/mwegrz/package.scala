@@ -4,12 +4,12 @@ import java.net.InetSocketAddress
 
 import akka.event.LoggingAdapter
 import akka.http.scaladsl.Http.OutgoingConnection
-import akka.http.scaladsl.model.ws.{Message, WebSocketRequest, WebSocketUpgradeResponse}
+import akka.http.scaladsl.model.ws.{ Message, WebSocketRequest, WebSocketUpgradeResponse }
 import akka.http.scaladsl.settings.ClientConnectionSettings
-import akka.http.scaladsl.{ClientTransport, ConnectionContext, Http, HttpExt}
+import akka.http.scaladsl.{ ClientTransport, ConnectionContext, Http, HttpExt }
 import akka.stream.Client
-import akka.stream.TLSProtocol.{SslTlsInbound, SslTlsOutbound}
-import akka.stream.scaladsl.{Flow, Keep}
+import akka.stream.TLSProtocol.{ SslTlsInbound, SslTlsOutbound }
+import akka.stream.scaladsl.{ Flow, Keep }
 
 import scala.concurrent.Future
 
@@ -32,7 +32,7 @@ package object mwegrz {
       require(uri.isAbsolute, s"WebSocket request URI must be absolute but was '$uri'")
 
       val ctx = uri.scheme match {
-        case "ws"                                ⇒ ConnectionContext.noEncryption()
+        case "ws" ⇒ ConnectionContext.noEncryption()
         case "wss" if connectionContext.isSecure ⇒ connectionContext
         case "wss" ⇒
           throw new IllegalArgumentException(

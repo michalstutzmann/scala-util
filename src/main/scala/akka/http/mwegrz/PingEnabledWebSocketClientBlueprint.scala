@@ -6,7 +6,7 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.ws.WebSocketRequest
 import akka.http.scaladsl.settings.ClientConnectionSettings
 import akka.stream.scaladsl.Keep
-import akka.http.impl.engine.ws.WebSocketClientBlueprint.{handshake, simpleTls}
+import akka.http.impl.engine.ws.WebSocketClientBlueprint.{ handshake, simpleTls }
 
 object PingEnabledWebSocketClientBlueprint {
 

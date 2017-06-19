@@ -2,8 +2,8 @@ package com.github.mwegrz.scalautil.mqtt
 
 import akka.Done
 import akka.stream.alpakka.mqtt.scaladsl.MqttFlow
-import akka.stream.alpakka.mqtt.{MqttConnectionSettings, MqttMessage, MqttQoS, MqttSourceSettings}
-import akka.stream.scaladsl.{Flow, Keep, Sink, Source}
+import akka.stream.alpakka.mqtt.{ MqttConnectionSettings, MqttMessage, MqttQoS, MqttSourceSettings }
+import akka.stream.scaladsl.{ Flow, Keep, Sink, Source }
 import com.github.mwegrz.app.Shutdownable
 import com.github.mwegrz.scalastructlog.KeyValueLogging
 import com.github.mwegrz.scalautil.akka.Akka
@@ -23,11 +23,11 @@ trait Mqtt extends Shutdownable {
 }
 
 class DefaultMqtt(config: Config)(implicit akka: Akka) extends Mqtt with KeyValueLogging {
-  private val url      = config.getString("url")
-  private val id       = config.getString("id")
+  private val url = config.getString("url")
+  private val id = config.getString("id")
   private val username = config.getString("username")
   private val password = config.getString("password")
-  private val topics   = config.getStringList("topics").asScala.toList
+  private val topics = config.getStringList("topics").asScala.toList
 
   import akka.actorMaterializer
 

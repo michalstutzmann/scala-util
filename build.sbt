@@ -24,7 +24,7 @@ val CommonsVfs2Version = "2.1"
 val CommonsPoolVersion = "1.6"
 //val KafkaVersion = "0.9.0.1" // "0.8.2.1"
 //val ZooKeeperVersion = "3.4.7"
-val AkkaStreamKafkaVersion= "0.13"
+val AkkaStreamKafkaVersion = "0.13"
 val PahoVersion = "1.1.0"
 val BouncyCastleVersion = "1.56"
 val CassandraDriverVersion = "3.1.2"
@@ -33,15 +33,13 @@ val CirceVersion = "0.8.0"
 val CatsVersion = "0.9.0"
 val JwtCoreVersion = "0.12.0"
 
-lazy val root = (project in file(".")).
-  enablePlugins(JavaServerAppPackaging, ReleasePlugin, LogbackPlugin, ScalafmtPlugin).
-  configs(IntegrationTest).
-  settings(
+lazy val root = (project in file("."))
+  .enablePlugins(JavaServerAppPackaging, ReleasePlugin, LogbackPlugin, ScalafmtPlugin)
+  .configs(IntegrationTest)
+  .settings(
     name := "scala-util",
     organization := "com.github.mwegrz",
-
     scalacOptions in ThisBuild ++= Seq("-feature"),
-
     // Dependency management
     scalaVersion := ScalaVersion,
     crossScalaVersions := CrossScalaVersions,
@@ -50,7 +48,7 @@ lazy val root = (project in file(".")).
     resolvers += "Sonatype Maven Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
     libraryDependencies ++= Seq(
       "org.threeten" % "threeten-extra" % ThreetenExtraVersion,
-      "io.spray" %%  "spray-json" % SprayJsonVersion,
+      "io.spray" %% "spray-json" % SprayJsonVersion,
       "org.json4s" %% "json4s-native" % Json4sVersion,
       "com.typesafe.akka" %% "akka-actor" % AkkaVersion,
       "com.typesafe.akka" %% "akka-stream" % AkkaVersion,
@@ -83,9 +81,7 @@ lazy val root = (project in file(".")).
       "com.pauldijou" %% "jwt-core" % JwtCoreVersion,
       "org.bouncycastle" % "bcpkix-jdk15on" % BouncyCastleVersion
     ),
-
     Defaults.itSettings,
-
     // Publishing
     publishMavenStyle := true,
     crossPaths := true,
@@ -95,12 +91,13 @@ lazy val root = (project in file(".")).
       if (isSnapshot.value)
         Some("snapshots" at nexus + "content/repositories/snapshots")
       else
-        Some("releases"  at nexus + "service/local/staging/deploy/maven2")
+        Some("releases" at nexus + "service/local/staging/deploy/maven2")
     },
     publishArtifact in Test := false,
-    pomIncludeRepository := { _ => false },
-    pomExtra := (
-      <url>http://github.com/mwegrz/scala-util</url>
+    pomIncludeRepository := { _ =>
+      false
+    },
+    pomExtra := (<url>http://github.com/mwegrz/scala-util</url>
         <licenses>
           <license>
             <name>Apache License 2.0</name>
@@ -133,8 +130,8 @@ lazy val root = (project in file(".")).
       commitNextVersion,
       pushChanges
     ),
-
     offline := true,
     fork := true,
-    connectInput in run := true
+    connectInput in run := true,
+    scalafmtOnCompile := true
   )

@@ -1,15 +1,15 @@
 package com.github.mwegrz.scalautil.cassandra
 
-import akka.{Done, NotUsed}
-import akka.stream.alpakka.cassandra.scaladsl.{CassandraSink, CassandraSource}
-import akka.stream.scaladsl.{Sink, Source}
+import akka.{ Done, NotUsed }
+import akka.stream.alpakka.cassandra.scaladsl.{ CassandraSink, CassandraSource }
+import akka.stream.scaladsl.{ Sink, Source }
 import com.datastax.driver.core._
 import com.datastax.driver.extras.codecs.jdk8.InstantCodec
 import com.github.mwegrz.app.Shutdownable
 import com.github.mwegrz.scalastructlog.KeyValueLogging
 import com.typesafe.config.Config
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 
 trait Cassandra extends Shutdownable {
   def createSink[A <: AnyRef](cql: String)(

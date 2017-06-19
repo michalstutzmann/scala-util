@@ -4,16 +4,16 @@ import java.util.concurrent.Semaphore
 import akka.Done
 import akka.stream._
 import akka.stream.stage._
-import org.eclipse.paho.client.mqttv3.{IMqttAsyncClient, IMqttToken, MqttMessage => PahoMqttMessage}
+import org.eclipse.paho.client.mqttv3.{ IMqttAsyncClient, IMqttToken, MqttMessage => PahoMqttMessage }
 import scala.collection.mutable
-import scala.concurrent.{Future, Promise}
-import scala.util.{Failure, Success, Try}
+import scala.concurrent.{ Future, Promise }
+import scala.util.{ Failure, Success, Try }
 
 class MqttFlowStage(settings: MqttSourceSettings, bufferSize: Int, qos: MqttQoS)
     extends GraphStageWithMaterializedValue[FlowShape[MqttMessage, MqttMessage], Future[Done]] {
   import MqttConnectorLogic._
 
-  private val in  = Inlet[MqttMessage](s"MqttFlow.in")
+  private val in = Inlet[MqttMessage](s"MqttFlow.in")
   private val out = Outlet[MqttMessage](s"MqttFlow.out")
 
   override val shape = FlowShape.of(in, out)
@@ -57,7 +57,7 @@ class MqttFlowStage(settings: MqttSourceSettings, bufferSize: Int, qos: MqttQoS)
         in,
         new InHandler {
           override def onPush() = {
-            val msg     = grab(in)
+            val msg = grab(in)
             val pahoMsg = new PahoMqttMessage(msg.payload.toArray)
             pahoMsg.setQos(qos.byteValue)
             mqttClient match {

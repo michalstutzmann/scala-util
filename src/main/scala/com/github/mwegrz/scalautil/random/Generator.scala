@@ -29,7 +29,7 @@ trait Generator[+T] { self =>
 object Generator {
   val integers = new Generator[Int] {
     // TODO: Seed
-    val rand         = new SecureRandom
+    val rand = new SecureRandom
     val MaxMeanValue = Int.MaxValue / 2
 
     override def generate() = Math.abs(rand.nextInt())
@@ -68,7 +68,7 @@ object Generator {
   }
 
   val floats = new Generator[Float] {
-    val rand         = new Random
+    val rand = new Random
     val MaxMeanValue = Float.MaxValue / 2
 
     override def generate() = Math.abs(rand.nextFloat())
@@ -169,7 +169,7 @@ object Generator {
   def lists: Generator[List[Int]] =
     for {
       isEmpty <- booleans
-      list    <- if (isEmpty) emptyLists else nonEmptyLists
+      list <- if (isEmpty) emptyLists else nonEmptyLists
     } yield list
 
   def emptyLists = single(Nil)

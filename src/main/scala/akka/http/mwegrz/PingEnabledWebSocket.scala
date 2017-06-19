@@ -4,11 +4,11 @@ import java.util.Random
 
 import akka.NotUsed
 import akka.event.LoggingAdapter
-import akka.http.impl.engine.ws.{FrameEvent, FrameEventOrError, FrameStart}
+import akka.http.impl.engine.ws.{ FrameEvent, FrameEventOrError, FrameStart }
 import akka.http.impl.engine.ws.Protocol.Opcode
-import akka.http.impl.engine.ws.WebSocket.{frameHandling, masking, messageAPI}
+import akka.http.impl.engine.ws.WebSocket.{ frameHandling, masking, messageAPI }
 import akka.http.scaladsl.model.ws.Message
-import akka.stream.{Attributes, BidiShape, Inlet, Outlet}
+import akka.stream.{ Attributes, BidiShape, Inlet, Outlet }
 import akka.stream.scaladsl.BidiFlow
 import akka.stream.stage._
 import akka.util.ByteString
@@ -42,9 +42,9 @@ object PingEnabledWebSocket {
     import ClientSidePingHandler.PingTimerKey
 
     private val name = getClass.getName
-    private val in1  = Inlet[FrameEvent](s"$name.in1")
+    private val in1 = Inlet[FrameEvent](s"$name.in1")
     private val out1 = Outlet[FrameEvent](s"$name.out1")
-    private val in2  = Inlet[FrameEventOrError](s"$name.in2")
+    private val in2 = Inlet[FrameEventOrError](s"$name.in2")
     private val out2 = Outlet[FrameEvent](s"$name.out")
 
     override val shape = BidiShape(in1, out1, in2, out2)

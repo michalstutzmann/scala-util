@@ -5,7 +5,7 @@ package akka.stream.alpakka.mqtt
 
 import akka.stream.stage._
 import akka.util.ByteString
-import org.eclipse.paho.client.mqttv3.{MqttMessage => PahoMqttMessage, _}
+import org.eclipse.paho.client.mqttv3.{ MqttMessage => PahoMqttMessage, _ }
 
 import scala.language.implicitConversions
 import scala.util._
@@ -120,7 +120,7 @@ private[mqtt] trait MqttConnectorLogic { this: GraphStageLogic =>
   def handleConnection(client: IMqttAsyncClient): Unit
   def handleConnectionLost(ex: Throwable): Unit
 
-  val onConnect        = getAsyncCallback[IMqttAsyncClient](handleConnection)
+  val onConnect = getAsyncCallback[IMqttAsyncClient](handleConnection)
   val onConnectionLost = getAsyncCallback[Throwable](handleConnectionLost)
 
   /** Callback, that is called from the MQTT client thread before invoking
@@ -162,7 +162,7 @@ private[mqtt] trait MqttConnectorLogic { this: GraphStageLogic =>
 
   private val connectHandler: Try[IMqttToken] => Unit = {
     case Success(token) => onConnect.invoke(token.getClient)
-    case Failure(ex)    => onConnectionLost.invoke(ex)
+    case Failure(ex) => onConnectionLost.invoke(ex)
   }
 }
 
@@ -172,7 +172,7 @@ private[mqtt] object MqttConnectorLogic {
 
   implicit def funcToMqttActionListener(func: Try[IMqttToken] => Unit): IMqttActionListener =
     new IMqttActionListener {
-      def onSuccess(token: IMqttToken)                = func(Success(token))
+      def onSuccess(token: IMqttToken) = func(Success(token))
       def onFailure(token: IMqttToken, ex: Throwable) = func(Failure(ex))
     }
 
