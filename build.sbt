@@ -35,6 +35,7 @@ val JwtCoreVersion = "0.12.0"
 
 lazy val root = (project in file(".")).
   enablePlugins(JavaServerAppPackaging, ReleasePlugin, LogbackPlugin, ScalafmtPlugin).
+  configs(IntegrationTest).
   settings(
     name := "scala-util",
     organization := "com.github.mwegrz",
@@ -55,12 +56,12 @@ lazy val root = (project in file(".")).
       "com.typesafe.akka" %% "akka-stream" % AkkaVersion,
       "com.typesafe.akka" %% "akka-http" % AkkaHttpVersion,
       "com.typesafe.akka" %% "akka-slf4j" % AkkaVersion,
-      "com.typesafe.akka" %% "akka-testkit" % AkkaVersion % Test,
+      "com.typesafe.akka" %% "akka-testkit" % AkkaVersion % IntegrationTest,
       "de.heikoseeberger" %% "akka-http-circe" % AkkaHttpCirce,
       //"de.heikoseeberger" %% "akka-sse" % AkkaSseVersion,
       "com.lightbend.akka" %% "akka-stream-alpakka-sse" % AlpakkaSse,
-      "org.scalatest" %% "scalatest" % ScalaTestVersion % Test,
-      "org.scalacheck" %% "scalacheck" % ScalaCheckVersion % Test,
+      "org.scalatest" %% "scalatest" % ScalaTestVersion % Optional,
+      "org.scalacheck" %% "scalacheck" % ScalaCheckVersion % IntegrationTest,
       //"org.scalamock" %% "scalamock-scalatest-support" % ScalaMockVersion % Test,
       "com.github.mwegrz" % "logback-hocon" % LogbackHoconVersion,
       "com.github.mwegrz" %% "scala-structlog" % ScalaStructlogVersion,
@@ -82,6 +83,8 @@ lazy val root = (project in file(".")).
       "com.pauldijou" %% "jwt-core" % JwtCoreVersion,
       "org.bouncycastle" % "bcpkix-jdk15on" % BouncyCastleVersion
     ),
+
+    Defaults.itSettings,
 
     // Publishing
     publishMavenStyle := true,
