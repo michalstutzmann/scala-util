@@ -11,13 +11,15 @@ import com.typesafe.config.Config
 
 import scala.concurrent.{ ExecutionContext, Future }
 
-trait Cassandra extends Shutdownable {
+trait CassandraClient extends Shutdownable {
   def createSink[A <: AnyRef](cql: String)(
       statementBinder: (A, PreparedStatement) => BoundStatement): Sink[A, Future[Done]]
   def createSource(cql: String, values: Seq[AnyRef]): Source[Row, NotUsed]
 }
 
-class DefaultCassandra(config: Config)(implicit ec: ExecutionContext) extends Cassandra with KeyValueLogging {
+class DefaultCassandraClient(config: Config)(implicit ec: ExecutionContext)
+    extends CassandraClient
+    with KeyValueLogging {
   private val host = config.getString("host")
   private val port = config.getInt("port")
 
@@ -46,7 +48,7 @@ class DefaultCassandra(config: Config)(implicit ec: ExecutionContext) extends Ca
   }
 }
 
-object Cassandra {
-  def apply(config: Config)(implicit ec: ExecutionContext): Cassandra =
-    new DefaultCassandra(config)
+object CassandraClient {
+  def apply(config: Config)(implicit ec: ExecutionContext): CassandraClient =
+    new DefaultCassandraClient(config)
 }

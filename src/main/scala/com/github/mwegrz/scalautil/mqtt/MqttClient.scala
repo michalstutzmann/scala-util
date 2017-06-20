@@ -14,7 +14,7 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 import scala.concurrent.Future
 import scala.collection.JavaConverters._
 
-trait Mqtt extends Shutdownable {
+trait MqttClient extends Shutdownable {
   def flow: Flow[MqttMessage, MqttMessage, Future[Done]]
 
   def source: Source[MqttMessage, Future[Done]]
@@ -22,7 +22,7 @@ trait Mqtt extends Shutdownable {
   def sink: Sink[MqttMessage, Future[Done]]
 }
 
-class DefaultMqtt(config: Config)(implicit akka: Akka) extends Mqtt with KeyValueLogging {
+class DefaultMqttClient(config: Config)(implicit akka: Akka) extends MqttClient with KeyValueLogging {
   private val url = config.getString("url")
   private val id = config.getString("id")
   private val username = config.getString("username")
@@ -74,7 +74,7 @@ class DefaultMqtt(config: Config)(implicit akka: Akka) extends Mqtt with KeyValu
   override def shutdown(): Unit = mergeBroadcastHub.shutdown()
 }
 
-object Mqtt {
-  def apply(config: Config)(implicit akka: Akka): Mqtt =
-    new DefaultMqtt(config)
+object MqttClient {
+  def apply(config: Config)(implicit akka: Akka): MqttClient =
+    new DefaultMqttClient(config)
 }
