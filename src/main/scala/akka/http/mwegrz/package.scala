@@ -47,8 +47,8 @@ package object mwegrz {
 
       httpExt
         .pingEnabledWebSocketClientLayer(request, settings, log)
-        .joinMat(
-          _outgoingTlsConnectionLayer(host, port, settings, ctx, ClientTransport.TCP(localAddress, settings), log))(
+        .joinMat(_outgoingTlsConnectionLayer(host, port, settings, ctx, ClientTransport.TCP, log))(
+          //_outgoingTlsConnectionLayer(host, port, settings, ctx, ClientTransport.TCP(localAddress, settings), log))(
           Keep.left)
     }
 
@@ -62,7 +62,7 @@ package object mwegrz {
       val tlsStage =
         httpExt.sslTlsStage(connectionContext, Client, Some(host → port))
 
-      tlsStage.joinMat(transport.connectTo(host, port))(Keep.right)
+      tlsStage.joinMat(transport.connectTo(host, port, settings))(Keep.right)
     }
 
     /** Constructs a [[akka.http.scaladsl.Http.WebSocketClientLayer]] stage using the configured default [[akka.http.scaladsl.settings.ClientConnectionSettings]],

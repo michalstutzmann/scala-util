@@ -2,11 +2,9 @@ import ReleaseTransformations._
 
 val ScalaVersion = "2.12.2"
 val CrossScalaVersions = Seq("2.11.11", ScalaVersion)
-val AkkaVersion = "2.5.2"
-val AkkaHttpVersion = "10.0.6"
+val AkkaVersion = "2.5.3"
+val AkkaHttpVersion = "10.0.8"
 val AkkaHttpCirce = "1.15.0"
-val AkkaSseVersion = "3.0.0"
-val AlpakkaSse = "0.8"
 val SprayJsonVersion = "1.3.2"
 val Json4sVersion = "3.5.0"
 val ScalaTestVersion = "3.0.1"
@@ -56,8 +54,6 @@ lazy val root = (project in file("."))
       "com.typesafe.akka" %% "akka-slf4j" % AkkaVersion,
       "com.typesafe.akka" %% "akka-testkit" % AkkaVersion % IntegrationTest,
       "de.heikoseeberger" %% "akka-http-circe" % AkkaHttpCirce,
-      //"de.heikoseeberger" %% "akka-sse" % AkkaSseVersion,
-      "com.lightbend.akka" %% "akka-stream-alpakka-sse" % AlpakkaSse,
       "org.scalatest" %% "scalatest" % ScalaTestVersion % Optional,
       "org.scalacheck" %% "scalacheck" % ScalaCheckVersion % IntegrationTest,
       //"org.scalamock" %% "scalamock-scalatest-support" % ScalaMockVersion % Test,

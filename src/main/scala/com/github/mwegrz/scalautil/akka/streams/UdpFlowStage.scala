@@ -1,7 +1,6 @@
 package com.github.mwegrz.scalautil.akka.streams
 
 import java.net.InetSocketAddress
-
 import akka.Done
 import akka.actor.{ ActorRef, ActorSystem }
 import akka.io.{ IO, Udp }
@@ -10,7 +9,6 @@ import akka.stream.scaladsl.{ Keep, Sink, Source }
 import akka.stream.stage.GraphStageLogic.StageActor
 import akka.stream.stage.{ GraphStage, GraphStageLogic, InHandler, OutHandler }
 import akka.util.ByteString
-
 import scala.collection.mutable
 import scala.concurrent.Future
 

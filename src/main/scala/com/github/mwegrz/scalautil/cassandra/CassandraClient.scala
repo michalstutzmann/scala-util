@@ -1,5 +1,6 @@
 package com.github.mwegrz.scalautil.cassandra
 
+import akka.stream.ActorMaterializer
 import akka.{ Done, NotUsed }
 import akka.stream.alpakka.cassandra.scaladsl.{ CassandraSink, CassandraSource }
 import akka.stream.scaladsl.{ Sink, Source }
@@ -8,16 +9,17 @@ import com.datastax.driver.extras.codecs.jdk8.InstantCodec
 import com.github.mwegrz.app.Shutdownable
 import com.github.mwegrz.scalastructlog.KeyValueLogging
 import com.typesafe.config.Config
-
 import scala.concurrent.{ ExecutionContext, Future }
 
 trait CassandraClient extends Shutdownable {
   def createSink[A <: AnyRef](cql: String)(
       statementBinder: (A, PreparedStatement) => BoundStatement): Sink[A, Future[Done]]
   def createSource(cql: String, values: Seq[AnyRef]): Source[Row, NotUsed]
+
+  def execute(cql: String)(implicit actorMaterializer: ActorMaterializer): Future[Done]
 }
 
-class DefaultCassandraClient(config: Config)(implicit ec: ExecutionContext)
+class DefaultCassandraClient(config: Config)(implicit executionContext: ExecutionContext)
     extends CassandraClient
     with KeyValueLogging {
   private val host = config.getString("host")
@@ -41,6 +43,9 @@ class DefaultCassandraClient(config: Config)(implicit ec: ExecutionContext)
     CassandraSource(statement)
   }
 
+  def execute(cql: String)(implicit actorMaterializer: ActorMaterializer): Future[Done] =
+    Source.single(Unit).runWith(createSink(cql)((a, b) => new BoundStatement(b)))
+
   override def shutdown(): Unit = {
     session.close()
     cluster.close()
@@ -49,6 +54,6 @@ class DefaultCassandraClient(config: Config)(implicit ec: ExecutionContext)
 }
 
 object CassandraClient {
-  def apply(config: Config)(implicit ec: ExecutionContext): CassandraClient =
+  def apply(config: Config)(implicit executionContext: ExecutionContext): CassandraClient =
     new DefaultCassandraClient(config)
 }

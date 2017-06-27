@@ -1,18 +1,16 @@
 package com.github.mwegrz.scalautil.akka.streams
 
 import java.net._
-
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{ Keep, Sink, Source }
 import akka.util.ByteString
 import com.github.mwegrz.scalautil.akka.streams.scaladsl.UdpFlow
-import com.github.mwegrz.scalautil.scalatest.UnitSpec
+import com.github.mwegrz.scalautil.scalatest.TestSpec
 import org.scalatest.concurrent.Eventually
-
 import scala.concurrent.duration._
 
-class UdpFlowStageSpec extends UnitSpec with Eventually {
+class UdpFlowStageSpec extends TestSpec with Eventually {
   private val loopbackAddr = new InetSocketAddress(InetAddress.getLoopbackAddress, new ServerSocket(0).getLocalPort)
 
   private implicit val actorSystem = ActorSystem()
