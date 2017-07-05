@@ -5,7 +5,6 @@ import java.net.URI
 import java.nio.file.Paths
 import java.time.Instant
 import java.util.zip._
-
 import com.github.mwegrz.app.Shutdownable
 import com.github.mwegrz.scalautil.resource.sync.Compression.Compression
 import com.typesafe.config.Config
@@ -16,8 +15,8 @@ import org.apache.commons.vfs2.auth.StaticUserAuthenticator
 import org.apache.commons.vfs2.impl.{ DefaultFileSystemConfigBuilder, StandardFileSystemManager }
 import org.apache.commons.vfs2.provider.ftp.FtpFileSystemConfigBuilder
 import org.apache.commons.vfs2.provider.sftp.SftpFileSystemConfigBuilder
-
 import scala.io.{ BufferedSource, Codec, Source }
+import com.github.mwegrz.scalautil.ConfigOps
 
 class FileSystem private (conf: Config) extends Shutdownable {
   import FileSystem._
@@ -332,7 +331,7 @@ object FileSystem {
     }
   }
 
-  def apply(config: Config): FileSystem = new FileSystem(config)
+  def apply(config: Config): FileSystem = new FileSystem(config.withReferenceDefaults("file-system"))
 
   private def decompressInputStream(is: InputStream, compression: Option[Compression]): InputStream =
     compression.fold(is) {
