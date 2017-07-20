@@ -4,6 +4,7 @@ val ScalaVersion = "2.12.2"
 val CrossScalaVersions = Seq("2.11.11", ScalaVersion)
 val AkkaVersion = "2.5.3"
 val AkkaHttpVersion = "10.0.8"
+val AkkaStreamKafkaVersion = "0.16"
 val AkkaHttpCirce = "1.15.0"
 val SprayJsonVersion = "1.3.2"
 val Json4sVersion = "3.5.0"
@@ -22,7 +23,6 @@ val CommonsVfs2Version = "2.1"
 val CommonsPoolVersion = "1.6"
 //val KafkaVersion = "0.9.0.1" // "0.8.2.1"
 //val ZooKeeperVersion = "3.4.7"
-val AkkaStreamKafkaVersion = "0.13"
 val PahoVersion = "1.1.0"
 val BouncyCastleVersion = "1.56"
 val CassandraDriverVersion = "3.1.2"
@@ -53,6 +53,7 @@ lazy val root = (project in file("."))
       "com.typesafe.akka" %% "akka-http" % AkkaHttpVersion,
       "com.typesafe.akka" %% "akka-slf4j" % AkkaVersion,
       "com.typesafe.akka" %% "akka-testkit" % AkkaVersion % IntegrationTest,
+      "com.typesafe.akka" %% "akka-stream-kafka" % AkkaStreamKafkaVersion,
       "de.heikoseeberger" %% "akka-http-circe" % AkkaHttpCirce,
       "org.scalatest" %% "scalatest" % ScalaTestVersion % Optional,
       "org.scalacheck" %% "scalacheck" % ScalaCheckVersion % IntegrationTest,
@@ -71,7 +72,6 @@ lazy val root = (project in file("."))
       "io.circe" %% "circe-parser" % CirceVersion,
       "io.circe" %% "circe-java8" % CirceVersion,
       "org.typelevel" %% "cats" % CatsVersion,
-      "com.typesafe.akka" %% "akka-stream-kafka" % AkkaStreamKafkaVersion,
       "org.apache.commons" % "commons-vfs2" % CommonsVfs2Version,
       "commons-pool" % "commons-pool" % CommonsPoolVersion,
       "com.pauldijou" %% "jwt-core" % JwtCoreVersion,
