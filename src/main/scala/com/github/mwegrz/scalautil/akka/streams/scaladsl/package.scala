@@ -13,7 +13,7 @@ package object scaladsl {
   type UdpFlow = Flow[(ByteString, InetSocketAddress), (ByteString, InetSocketAddress), NotUsed]
 
   implicit class FlowOps[A, B, C](flow: Flow[A, B, C]) {
-    def toSource: Source[B, C] = Source.empty.viaMat(flow)(Keep.right)
+    def toSource: Source[B, C] = Source.maybe.viaMat(flow)(Keep.right)
 
     def toSink: Sink[A, C] = flow.toMat(Sink.ignore)(Keep.left)
   }
@@ -66,33 +66,6 @@ package object scaladsl {
         broadcastShape.out(0) ~> successFilterShape
 
         FlowShape(broadcastShape.in, successFilterShape.out)
-      }
-
-      flow.via(filter)
-    }
-  }
-
-  implicit class EitherFlowOps[A, B, C, D](flow: Flow[A, Either[B, C], D]) {
-    def filterSuccess(leftSink: Sink[Left[B, C], Future[Done]]): Flow[A, B, D] = {
-      val filter = GraphDSL.create() { implicit b =>
-        import GraphDSL.Implicits._
-
-        val broadcastShape = b.add(Broadcast[Either[B, C]](2))
-        val leftSinkShape = b.add(leftSink)
-        val rightFilterShape = b.add(
-          Flow[Either[B, C]]
-            .collect {
-              case e: Right[A, B] => e
-            }
-            .map(_.value))
-        val leftFilterShape = b.add(Flow[Either[B, C]].collect {
-          case e: Left[B, C] => e
-        })
-
-        broadcastShape.out(1) ~> leftFilterShape ~> leftSinkShape
-        broadcastShape.out(0) ~> rightFilterShape
-
-        FlowShape(broadcastShape.in, rightFilterShape.out)
       }
 
       flow.via(filter)

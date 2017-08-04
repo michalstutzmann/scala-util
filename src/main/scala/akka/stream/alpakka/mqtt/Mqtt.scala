@@ -1,7 +1,9 @@
 /*
- * Copyright (C) 2016 Lightbend Inc. <http://www.lightbend.com>
+ * Copyright (C) 2016-2017 Lightbend Inc. <http://www.lightbend.com>
  */
 package akka.stream.alpakka.mqtt
+
+import javax.net.ssl.SSLSocketFactory
 
 import akka.stream.stage._
 import akka.util.ByteString
@@ -14,7 +16,8 @@ sealed abstract class MqttQoS {
   def byteValue: Byte
 }
 
-/** Quality of Service constants as defined in
+/**
+  * Quality of Service constants as defined in
   * https://www.eclipse.org/paho/files/mqttdoc/Cclient/qos.html
   */
 object MqttQoS {
@@ -30,36 +33,39 @@ object MqttQoS {
     def byteValue: Byte = 2
   }
 
-  /** Java API
+  /**
+    * Java API
     */
   def atMostOnce = AtMostOnce
 
-  /** Java API
+  /**
+    * Java API
     */
   def atLeastOnce = AtLeastOnce
 
-  /** Java API
+  /**
+    * Java API
     */
   def exactlyOnce = ExactlyOnce
 }
 
-/** @param subscriptions the mapping between a topic name and a [[MqttQoS]].
+/**
+  * @param subscriptions the mapping between a topic name and a [[MqttQoS]].
   */
 final case class MqttSourceSettings(
     connectionSettings: MqttConnectionSettings,
     subscriptions: Map[String, MqttQoS] = Map.empty
 ) {
   @annotation.varargs
-  def withSubscriptions(
-      subscription: akka.japi.Pair[String, MqttQoS],
-      subscriptions: akka.japi.Pair[String, MqttQoS]*
-  ) =
+  def withSubscriptions(subscription: akka.japi.Pair[String, MqttQoS],
+                        subscriptions: akka.japi.Pair[String, MqttQoS]*) =
     copy(subscriptions = (subscription +: subscriptions).map(_.toScala).toMap)
 }
 
 object MqttSourceSettings {
 
-  /** Java API: create [[MqttSourceSettings]].
+  /**
+    * Java API: create [[MqttSourceSettings]].
     */
   def create(connectionSettings: MqttConnectionSettings) =
     MqttSourceSettings(connectionSettings)
@@ -70,8 +76,10 @@ final case class MqttConnectionSettings(
     clientId: String,
     persistence: MqttClientPersistence,
     auth: Option[(String, String)] = None,
+    socketFactory: Option[SSLSocketFactory] = None,
     cleanSession: Boolean = true,
-    will: Option[Will] = None
+    will: Option[Will] = None,
+    automaticReconnect: Boolean = true
 ) {
   def withBroker(broker: String) =
     copy(broker = broker)
@@ -87,11 +95,15 @@ final case class MqttConnectionSettings(
 
   def withClientId(clientId: String) =
     copy(clientId = clientId)
+
+  def withAutomaticReconnect(autoReconnect: Boolean) =
+    copy(automaticReconnect = autoReconnect)
 }
 
 object MqttConnectionSettings {
 
-  /** Java API: create [[MqttConnectionSettings]] with no auth information.
+  /**
+    * Java API: create [[MqttConnectionSettings]] with no auth information.
     */
   def create(broker: String, clientId: String, persistence: MqttClientPersistence) =
     MqttConnectionSettings(broker, clientId, persistence)
@@ -103,13 +115,15 @@ final case class Will(message: MqttMessage, qos: MqttQoS, retained: Boolean)
 
 object MqttMessage {
 
-  /** Java API: create  [[MqttMessage]]
+  /**
+    * Java API: create  [[MqttMessage]]
     */
   def create(topic: String, payload: ByteString) =
     MqttMessage(topic, payload)
 }
 
-/** Internal API
+/**
+  *  Internal API
   */
 private[mqtt] trait MqttConnectorLogic { this: GraphStageLogic =>
 
@@ -123,7 +137,8 @@ private[mqtt] trait MqttConnectorLogic { this: GraphStageLogic =>
   val onConnect = getAsyncCallback[IMqttAsyncClient](handleConnection)
   val onConnectionLost = getAsyncCallback[Throwable](handleConnectionLost)
 
-  /** Callback, that is called from the MQTT client thread before invoking
+  /**
+    * Callback, that is called from the MQTT client thread before invoking
     * message handler callback in the GraphStage context.
     */
   def onMessage(message: MqttMessage) = ()
@@ -136,9 +151,8 @@ private[mqtt] trait MqttConnectorLogic { this: GraphStageLogic =>
     )
 
     client.setCallback(new MqttCallback {
-      def messageArrived(topic: String, message: PahoMqttMessage) = {
+      def messageArrived(topic: String, message: PahoMqttMessage) =
         onMessage(MqttMessage(topic, ByteString(message.getPayload)))
-      }
 
       def deliveryComplete(token: IMqttDeliveryToken) =
         ()
@@ -152,11 +166,14 @@ private[mqtt] trait MqttConnectorLogic { this: GraphStageLogic =>
         connectOptions.setUserName(user)
         connectOptions.setPassword(password.toCharArray)
     }
+    connectionSettings.socketFactory.foreach { socketFactory =>
+      connectOptions.setSocketFactory(socketFactory)
+    }
     connectionSettings.will.foreach { will =>
       connectOptions.setWill(will.message.topic, will.message.payload.toArray, will.qos.byteValue.toInt, will.retained)
     }
     connectOptions.setCleanSession(connectionSettings.cleanSession)
-    //connectOptions.setAutomaticReconnect(true)
+    connectOptions.setAutomaticReconnect(connectionSettings.automaticReconnect)
     client.connect(connectOptions, (), connectHandler)
   }
 
@@ -166,14 +183,14 @@ private[mqtt] trait MqttConnectorLogic { this: GraphStageLogic =>
   }
 }
 
-/** Internal API
+/**
+  *  Internal API
   */
 private[mqtt] object MqttConnectorLogic {
 
-  implicit def funcToMqttActionListener(func: Try[IMqttToken] => Unit): IMqttActionListener =
-    new IMqttActionListener {
-      def onSuccess(token: IMqttToken) = func(Success(token))
-      def onFailure(token: IMqttToken, ex: Throwable) = func(Failure(ex))
-    }
+  implicit def funcToMqttActionListener(func: Try[IMqttToken] => Unit): IMqttActionListener = new IMqttActionListener {
+    def onSuccess(token: IMqttToken) = func(Success(token))
+    def onFailure(token: IMqttToken, ex: Throwable) = func(Failure(ex))
+  }
 
 }
