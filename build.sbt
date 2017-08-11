@@ -1,11 +1,11 @@
 import ReleaseTransformations._
 
-val ScalaVersion = "2.12.2"
+val ScalaVersion = "2.12.3"
 val CrossScalaVersions = Seq("2.11.11", ScalaVersion)
-val AkkaVersion = "2.5.3"
-val AkkaHttpVersion = "10.0.8"
+val AkkaVersion = "2.5.4"
+val AkkaHttpVersion = "10.0.9"
 val AkkaStreamKafkaVersion = "0.16"
-val AkkaHttpCirce = "1.15.0"
+val AkkaHttpCirce = "1.17.0"
 val SprayJsonVersion = "1.3.2"
 val Json4sVersion = "3.5.0"
 val ScalaTestVersion = "3.0.1"
@@ -15,9 +15,9 @@ val ScodecBitsVersion = "1.1.2"
 val ThreetenExtraVersion = "1.0"
 val Slf4jVersion = "1.7.25"
 val LogbackVersion = "1.2.3"
-val LogbackHoconVersion = "0.1.0-SNAPSHOT"
-val ScalaStructlogVersion = "0.1.1-SNAPSHOT"
-val ScalaAppVersion = "0.1.0-SNAPSHOT"
+val LogbackHoconVersion = "0.1.3"
+val ScalaStructlogVersion = "0.1.5"
+val ScalaAppVersion = "0.1.0"
 val ConfigVersion = "1.3.1"
 val CommonsVfs2Version = "2.1"
 val CommonsPoolVersion = "1.6"
@@ -32,7 +32,7 @@ val CatsVersion = "0.9.0"
 val JwtCoreVersion = "0.12.0"
 
 lazy val root = (project in file("."))
-  .enablePlugins(JavaServerAppPackaging, ReleasePlugin, LogbackPlugin, ScalafmtPlugin)
+  .enablePlugins(ReleasePlugin, LogbackPlugin, ScalafmtPlugin)
   .configs(IntegrationTest)
   .settings(
     name := "scala-util",
@@ -43,91 +43,96 @@ lazy val root = (project in file("."))
     crossScalaVersions := CrossScalaVersions,
     slf4jVersion := Slf4jVersion,
     logbackVersion := LogbackVersion,
-    resolvers += "Sonatype Maven Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
+    resolvers += "Sonatype Maven Snapshots" at "https://oss.sonatype.org/content/repositories/releases",
     libraryDependencies ++= Seq(
-      "org.threeten" % "threeten-extra" % ThreetenExtraVersion,
-      "io.spray" %% "spray-json" % SprayJsonVersion,
-      "org.json4s" %% "json4s-native" % Json4sVersion,
-      "com.typesafe.akka" %% "akka-actor" % AkkaVersion,
-      "com.typesafe.akka" %% "akka-stream" % AkkaVersion,
-      "com.typesafe.akka" %% "akka-http" % AkkaHttpVersion,
-      "com.typesafe.akka" %% "akka-slf4j" % AkkaVersion,
+      "org.threeten" % "threeten-extra" % ThreetenExtraVersion % Optional,
+      "io.spray" %% "spray-json" % SprayJsonVersion % Optional,
+      "org.json4s" %% "json4s-native" % Json4sVersion % Optional,
+      "com.typesafe.akka" %% "akka-actor" % AkkaVersion % Optional,
+      "com.typesafe.akka" %% "akka-stream" % AkkaVersion % Optional,
+      "com.typesafe.akka" %% "akka-http" % AkkaHttpVersion % Optional,
+      "com.typesafe.akka" %% "akka-slf4j" % AkkaVersion % Optional,
       "com.typesafe.akka" %% "akka-testkit" % AkkaVersion % IntegrationTest,
-      "com.typesafe.akka" %% "akka-stream-kafka" % AkkaStreamKafkaVersion,
-      "de.heikoseeberger" %% "akka-http-circe" % AkkaHttpCirce,
+      "com.typesafe.akka" %% "akka-stream-kafka" % AkkaStreamKafkaVersion % Optional,
+      "de.heikoseeberger" %% "akka-http-circe" % AkkaHttpCirce % Optional,
       "org.scalatest" %% "scalatest" % ScalaTestVersion % Optional,
       "org.scalacheck" %% "scalacheck" % ScalaCheckVersion % IntegrationTest,
       //"org.scalamock" %% "scalamock-scalatest-support" % ScalaMockVersion % Test,
-      "com.github.mwegrz" % "logback-hocon" % LogbackHoconVersion,
-      "com.github.mwegrz" %% "scala-structlog" % ScalaStructlogVersion,
-      "com.github.mwegrz" %% "scala-app" % ScalaAppVersion,
-      "com.typesafe" % "config" % ConfigVersion,
-      "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % PahoVersion,
-      "com.datastax.cassandra" % "cassandra-driver-core" % CassandraDriverVersion,
-      "com.datastax.cassandra" % "cassandra-driver-extras" % CassandraDriverVersion,
-      "org.scodec" %% "scodec-core" % ScodecCoreVersion,
-      "org.scodec" %% "scodec-bits" % ScodecBitsVersion,
-      "io.circe" %% "circe-core" % CirceVersion,
-      "io.circe" %% "circe-generic" % CirceVersion,
-      "io.circe" %% "circe-parser" % CirceVersion,
-      "io.circe" %% "circe-java8" % CirceVersion,
-      "org.typelevel" %% "cats" % CatsVersion,
-      "org.apache.commons" % "commons-vfs2" % CommonsVfs2Version,
-      "commons-pool" % "commons-pool" % CommonsPoolVersion,
-      "com.pauldijou" %% "jwt-core" % JwtCoreVersion,
-      "org.bouncycastle" % "bcpkix-jdk15on" % BouncyCastleVersion
+      "com.github.mwegrz" % "logback-hocon" % LogbackHoconVersion % Optional,
+      "com.github.mwegrz" %% "scala-structlog" % ScalaStructlogVersion % Optional,
+      "com.github.mwegrz" %% "scala-app" % ScalaAppVersion % Optional,
+      "com.typesafe" % "config" % ConfigVersion % Optional,
+      "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % PahoVersion % Optional,
+      "com.datastax.cassandra" % "cassandra-driver-core" % CassandraDriverVersion % Optional,
+      "com.datastax.cassandra" % "cassandra-driver-extras" % CassandraDriverVersion % Optional,
+      "org.scodec" %% "scodec-core" % ScodecCoreVersion % Optional,
+      "org.scodec" %% "scodec-bits" % ScodecBitsVersion % Optional,
+      "io.circe" %% "circe-core" % CirceVersion % Optional,
+      "io.circe" %% "circe-generic" % CirceVersion % Optional,
+      "io.circe" %% "circe-parser" % CirceVersion % Optional,
+      "io.circe" %% "circe-java8" % CirceVersion % Optional,
+      "org.typelevel" %% "cats" % CatsVersion % Optional,
+      "org.apache.commons" % "commons-vfs2" % CommonsVfs2Version % Optional,
+      "commons-pool" % "commons-pool" % CommonsPoolVersion % Optional,
+      "com.pauldijou" %% "jwt-core" % JwtCoreVersion % Optional,
+      "org.bouncycastle" % "bcpkix-jdk15on" % BouncyCastleVersion % Optional,
+      "com.sksamuel.avro4s" %% "avro4s-core" % "1.7.0" % Optional,
+      "pl.iterators" %% "kebs-avro" % "1.5.0" % Optional
     ),
     Defaults.itSettings,
-    // Publishing
-    publishMavenStyle := true,
+    offline := true,
+    fork := true,
+    connectInput in run := true,
+    scalafmtOnCompile := true,
+    // Release settings
+    releaseTagName := { (version in ThisBuild).value },
+    releaseTagComment := s"Release version ${(version in ThisBuild).value}",
+    releaseCommitMessage := s"Set version to ${(version in ThisBuild).value}",
+    releaseCrossBuild := true,
+    releaseProcess := Seq[ReleaseStep](
+      checkSnapshotDependencies,
+      inquireVersions,
+      runClean,
+      runTest,
+      setReleaseVersion,
+      commitReleaseVersion,
+      tagRelease,
+      releaseStepCommandAndRemaining("+publishSigned"),
+      setNextVersion,
+      commitNextVersion,
+      releaseStepCommandAndRemaining("+sonatypeReleaseAll"),
+      pushChanges
+    ),
+    useGpg := true,
+    releasePublishArtifactsAction := PgpKeys.publishSigned.value,
+    // Publish settings
     crossPaths := true,
     autoScalaLibrary := true,
-    publishTo := {
-      val nexus = "https://oss.sonatype.org/"
+    publishTo := Some(
       if (isSnapshot.value)
-        Some("snapshots" at nexus + "content/repositories/snapshots")
+        Opts.resolver.sonatypeSnapshots
       else
-        Some("releases" at nexus + "service/local/staging/deploy/maven2")
-    },
+        Opts.resolver.sonatypeStaging
+    ),
+    publishMavenStyle := true,
     publishArtifact in Test := false,
     pomIncludeRepository := { _ =>
       false
     },
-    pomExtra := (<url>http://github.com/mwegrz/scala-util</url>
-        <licenses>
-          <license>
-            <name>Apache License 2.0</name>
-            <url>http://www.apache.org/licenses/LICENSE-2.0.html</url>
-            <distribution>repo</distribution>
-          </license>
-        </licenses>
-        <scm>
-          <url>git@github.com:mwegrz/scala-util.git</url>
-          <connection>scm:git:git@github.com:mwegrz/scala-util.git</connection>
-        </scm>
-        <developers>
-          <developer>
-            <id>mwegrz</id>
-            <name>Michał Węgrzyn</name>
-            <url>http://github.com/mwegrz</url>
-          </developer>
-        </developers>),
-    releaseTagComment := s"Release version ${(version in ThisBuild).value}",
-    releaseCommitMessage := s"Set version to ${(version in ThisBuild).value}",
-    releaseProcess := Seq[ReleaseStep](
-      //checkSnapshotDependencies,
-      inquireVersions,
-      //runTest,
-      setReleaseVersion,
-      commitReleaseVersion,
-      tagRelease,
-      publishArtifacts,
-      setNextVersion,
-      commitNextVersion,
-      pushChanges
+    licenses := Seq("Apache License 2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0.html")),
+    homepage := Some(url("http://github.com/mwegrz/scala-util")),
+    scmInfo := Some(
+      ScmInfo(
+        url("https://github.com/mwegrz/scala-util.git"),
+        "scm:git@github.com:mwegrz/scala-util.git"
+      )
     ),
-    offline := true,
-    fork := true,
-    connectInput in run := true,
-    scalafmtOnCompile := true
+    developers := List(
+      Developer(
+        id = "mwegrz",
+        name = "Michał Węgrzyn",
+        email = null,
+        url = url("http://github.com/mwegrz")
+      )
+    )
   )

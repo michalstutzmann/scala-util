@@ -11,6 +11,11 @@ import com.github.mwegrz.scalastructlog.KeyValueLogging
 import com.typesafe.config.Config
 import scala.concurrent.{ ExecutionContext, Future }
 
+object CassandraClient {
+  def apply(config: Config)(implicit executionContext: ExecutionContext): CassandraClient =
+    new DefaultCassandraClient(config)
+}
+
 trait CassandraClient extends Shutdownable {
   def createSink[A <: AnyRef](cql: String)(
       statementBinder: (A, PreparedStatement) => BoundStatement): Sink[A, Future[Done]]
@@ -51,9 +56,4 @@ class DefaultCassandraClient(config: Config)(implicit executionContext: Executio
     cluster.close()
     log.debug("Shut down")
   }
-}
-
-object CassandraClient {
-  def apply(config: Config)(implicit executionContext: ExecutionContext): CassandraClient =
-    new DefaultCassandraClient(config)
 }
