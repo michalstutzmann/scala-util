@@ -119,7 +119,7 @@ lazy val root = (project in file("."))
     pomIncludeRepository := { _ =>
       false
     },
-    licenses := Seq("Apache License 2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0.html")),
+    licenses := Seq("Apache License, Version 2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0.html")),
     homepage := Some(url("http://github.com/mwegrz/scala-util")),
     scmInfo := Some(
       ScmInfo(
