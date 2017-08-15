@@ -40,7 +40,7 @@ lazy val root = (project in file("."))
     scalacOptions in ThisBuild ++= Seq("-feature"),
     // Dependency management
     scalaVersion := ScalaVersion,
-    crossScalaVersions := CrossScalaVersions,
+    //crossScalaVersions := CrossScalaVersions,
     slf4jVersion := Slf4jVersion,
     logbackVersion := LogbackVersion,
     resolvers += "Sonatype Maven Snapshots" at "https://oss.sonatype.org/content/repositories/releases",
