@@ -1,7 +1,10 @@
 package com.github.mwegrz.scalautil
 
 import java.io.{ ByteArrayInputStream, ByteArrayOutputStream }
+
 import com.sksamuel.avro4s._
+import org.apache.avro.Schema
+import org.apache.avro.Schema.Field
 
 package object avro4s {
   implicit class AOps[A](c: A) {
@@ -18,5 +21,17 @@ package object avro4s {
     val in = new ByteArrayInputStream(bytes)
     val input = AvroInputStream.binary[A](in)
     input.iterator.toSeq.head
+  }
+
+  def createToSchema[A](schema: Schema) = new ToSchema[A] {
+    override val schema: Schema = schema
+  }
+
+  def createToValue[A, B](f: A => B) = new ToValue[A] {
+    override def apply(value: A): B = f(value)
+  }
+
+  def createFromValue[A](f: (Any, Field) => A) = new FromValue[A] {
+    override def apply(value: Any, field: Field): A = f(value, field)
   }
 }
