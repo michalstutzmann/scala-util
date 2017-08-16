@@ -9,7 +9,9 @@ import com.datastax.driver.extras.codecs.jdk8.InstantCodec
 import com.github.mwegrz.app.Shutdownable
 import com.github.mwegrz.scalastructlog.KeyValueLogging
 import com.typesafe.config.Config
+
 import scala.concurrent.{ ExecutionContext, Future }
+import scala.collection.JavaConverters._
 
 object CassandraClient {
   def apply(config: Config)(implicit executionContext: ExecutionContext): CassandraClient =
@@ -27,13 +29,13 @@ trait CassandraClient extends Shutdownable {
 class DefaultCassandraClient(config: Config)(implicit executionContext: ExecutionContext)
     extends CassandraClient
     with KeyValueLogging {
-  private val host = config.getString("host")
+  private val contactPoints = config.getStringList("contact-points").asScala.toList
   private val port = config.getInt("port")
 
   private val cluster =
-    Cluster.builder.addContactPoint(host).withPort(port).build
+    Cluster.builder.addContactPoints(contactPoints: _*).withPort(port).build
   cluster.getConfiguration.getCodecRegistry.register(InstantCodec.instance)
-  private implicit val session = cluster.connect()
+  private implicit val session: Session = cluster.connect()
 
   log.debug("Initialized")
 

@@ -23,8 +23,8 @@ package object avro4s {
     input.iterator.toSeq.head
   }
 
-  def createToSchema[A](schema: Schema) = new ToSchema[A] {
-    override val schema: Schema = schema
+  def createToSchema[A](s: Schema) = new ToSchema[A] {
+    override val schema: Schema = s
   }
 
   def createToValue[A, B](f: A => B) = new ToValue[A] {

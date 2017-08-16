@@ -1,7 +1,6 @@
 import ReleaseTransformations._
 
 val ScalaVersion = "2.12.3"
-val CrossScalaVersions = Seq("2.11.11", ScalaVersion)
 val AkkaVersion = "2.5.4"
 val AkkaHttpVersion = "10.0.9"
 val AkkaStreamKafkaVersion = "0.16"
@@ -17,16 +16,13 @@ val Slf4jVersion = "1.7.25"
 val LogbackVersion = "1.2.3"
 val LogbackHoconVersion = "0.1.3"
 val ScalaStructlogVersion = "0.1.5"
-val ScalaAppVersion = "0.1.4"
+val ScalaAppVersion = "0.1.5"
 val ConfigVersion = "1.3.1"
 val CommonsVfs2Version = "2.1"
 val CommonsPoolVersion = "1.6"
-//val KafkaVersion = "0.9.0.1" // "0.8.2.1"
-//val ZooKeeperVersion = "3.4.7"
 val PahoVersion = "1.1.0"
 val BouncyCastleVersion = "1.56"
 val CassandraDriverVersion = "3.3.0"
-//val AkkaStreamAlpakkaMqtt = "0.3"
 val CirceVersion = "0.8.0"
 val CatsVersion = "0.9.0"
 val JwtCoreVersion = "0.14.0"
@@ -40,7 +36,6 @@ lazy val root = (project in file("."))
     scalacOptions in ThisBuild ++= Seq("-feature"),
     // Dependency management
     scalaVersion := ScalaVersion,
-    //crossScalaVersions := CrossScalaVersions,
     slf4jVersion := Slf4jVersion,
     logbackVersion := LogbackVersion,
     resolvers += "Sonatype Maven Snapshots" at "https://oss.sonatype.org/content/repositories/releases",
@@ -103,7 +98,6 @@ lazy val root = (project in file("."))
       releaseStepCommandAndRemaining("+sonatypeReleaseAll"),
       pushChanges
     ),
-    useGpg := false,
     releasePublishArtifactsAction := PgpKeys.publishSigned.value,
     // Publish settings
     crossPaths := true,
