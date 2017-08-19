@@ -25,7 +25,7 @@ val BouncyCastleVersion = "1.56"
 val CassandraDriverVersion = "3.3.0"
 val CirceVersion = "0.8.0"
 val CatsVersion = "0.9.0"
-val JwtCoreVersion = "0.14.0"
+val JwtCirceVersion = "0.14.0"
 
 lazy val root = (project in file("."))
   .enablePlugins(ReleasePlugin, LogbackPlugin, ScalafmtPlugin)
@@ -69,7 +69,7 @@ lazy val root = (project in file("."))
       "org.typelevel" %% "cats" % CatsVersion % Optional,
       "org.apache.commons" % "commons-vfs2" % CommonsVfs2Version % Optional,
       "commons-pool" % "commons-pool" % CommonsPoolVersion % Optional,
-      "com.pauldijou" %% "jwt-core" % JwtCoreVersion % Optional,
+      "com.pauldijou" %% "jwt-circe" % JwtCirceVersion % Optional,
       "org.bouncycastle" % "bcpkix-jdk15on" % BouncyCastleVersion % Optional,
       "com.sksamuel.avro4s" %% "avro4s-core" % "1.7.0" % Optional,
       "pl.iterators" %% "kebs-avro" % "1.5.0" % Optional
