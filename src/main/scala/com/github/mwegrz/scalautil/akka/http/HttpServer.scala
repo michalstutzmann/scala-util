@@ -16,6 +16,15 @@ import com.github.mwegrz.scalautil.ConfigOps
 
 import scala.concurrent.ExecutionContext
 
+object HttpServer {
+  def apply(config: Config, httpApis: Map[String, HttpApi])(implicit actorSystem: ActorSystem,
+                                                            actorMaterializer: ActorMaterializer,
+                                                            executor: ExecutionContext): HttpServer =
+    new HttpServer(config.withReferenceDefaults("http-server"), httpApis)
+
+  private def generateRequestId(): String = UUID.randomUUID().toString
+}
+
 class HttpServer private (config: Config, httpApis: Map[String, HttpApi])(implicit actorSystem: ActorSystem,
                                                                           actorMaterializer: ActorMaterializer,
                                                                           executor: ExecutionContext)
@@ -44,15 +53,6 @@ class HttpServer private (config: Config, httpApis: Map[String, HttpApi])(implic
   log.debug("Initialized")
 
   override def shutdown(): Unit = bindingFuture.flatMap(_.unbind()).map(_ => log.debug("Shut down"))
-}
-
-object HttpServer {
-  def apply(config: Config, httpApis: Map[String, HttpApi])(implicit actorSystem: ActorSystem,
-                                                            actorMaterializer: ActorMaterializer,
-                                                            executor: ExecutionContext): HttpServer =
-    new HttpServer(config.withReferenceDefaults("http-server"), httpApis)
-
-  private def generateRequestId(): String = UUID.randomUUID().toString
 }
 
 trait HttpApi {
