@@ -21,7 +21,7 @@ class HttpServer private (config: Config, httpApis: Map[String, HttpApi])(implic
                                                                           executor: ExecutionContext)
     extends Shutdownable
     with KeyValueLogging {
-  import HttpServer.{ meaninglessRejection, generateRequestId }
+  import HttpServer.generateRequestId
 
   private val host = config.getString("host")
   private val port = config.getInt("port")
@@ -29,7 +29,7 @@ class HttpServer private (config: Config, httpApis: Map[String, HttpApi])(implic
   private val route = redirectToNoTrailingSlashIfPresent(StatusCodes.MovedPermanently) {
     httpApis
       .foldLeft(pathEndOrSingleSlash {
-        reject(meaninglessRejection)
+        reject
       }) {
         case (r, (name, a)) =>
           pathPrefix(name) {
@@ -47,8 +47,6 @@ class HttpServer private (config: Config, httpApis: Map[String, HttpApi])(implic
 }
 
 object HttpServer {
-  private val meaninglessRejection = new Rejection {}
-
   def apply(config: Config, httpApis: Map[String, HttpApi])(implicit actorSystem: ActorSystem,
                                                             actorMaterializer: ActorMaterializer,
                                                             executor: ExecutionContext): HttpServer =
