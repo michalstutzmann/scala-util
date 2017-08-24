@@ -3,7 +3,7 @@ import ReleaseTransformations._
 val ScalaVersion = "2.12.3"
 val AkkaVersion = "2.5.4"
 val AkkaHttpVersion = "10.0.9"
-val AkkaStreamKafkaVersion = "0.16"
+val AkkaStreamKafkaVersion = "0.17"
 val AkkaHttpCirce = "1.17.0"
 val SprayJsonVersion = "1.3.2"
 val Json4sVersion = "3.5.0"
