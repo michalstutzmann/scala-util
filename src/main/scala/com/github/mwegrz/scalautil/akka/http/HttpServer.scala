@@ -32,20 +32,23 @@ class HttpServer private (config: Config, httpApis: Map[String, HttpApi])(implic
     with KeyValueLogging {
   import HttpServer.generateRequestId
 
+  private val basePath = config.getString("basePath")
   private val host = config.getString("host")
   private val port = config.getInt("port")
 
   private val route = redirectToNoTrailingSlashIfPresent(StatusCodes.MovedPermanently) {
-    httpApis
-      .foldLeft(pathEndOrSingleSlash {
-        reject
-      }) {
-        case (r, (name, a)) =>
-          pathPrefix(name) {
-            val reqId = generateRequestId()
-            a.route(reqId)
-          } ~ r
-      }
+    pathPrefix(basePath) {
+      httpApis
+        .foldLeft(pathEndOrSingleSlash {
+          reject
+        }) {
+          case (r, (name, a)) =>
+            pathPrefix(name) {
+              val reqId = generateRequestId()
+              a.route(reqId)
+            } ~ r
+        }
+    }
   }
 
   private val bindingFuture = Http().bindAndHandle(route, host, port)
