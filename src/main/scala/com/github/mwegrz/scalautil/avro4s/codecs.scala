@@ -2,12 +2,30 @@ package com.github.mwegrz.scalautil.avro4s
 
 import java.time.Instant
 
-import com.sksamuel.avro4s.{ FromValue, ToSchema, ToValue }
-import org.apache.avro.Schema
+import com.sksamuel.avro4s._
+import org.apache.avro.{ Schema, SchemaBuilder }
 import org.apache.avro.Schema.Field
 import scodec.bits.ByteVector
 
 object codecs {
+  implicit val ByteToSchema: ToSchema[Byte] = new ToSchema[Byte] {
+    protected val schema = Schema.create(Schema.Type.INT)
+  }
+
+  implicit val ByteToValue: ToValue[Byte] = ToValue[Byte]
+
+  implicit object ByteFromValue extends FromValue[Byte] {
+    override def apply(value: Any, field: Field): Byte = value.asInstanceOf[Byte]
+  }
+
+  implicit object BytechemaFor extends SchemaFor[Byte] {
+    private val schema = SchemaBuilder.builder().intType()
+    def apply(): org.apache.avro.Schema = schema
+  }
+
+  //implicit val ByteFromRecord: FromRecord[Byte] = FromRecord[Byte]
+  //implicit val ByteToRecord: ToRecord[Byte] = ToRecord[Byte]
+
   // Byte Vector
   implicit object ByteVectorToSchema extends ToSchema[ByteVector] {
     override val schema: Schema = Schema.create(Schema.Type.BYTES)
