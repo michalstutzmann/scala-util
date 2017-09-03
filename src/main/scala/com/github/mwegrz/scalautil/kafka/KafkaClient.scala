@@ -1,13 +1,12 @@
 package com.github.mwegrz.scalautil.kafka
 
-import akka.NotUsed
+import akka.{ Done, NotUsed }
 import akka.actor.ActorSystem
 import akka.kafka.ConsumerMessage.{ CommittableMessage, CommittableOffset }
-import akka.kafka.scaladsl.Consumer
+import akka.kafka.scaladsl.{ Consumer, Producer }
 import akka.kafka.{ ConsumerSettings, ProducerMessage, ProducerSettings, Subscriptions }
 import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.Source
-import akka.stream.scaladsl.{ BidiFlow, Flow, Keep }
+import akka.stream.scaladsl.{ BidiFlow, Flow, Keep, Sink, Source }
 import com.github.mwegrz.scalautil.akka.kafka.scaladsl.{ KafkaCommitableFlow, KafkaFlow }
 import com.typesafe.config.Config
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -15,22 +14,29 @@ import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.serialization.{ ByteArrayDeserializer, ByteArraySerializer }
 import com.github.mwegrz.scalautil.ConfigOps
 
+import scala.concurrent.Future
+
 object KafkaClient {
   def apply(config: Config)(implicit actorSystem: ActorSystem, actorMaterializer: ActorMaterializer): KafkaClient =
     new DefaultKafkaClient(config)
 }
 
 trait KafkaClient {
-  def source[A](inTopic: String)(fromBinary: (Array[Byte], Array[Byte]) => A): Source[A, NotUsed]
+  def source[A](topic: String)(fromBinary: (Array[Byte], Array[Byte]) => A): Source[A, NotUsed]
 
-  def committableSource[A](inTopic: String)(
+  def committableSource[A](topic: String)(
       fromBinary: (Array[Byte], Array[Byte]) => A): Source[(A, CommittableOffset), NotUsed]
+
+  def sink[A](topic: String)(toBinary: A => (Array[Byte], Array[Byte])): Sink[A, Future[Done]]
+
+  def committableSink[A](topic: String)(
+      toBinary: A => (Array[Byte], Array[Byte])): Sink[(A, CommittableOffset), Future[Done]]
 
   def flow[A, B](inTopic: String, outTopics: Set[String])(
       toBinary: A => (Array[Byte], Array[Byte]),
       fromBinary: (Array[Byte], Array[Byte]) => B): Flow[A, B, NotUsed]
 
-  def commitableFlow[A, B](inTopic: String, outTopics: Set[String])(
+  def committableFlow[A, B](inTopic: String, outTopics: Set[String])(
       toBinary: A => (Array[Byte], Array[Byte]),
       fromBinary: (Array[Byte], Array[Byte]) => B): Flow[(A, CommittableOffset), (B, CommittableOffset), NotUsed]
 }
@@ -65,6 +71,33 @@ class DefaultKafkaClient private[kafka] (config: Config)(implicit actorSystem: A
       }
       .mapMaterializedValue(_ => NotUsed)
 
+  override def sink[A](topic: String)(toBinary: A => (Array[Byte], Array[Byte])): Sink[A, Future[Done]] =
+    Flow[A]
+      .map { a =>
+        val (key, value) = toBinary(a)
+        new ProducerRecord[Array[Byte], Array[Byte]](
+          topic,
+          key,
+          value
+        )
+      }
+      .toMat(Producer.plainSink(producerSettings))(Keep.right)
+
+  def committableSink[A](topic: String)(
+      toBinary: A => (Array[Byte], Array[Byte])): Sink[(A, CommittableOffset), Future[Done]] =
+    Flow[(A, CommittableOffset)]
+      .map {
+        case (a, offset) =>
+          val (key, value) = toBinary(a)
+          ProducerMessage.Message(new ProducerRecord[Array[Byte], Array[Byte]](
+                                    topic,
+                                    key,
+                                    value
+                                  ),
+                                  offset)
+      }
+      .toMat(Producer.commitableSink(producerSettings))(Keep.right)
+
   override def flow[A, B](inTopic: String, outTopics: Set[String])(
       toBinary: A => (Array[Byte], Array[Byte]),
       fromBinary: (Array[Byte], Array[Byte]) => B): Flow[A, B, NotUsed] = {
@@ -90,7 +123,7 @@ class DefaultKafkaClient private[kafka] (config: Config)(implicit actorSystem: A
     bidiFlow.joinMat(kafkaFlow)(Keep.left)
   }
 
-  override def commitableFlow[A, B](inTopic: String, outTopics: Set[String])(
+  override def committableFlow[A, B](inTopic: String, outTopics: Set[String])(
       toBinary: A => (Array[Byte], Array[Byte]),
       fromBinary: (Array[Byte], Array[Byte]) => B): Flow[(A, CommittableOffset), (B, CommittableOffset), NotUsed] = {
     val kafkaFlow = KafkaCommitableFlow(producerSettings, consumerSettings, Subscriptions.topics(outTopics))
