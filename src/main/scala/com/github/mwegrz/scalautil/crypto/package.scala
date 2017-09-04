@@ -3,7 +3,7 @@ package com.github.mwegrz.scalautil
 import javax.crypto.Cipher
 import javax.crypto.spec.{ IvParameterSpec, SecretKeySpec }
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import scodec.bits.ByteVector
+import _root_.scodec.bits.ByteVector
 
 package object crypto {
   private val Provider = new BouncyCastleProvider()
