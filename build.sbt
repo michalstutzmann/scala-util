@@ -5,21 +5,20 @@ val AkkaVersion = "2.5.8"
 val AkkaHttpVersion = "10.0.11"
 val AkkaStreamKafkaVersion = "0.18"
 val AkkaHttpCirceVersion = "1.18.1"
+val AlpakkaVersion = "0.15"
 val ScalaTestVersion = "3.0.4"
 val ScodecCoreVersion = "1.10.3"
 val ScodecBitsVersion = "1.1.5"
-val ThreetenExtraVersion = "1.0"
+val ThreetenExtraVersion = "1.2"
 val Slf4jVersion = "1.7.25"
 val LogbackVersion = "1.2.3"
-val LogbackHoconVersion = "0.1.3"
+val LogbackHoconVersion = "0.1.6"
 val ScalaStructlogVersion = "0.1.6"
 val ScalaAppVersion = "0.1.6"
 val ConfigVersion = "1.3.2"
 val CommonsVfs2Version = "2.1"
 val CommonsPoolVersion = "1.6"
-val PahoVersion = "1.2.0"
 val BouncyCastleVersion = "1.58"
-val CassandraDriverVersion = "3.3.2"
 val CirceVersion = "0.8.0"
 val CatsVersion = "0.9.0"
 val JwtCirceVersion = "0.14.1"
@@ -47,14 +46,12 @@ lazy val root = (project in file("."))
       "com.typesafe.akka" %% "akka-testkit" % AkkaVersion % IntegrationTest,
       "com.typesafe.akka" %% "akka-stream-kafka" % AkkaStreamKafkaVersion % Optional,
       "de.heikoseeberger" %% "akka-http-circe" % AkkaHttpCirceVersion % Optional,
+      "com.lightbend.akka" %% "akka-stream-alpakka-cassandra" % AlpakkaVersion % Optional,
       "org.scalatest" %% "scalatest" % ScalaTestVersion % Optional,
       "com.github.mwegrz" % "logback-hocon" % LogbackHoconVersion % Optional,
       "com.github.mwegrz" %% "scala-structlog" % ScalaStructlogVersion % Optional,
       "com.github.mwegrz" %% "scala-app" % ScalaAppVersion % Optional,
       "com.typesafe" % "config" % ConfigVersion % Optional,
-      "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % PahoVersion % Optional,
-      "com.datastax.cassandra" % "cassandra-driver-core" % CassandraDriverVersion % Optional,
-      "com.datastax.cassandra" % "cassandra-driver-extras" % CassandraDriverVersion % Optional,
       "org.scodec" %% "scodec-core" % ScodecCoreVersion % Optional,
       "org.scodec" %% "scodec-bits" % ScodecBitsVersion % Optional,
       "io.circe" %% "circe-core" % CirceVersion % Optional,

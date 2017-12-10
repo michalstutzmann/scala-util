@@ -5,7 +5,6 @@ import akka.{ Done, NotUsed }
 import akka.stream.alpakka.cassandra.scaladsl.{ CassandraSink, CassandraSource }
 import akka.stream.scaladsl.{ Sink, Source }
 import com.datastax.driver.core._
-import com.datastax.driver.extras.codecs.jdk8.InstantCodec
 import com.github.mwegrz.app.Shutdownable
 import com.github.mwegrz.scalastructlog.KeyValueLogging
 import com.typesafe.config.Config
@@ -34,7 +33,6 @@ class DefaultCassandraClient(config: Config)(implicit executionContext: Executio
 
   private val cluster =
     Cluster.builder.addContactPoints(contactPoints: _*).withPort(port).build
-  cluster.getConfiguration.getCodecRegistry.register(InstantCodec.instance)
   private implicit val session: Session = cluster.connect()
 
   log.debug("Initialized")
