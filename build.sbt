@@ -37,7 +37,7 @@ lazy val root = (project in file("."))
     scalaVersion := ScalaVersion,
     slf4jVersion := Slf4jVersion,
     logbackVersion := LogbackVersion,
-    //resolvers += "Sonatype Maven Snapshots" at "https://oss.sonatype.org/content/repositories/releases",
+    resolvers += "Sonatype Maven Snapshots" at "https://oss.sonatype.org/content/repositories/releases",
     libraryDependencies ++= Seq(
       "org.threeten" % "threeten-extra" % ThreetenExtraVersion % Optional,
       "com.typesafe.akka" %% "akka-actor" % AkkaVersion % Optional,
