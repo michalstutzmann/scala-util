@@ -37,7 +37,7 @@ object SecurityDirectives {
 
     {
       case Provided(id) => decode(id).toOption
-      case Missing => None
+      case Missing      => None
     }
   }
 

@@ -1,33 +1,30 @@
 import ReleaseTransformations._
 
-val ScalaVersion = "2.12.3"
-val AkkaVersion = "2.5.4"
-val AkkaHttpVersion = "10.0.9"
-val AkkaStreamKafkaVersion = "0.17"
-val AkkaHttpCirce = "1.17.0"
-val SprayJsonVersion = "1.3.2"
-val Json4sVersion = "3.5.0"
-val ScalaTestVersion = "3.0.1"
-val ScalaCheckVersion = "1.13.4"
+val ScalaVersion = "2.12.4"
+val AkkaVersion = "2.5.8"
+val AkkaHttpVersion = "10.0.11"
+val AkkaStreamKafkaVersion = "0.18"
+val AkkaHttpCirceVersion = "1.18.1"
+val ScalaTestVersion = "3.0.4"
 val ScodecCoreVersion = "1.10.3"
 val ScodecBitsVersion = "1.1.5"
 val ThreetenExtraVersion = "1.0"
 val Slf4jVersion = "1.7.25"
 val LogbackVersion = "1.2.3"
 val LogbackHoconVersion = "0.1.3"
-val ScalaStructlogVersion = "0.1.5"
-val ScalaAppVersion = "0.1.5"
-val ConfigVersion = "1.3.1"
+val ScalaStructlogVersion = "0.1.6"
+val ScalaAppVersion = "0.1.6"
+val ConfigVersion = "1.3.2"
 val CommonsVfs2Version = "2.1"
 val CommonsPoolVersion = "1.6"
-val PahoVersion = "1.1.0"
-val BouncyCastleVersion = "1.56"
-val CassandraDriverVersion = "3.3.0"
+val PahoVersion = "1.2.0"
+val BouncyCastleVersion = "1.58"
+val CassandraDriverVersion = "3.3.2"
 val CirceVersion = "0.8.0"
 val CatsVersion = "0.9.0"
-val JwtCirceVersion = "0.14.0"
+val JwtCirceVersion = "0.14.1"
 val Avro4SVersion = "1.8.0"
-val KebsVersion = "1.5.0"
+val KebsVersion = "1.5.1"
 
 lazy val root = (project in file("."))
   .enablePlugins(ReleasePlugin, LogbackPlugin, ScalafmtPlugin)
@@ -40,21 +37,17 @@ lazy val root = (project in file("."))
     scalaVersion := ScalaVersion,
     slf4jVersion := Slf4jVersion,
     logbackVersion := LogbackVersion,
-    resolvers += "Sonatype Maven Snapshots" at "https://oss.sonatype.org/content/repositories/releases",
+    //resolvers += "Sonatype Maven Snapshots" at "https://oss.sonatype.org/content/repositories/releases",
     libraryDependencies ++= Seq(
       "org.threeten" % "threeten-extra" % ThreetenExtraVersion % Optional,
-      "io.spray" %% "spray-json" % SprayJsonVersion % Optional,
-      "org.json4s" %% "json4s-native" % Json4sVersion % Optional,
       "com.typesafe.akka" %% "akka-actor" % AkkaVersion % Optional,
       "com.typesafe.akka" %% "akka-stream" % AkkaVersion % Optional,
       "com.typesafe.akka" %% "akka-http" % AkkaHttpVersion % Optional,
       "com.typesafe.akka" %% "akka-slf4j" % AkkaVersion % Optional,
       "com.typesafe.akka" %% "akka-testkit" % AkkaVersion % IntegrationTest,
       "com.typesafe.akka" %% "akka-stream-kafka" % AkkaStreamKafkaVersion % Optional,
-      "de.heikoseeberger" %% "akka-http-circe" % AkkaHttpCirce % Optional,
+      "de.heikoseeberger" %% "akka-http-circe" % AkkaHttpCirceVersion % Optional,
       "org.scalatest" %% "scalatest" % ScalaTestVersion % Optional,
-      "org.scalacheck" %% "scalacheck" % ScalaCheckVersion % IntegrationTest,
-      //"org.scalamock" %% "scalamock-scalatest-support" % ScalaMockVersion % Test,
       "com.github.mwegrz" % "logback-hocon" % LogbackHoconVersion % Optional,
       "com.github.mwegrz" %% "scala-structlog" % ScalaStructlogVersion % Optional,
       "com.github.mwegrz" %% "scala-app" % ScalaAppVersion % Optional,
@@ -77,7 +70,6 @@ lazy val root = (project in file("."))
       "pl.iterators" %% "kebs-avro" % KebsVersion % Optional
     ),
     Defaults.itSettings,
-    offline := true,
     fork := true,
     connectInput in run := true,
     scalafmtOnCompile := true,
@@ -85,7 +77,6 @@ lazy val root = (project in file("."))
     releaseTagName := { (version in ThisBuild).value },
     releaseTagComment := s"Release version ${(version in ThisBuild).value}",
     releaseCommitMessage := s"Set version to ${(version in ThisBuild).value}",
-    releaseCrossBuild := true,
     releaseProcess := Seq[ReleaseStep](
       checkSnapshotDependencies,
       inquireVersions,
@@ -102,7 +93,6 @@ lazy val root = (project in file("."))
     ),
     releasePublishArtifactsAction := PgpKeys.publishSigned.value,
     // Publish settings
-    crossPaths := true,
     autoScalaLibrary := true,
     publishTo := Some(
       if (isSnapshot.value)

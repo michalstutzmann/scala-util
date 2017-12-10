@@ -7,7 +7,7 @@ package object scodec {
   implicit class RichByteVector(byteVector: ByteVector) {
     def toHex(ordering: ByteOrdering): String = {
       val orderedBytes = ordering match {
-        case BigEndian => byteVector
+        case BigEndian    => byteVector
         case LittleEndian => byteVector.reverse
       }
       orderedBytes.toHex

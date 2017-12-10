@@ -53,7 +53,7 @@ class MqttFlowStage(sourceSettings: MqttSourceSettings, bufferSize: Int, qos: Mq
 
       private val onPublished = getAsyncCallback[Try[IMqttToken]] {
         case Success(token) => pull(in)
-        case Failure(ex) => failStage(ex)
+        case Failure(ex)    => failStage(ex)
       }
 
       override val connectionSettings: MqttConnectionSettings = sourceSettings.connectionSettings

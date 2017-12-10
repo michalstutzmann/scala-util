@@ -79,7 +79,7 @@ class FileSystem private (conf: Config) extends Shutdownable {
     val pool = new GenericObjectPool(factory)
     val maxActive = conf.getString("max-pool-size") match {
       case "auto" => 1
-      case _ => conf.getInt("max-pool-size")
+      case _      => conf.getInt("max-pool-size")
     }
     val maxIdle = maxActive
     pool.setMaxActive(maxActive)
@@ -87,7 +87,7 @@ class FileSystem private (conf: Config) extends Shutdownable {
 
     val minIdle = conf.getString("min-idle") match {
       case "auto" => 1
-      case _ => conf.getInt("max-idle")
+      case _      => conf.getInt("max-idle")
     }
 
     pool.setMinIdle(minIdle)

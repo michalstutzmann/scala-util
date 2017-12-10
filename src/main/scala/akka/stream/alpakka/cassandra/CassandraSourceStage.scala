@@ -41,7 +41,7 @@ final class CassandraSourceStage(futStmt: Future[Statement], session: Session) e
               case Some(rs) if rs.getAvailableWithoutFetching > 0 =>
                 push(out, rs.one())
               case Some(rs) if rs.isExhausted => completeStage()
-              case Some(rs) =>
+              case Some(rs)                   =>
                 // fetch next page
                 val futRs = rs.fetchMoreResults().asScala()
                 futRs.onComplete(futFetchedCallback.invoke)

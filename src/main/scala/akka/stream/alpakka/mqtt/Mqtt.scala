@@ -179,7 +179,7 @@ private[mqtt] trait MqttConnectorLogic { this: GraphStageLogic =>
 
   private val connectHandler: Try[IMqttToken] => Unit = {
     case Success(token) => onConnect.invoke(token.getClient)
-    case Failure(ex) => onConnectionLost.invoke(ex)
+    case Failure(ex)    => onConnectionLost.invoke(ex)
   }
 }
 

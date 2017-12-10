@@ -19,7 +19,5 @@ object PingEnabledWebSocketClientBlueprint {
   ): Http.WebSocketClientLayer =
     (simpleTls.atopMat(handshake(request, settings, log))(Keep.right) atop
       WebSocket.framing atop
-      PingEnabledWebSocket.stack(serverSide = false,
-                                 maskingRandomFactory = settings.websocketRandomFactory,
-                                 log = log)).reversed
+      PingEnabledWebSocket.stack(serverSide = false, maskingRandomFactory = settings.websocketRandomFactory, log = log)).reversed
 }

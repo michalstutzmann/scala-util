@@ -50,7 +50,7 @@ class UdpFlowStage(localAddr: InetSocketAddress,
           else {
             if (!droppedDone.isCompleted) drop ! (bytes, remoteAddr)
           }
-        case Udp.Unbind => socket ! Udp.Unbind
+        case Udp.Unbind  => socket ! Udp.Unbind
         case Udp.Unbound => completeStage()
         case (bytes: ByteString, remoteAddr: InetSocketAddress) =>
           socket.tell(Udp.Send(bytes, remoteAddr), self.ref)
