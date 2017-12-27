@@ -47,6 +47,7 @@ lazy val root = (project in file("."))
       "com.typesafe.akka" %% "akka-stream-kafka" % AkkaStreamKafkaVersion % Optional,
       "de.heikoseeberger" %% "akka-http-circe" % AkkaHttpCirceVersion % Optional,
       "com.lightbend.akka" %% "akka-stream-alpakka-cassandra" % AlpakkaVersion % Optional,
+      "com.lightbend.akka" %% "akka-stream-alpakka-mqtt" % AlpakkaVersion % Optional,
       "org.scalatest" %% "scalatest" % ScalaTestVersion % Optional,
       "com.github.mwegrz" % "logback-hocon" % LogbackHoconVersion % Optional,
       "com.github.mwegrz" %% "scala-structlog" % ScalaStructlogVersion % Optional,
