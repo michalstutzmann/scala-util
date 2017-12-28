@@ -249,13 +249,13 @@ object SqlDatabaseClient {
     createSqlDatabase(mergedConfig)
   }
 
-  /** Creates a [[SqlDatabaseClient]] based on settings at the "sql-database" path in the `config`.
+  /** Creates a [[SqlDatabaseClient]] based on settings in the `config`.
     *
     * @param config optional custom [[Config]] in which the configuration is defined.
     * @return configured and initialized [[SqlDatabaseClient]]
     */
   def apply(config: Config = ConfigFactory.load()): SqlDatabaseClient =
-    createSqlDatabase(config.getConfig(DefaultConfigPath))
+    createSqlDatabase(config)
 
   /** Creates a [[SqlDatabaseClient]] based on settings provided in the arguments applied over the reference config.
     *
