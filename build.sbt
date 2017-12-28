@@ -9,6 +9,7 @@ val AlpakkaVersion = "0.15"
 val ScalaTestVersion = "3.0.4"
 val ScodecCoreVersion = "1.10.3"
 val ScodecBitsVersion = "1.1.5"
+val SlickVersion = "3.2.1"
 val ThreetenExtraVersion = "1.2"
 val Slf4jVersion = "1.7.25"
 val LogbackVersion = "1.2.3"
@@ -55,6 +56,8 @@ lazy val root = (project in file("."))
       "com.typesafe" % "config" % ConfigVersion % Optional,
       "org.scodec" %% "scodec-core" % ScodecCoreVersion % Optional,
       "org.scodec" %% "scodec-bits" % ScodecBitsVersion % Optional,
+      "com.typesafe.slick" %% "slick" % SlickVersion % Optional,
+      "com.typesafe.slick" %% "slick-hikaricp" % SlickVersion % Optional,
       "io.circe" %% "circe-core" % CirceVersion % Optional,
       "io.circe" %% "circe-generic" % CirceVersion % Optional,
       "io.circe" %% "circe-parser" % CirceVersion % Optional,
