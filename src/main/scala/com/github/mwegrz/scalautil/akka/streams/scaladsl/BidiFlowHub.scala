@@ -25,9 +25,9 @@ class BidiFlowHub[A, B](aBufferSize: Int = 256,
       .toMat(BroadcastHub.sink[B](bBufferSize))(Keep.both)
       .run()
 
-  val leftFlow: Flow[A, B, NotUsed] = Flow.fromSinkAndSource(aSink, bSource)
+  val leftFlow: Flow[A, B, NotUsed] = Flow.fromSinkAndSourceCoupled(aSink, bSource)
 
-  val rightFlow: Flow[B, A, NotUsed] = Flow.fromSinkAndSource(bSink, aSource)
+  val rightFlow: Flow[B, A, NotUsed] = Flow.fromSinkAndSourceCoupled(bSink, aSource)
 
   override def shutdown(): Unit = {
     akillSwitch.shutdown()
