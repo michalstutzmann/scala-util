@@ -33,9 +33,11 @@ class DefaultMqttClient private[mqtt] (config: Config)(implicit actorSystem: Act
     extends MqttClient {
 
   private val broker = config.getString("broker")
-  private val clientId = config.getString("clientId")
+  private val username = config.getString("username")
+  private val password = config.getString("password")
+  private val clientId = config.getString("client-id")
 
-  private val connectionSettings = MqttConnectionSettings(broker, clientId, new MemoryPersistence)
+  private val connectionSettings = MqttConnectionSettings(broker, clientId, new MemoryPersistence).withAuth(username, password)
 
   override def source[A](topics: Map[String, MqttQoS], bufferSize: Int)(
       fromBinary: Array[Byte] => A): Source[(String, A), Future[Done]] = {
