@@ -1,4 +1,4 @@
-package com.github.mwegrz.scalautil.resource.sync
+package com.github.mwegrz.scalautil
 
 import scala.language.reflectiveCalls
 

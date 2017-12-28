@@ -1,12 +1,13 @@
-package com.github.mwegrz.scalautil.resource.sync
+package com.github.mwegrz.scalautil.filesystem
 
 import java.io._
 import java.net.URI
 import java.nio.file.Paths
 import java.time.Instant
 import java.util.zip._
+
 import com.github.mwegrz.app.Shutdownable
-import com.github.mwegrz.scalautil.resource.sync.Compression.Compression
+import Compression.Compression
 import com.typesafe.config.Config
 import org.apache.commons.pool.BasePoolableObjectFactory
 import org.apache.commons.pool.impl.GenericObjectPool
@@ -15,11 +16,12 @@ import org.apache.commons.vfs2.auth.StaticUserAuthenticator
 import org.apache.commons.vfs2.impl.{ DefaultFileSystemConfigBuilder, StandardFileSystemManager }
 import org.apache.commons.vfs2.provider.ftp.FtpFileSystemConfigBuilder
 import org.apache.commons.vfs2.provider.sftp.SftpFileSystemConfigBuilder
-import scala.io.{ BufferedSource, Codec, Source }
-import com.github.mwegrz.scalautil.ConfigOps
 
-class FileSystem private (conf: Config) extends Shutdownable {
-  import FileSystem._
+import scala.io.{ BufferedSource, Codec, Source }
+import com.github.mwegrz.scalautil.{ ConfigOps, arm }
+
+class FileSystemClient private (conf: Config) extends Shutdownable {
+  import FileSystemClient._
 
   private val workingDir = Paths.get(System.getProperty("user.dir"))
 
@@ -234,7 +236,7 @@ class FileSystem private (conf: Config) extends Shutdownable {
     file.delete()
   }
 
-  def changeDirectory(path: String): FileSystem = ???
+  def changeDirectory(path: String): FileSystemClient = ???
 
   def inputStream(path: String): InputStream = new InputStream {
     private val manager = pool.borrowObject()
@@ -309,7 +311,7 @@ class FileSystem private (conf: Config) extends Shutdownable {
   }
 }
 
-object FileSystem {
+object FileSystemClient {
   val DefaultEncoding = Encoding("UTF-8")
   val DefaultBufferSize = BufferSize(8192)
   //private val DefaultConfigPath = "file-system"
@@ -331,7 +333,7 @@ object FileSystem {
     }
   }
 
-  def apply(config: Config): FileSystem = new FileSystem(config.withReferenceDefaults("file-system"))
+  def apply(config: Config): FileSystemClient = new FileSystemClient(config.withReferenceDefaults("file-system-client"))
 
   private def decompressInputStream(is: InputStream, compression: Option[Compression]): InputStream =
     compression.fold(is) {
@@ -353,7 +355,7 @@ object FileSystem {
       //zippedOs
     }
 
-  def copy(fromFs: FileSystem, fromPath: String, toFs: FileSystem, toPath: String)(
+  def copy(fromFs: FileSystemClient, fromPath: String, toFs: FileSystemClient, toPath: String)(
       bufferSize: BufferSize = DefaultBufferSize,
       fromCompression: Option[Compression] = None,
       toCompression: Option[Compression] = None
@@ -385,6 +387,6 @@ object FileSystem {
     }
   }
 
-  private def isLocalFileSystem(fs: FileSystem): Boolean =
+  private def isLocalFileSystem(fs: FileSystemClient): Boolean =
     fs.baseUri.getScheme == "file" && (fs.baseUri.getHost == null || fs.baseUri.getHost == "")
 }

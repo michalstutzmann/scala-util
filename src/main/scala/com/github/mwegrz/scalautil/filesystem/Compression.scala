@@ -1,4 +1,4 @@
-package com.github.mwegrz.scalautil.resource.sync
+package com.github.mwegrz.scalautil.filesystem
 
 object Compression extends Enumeration {
   type Compression = Value
