@@ -1,11 +1,11 @@
 package com.github.mwegrz.scalautil.mqtt
 
-import akka.{Done, NotUsed}
+import akka.{ Done, NotUsed }
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import akka.stream.alpakka.mqtt.scaladsl.{MqttFlow, MqttSink, MqttSource}
-import akka.stream.alpakka.mqtt.{MqttConnectionSettings, MqttMessage, MqttQoS, MqttSourceSettings}
-import akka.stream.scaladsl.{BidiFlow, Flow, RestartFlow, RestartSink, RestartSource, Sink, Source}
+import akka.stream.alpakka.mqtt.scaladsl.{ MqttFlow, MqttSink, MqttSource }
+import akka.stream.alpakka.mqtt.{ MqttConnectionSettings, MqttMessage, MqttQoS, MqttSourceSettings }
+import akka.stream.scaladsl.{ BidiFlow, Flow, RestartFlow, RestartSink, RestartSource, Sink, Source }
 import akka.util.ByteString
 import com.github.mwegrz.scalastructlog.KeyValueLogging
 import com.typesafe.config.Config
@@ -32,7 +32,8 @@ trait MqttClient {
 
 class DefaultMqttClient private[mqtt] (config: Config)(implicit actorSystem: ActorSystem,
                                                        actorMaterializer: ActorMaterializer)
-    extends MqttClient with KeyValueLogging {
+    extends MqttClient
+    with KeyValueLogging {
 
   private val broker = config.getString("broker")
   private val username = config.getString("username")
