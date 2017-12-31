@@ -5,10 +5,11 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.alpakka.mqtt.scaladsl.{ MqttFlow, MqttSink, MqttSource }
 import akka.stream.alpakka.mqtt.{ MqttConnectionSettings, MqttMessage, MqttQoS, MqttSourceSettings }
-import akka.stream.scaladsl.{ Flow, Sink, Source, BidiFlow }
+import akka.stream.scaladsl.{ BidiFlow, Flow, RestartFlow, RestartSink, RestartSource, Sink, Source }
 import akka.util.ByteString
 import com.typesafe.config.Config
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
+import com.github.mwegrz.scalautil.javaDurationToDuration
 
 import scala.concurrent.Future
 
@@ -19,9 +20,9 @@ object MqttClient {
 
 trait MqttClient {
   def source[A](topics: Map[String, MqttQoS], bufferSize: Int)(
-      fromBinary: Array[Byte] => A): Source[(String, A), Future[Done]]
+      fromBinary: Array[Byte] => A): Source[(String, A), NotUsed]
 
-  def sink[A](qos: MqttQoS)(toBinary: A => Array[Byte]): Sink[(String, A), Future[Done]]
+  def sink[A](qos: MqttQoS)(toBinary: A => Array[Byte]): Sink[(String, A), NotUsed]
 
   def flow[A, B](topics: Map[String, MqttQoS], bufferSize: Int, qos: MqttQoS)(
       toBinary: A => Array[Byte],
@@ -36,17 +37,29 @@ class DefaultMqttClient private[mqtt] (config: Config)(implicit actorSystem: Act
   private val username = config.getString("username")
   private val password = config.getString("password")
   private val clientId = config.getString("client-id")
+  private val restartMinBackoff = config.getDuration("restart.min-backoff")
+  private val restartMaxBackoff = config.getDuration("restart.max-backoff")
+  private val restartRandomFactor = config.getDouble("restart.random-factor")
 
-  private val connectionSettings = MqttConnectionSettings(broker, clientId, new MemoryPersistence).withAuth(username, password)
+  private val connectionSettings =
+    MqttConnectionSettings(broker, clientId, new MemoryPersistence)
+      .withAuth(username, password)
 
   override def source[A](topics: Map[String, MqttQoS], bufferSize: Int)(
-      fromBinary: Array[Byte] => A): Source[(String, A), Future[Done]] = {
+      fromBinary: Array[Byte] => A): Source[(String, A), NotUsed] = {
     val settings = MqttSourceSettings(connectionSettings, topics)
-    MqttSource(settings, bufferSize).map(m => (m.topic, fromBinary(m.payload.toArray)))
+    val mqttSource = RestartSource.withBackoff(restartMinBackoff, restartMaxBackoff, restartRandomFactor) { () =>
+      MqttSource(settings, bufferSize)
+    }
+    mqttSource.map(m => (m.topic, fromBinary(m.payload.toArray)))
   }
 
-  override def sink[A](qos: MqttQoS)(toBinary: A => Array[Byte]): Sink[(String, A), Future[Done]] =
-    MqttSink(connectionSettings, qos).contramap { case (t, e) => MqttMessage(t, ByteString(toBinary(e))) }
+  override def sink[A](qos: MqttQoS)(toBinary: A => Array[Byte]): Sink[(String, A), NotUsed] = {
+    val mqttSink = RestartSink.withBackoff(restartMinBackoff, restartMaxBackoff, restartRandomFactor) { () =>
+      MqttSink(connectionSettings, qos)
+    }
+    mqttSink.contramap { case (t, e) => MqttMessage(t, ByteString(toBinary(e))) }
+  }
 
   override def flow[A, B](topics: Map[String, MqttQoS], bufferSize: Int, qos: MqttQoS)(
       toBinary: A => Array[Byte],
@@ -54,9 +67,12 @@ class DefaultMqttClient private[mqtt] (config: Config)(implicit actorSystem: Act
     val settings = MqttSourceSettings(connectionSettings, topics)
     val downlink = Flow[(String, A)].map { case (t, e) => MqttMessage(t, ByteString(toBinary(e))) }
     val uplink = Flow[MqttMessage].map(a => (a.topic, fromBinary(a.payload.toArray)))
+    val mqttFlow = RestartFlow.withBackoff(restartMinBackoff, restartMaxBackoff, restartRandomFactor) { () =>
+      MqttFlow(settings, bufferSize, qos)
+    }
 
     BidiFlow
       .fromFlows(downlink, uplink)
-      .join(MqttFlow(settings, bufferSize, qos))
+      .join(mqttFlow)
   }
 }
