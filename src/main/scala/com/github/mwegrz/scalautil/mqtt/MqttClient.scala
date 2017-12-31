@@ -7,10 +7,10 @@ import akka.stream.alpakka.mqtt.scaladsl.{ MqttFlow, MqttSink, MqttSource }
 import akka.stream.alpakka.mqtt.{ MqttConnectionSettings, MqttMessage, MqttQoS, MqttSourceSettings }
 import akka.stream.scaladsl.{ BidiFlow, Flow, RestartFlow, RestartSink, RestartSource, Sink, Source }
 import akka.util.ByteString
-import com.github.mwegrz.scalastructlog.KeyValueLogging
 import com.typesafe.config.Config
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 import com.github.mwegrz.scalautil.javaDurationToDuration
+import scala.concurrent.duration._
 
 object MqttClient {
   def apply(config: Config)(implicit actorSystem: ActorSystem, actorMaterializer: ActorMaterializer): MqttClient =
@@ -30,34 +30,32 @@ trait MqttClient {
 
 class DefaultMqttClient private[mqtt] (config: Config)(implicit actorSystem: ActorSystem,
                                                        actorMaterializer: ActorMaterializer)
-    extends MqttClient
-    with KeyValueLogging {
+    extends MqttClient {
 
   private val broker = config.getString("broker")
   private val username = config.getString("username")
   private val password = config.getString("password")
   private val clientId = config.getString("client-id")
+  private val idleTimeout = config.getDuration("idle-timeout")
   private val restartMinBackoff = config.getDuration("restart.min-backoff")
   private val restartMaxBackoff = config.getDuration("restart.max-backoff")
   private val restartRandomFactor = config.getDouble("restart.random-factor")
 
   private val connectionSettings =
     MqttConnectionSettings(broker, clientId, new MemoryPersistence)
-      .withAuth(username, password)
+      .withAuth(username, password).withCleanSession(cleanSession = true)
 
   override def source[A](topics: Map[String, MqttQoS], bufferSize: Int)(
       fromBinary: Array[Byte] => A): Source[(String, A), NotUsed] = {
     val settings = MqttSourceSettings(connectionSettings, topics)
     val mqttSource = RestartSource.withBackoff(restartMinBackoff, restartMaxBackoff, restartRandomFactor) { () =>
-      log.info("Starting source")
-      MqttSource(settings, bufferSize)
+      MqttSource(settings, bufferSize).idleTimeout(idleTimeout)
     }
     mqttSource.map(m => (m.topic, fromBinary(m.payload.toArray)))
   }
 
   override def sink[A](qos: MqttQoS)(toBinary: A => Array[Byte]): Sink[(String, A), NotUsed] = {
     val mqttSink = RestartSink.withBackoff(restartMinBackoff, restartMaxBackoff, restartRandomFactor) { () =>
-      log.info("Starting sink")
       MqttSink(connectionSettings, qos)
     }
     mqttSink.contramap { case (t, e) => MqttMessage(t, ByteString(toBinary(e))) }
@@ -70,8 +68,7 @@ class DefaultMqttClient private[mqtt] (config: Config)(implicit actorSystem: Act
     val downlink = Flow[(String, A)].map { case (t, e) => MqttMessage(t, ByteString(toBinary(e))) }
     val uplink = Flow[MqttMessage].map(a => (a.topic, fromBinary(a.payload.toArray)))
     val mqttFlow = RestartFlow.withBackoff(restartMinBackoff, restartMaxBackoff, restartRandomFactor) { () =>
-      log.info("Starting flow")
-      MqttFlow(settings, bufferSize, qos)
+      MqttFlow(settings, bufferSize, qos).idleTimeout(idleTimeout)
     }
 
     BidiFlow
