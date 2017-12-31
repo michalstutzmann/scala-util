@@ -1,6 +1,6 @@
 package com.github.mwegrz.scalautil.mqtt
 
-import akka.{ Done, NotUsed }
+import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.alpakka.mqtt.scaladsl.{ MqttFlow, MqttSink, MqttSource }
@@ -11,8 +11,6 @@ import com.github.mwegrz.scalastructlog.KeyValueLogging
 import com.typesafe.config.Config
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 import com.github.mwegrz.scalautil.javaDurationToDuration
-
-import scala.concurrent.Future
 
 object MqttClient {
   def apply(config: Config)(implicit actorSystem: ActorSystem, actorMaterializer: ActorMaterializer): MqttClient =
