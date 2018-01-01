@@ -3,11 +3,13 @@ package com.github.mwegrz.scalautil.cassandra
 import akka.stream.ActorMaterializer
 import akka.{ Done, NotUsed }
 import akka.stream.alpakka.cassandra.scaladsl.{ CassandraSink, CassandraSource }
-import akka.stream.scaladsl.{ Sink, Source }
+import akka.stream.scaladsl.{ RestartSource, Sink, Source }
 import com.datastax.driver.core._
+import com.datastax.driver.core.policies.{ ExponentialReconnectionPolicy, ReconnectionPolicy }
 import com.github.mwegrz.app.Shutdownable
 import com.github.mwegrz.scalastructlog.KeyValueLogging
 import com.typesafe.config.Config
+import com.github.mwegrz.scalautil.javaDurationToDuration
 
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.collection.JavaConverters._
@@ -30,9 +32,16 @@ class DefaultCassandraClient(config: Config)(implicit executionContext: Executio
     with KeyValueLogging {
   private val contactPoints = config.getStringList("contact-points").asScala.toList
   private val port = config.getInt("port")
+  private val reconnectionPolicyBaseDelay = config.getDuration("reconnection-policy.base-delay")
+  private val reconnectionPolicyMaxDelay = config.getDuration("reconnection-policy.max-delay")
 
   private val cluster =
-    Cluster.builder.addContactPoints(contactPoints: _*).withPort(port).build
+    Cluster.builder
+      .addContactPoints(contactPoints: _*)
+      .withPort(port)
+      .withReconnectionPolicy(
+        new ExponentialReconnectionPolicy(reconnectionPolicyBaseDelay.toMillis, reconnectionPolicyMaxDelay.toMillis))
+      .build
   private implicit val session: Session = cluster.connect()
 
   log.debug("Initialized")
