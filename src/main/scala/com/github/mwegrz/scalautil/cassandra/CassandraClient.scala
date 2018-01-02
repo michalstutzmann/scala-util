@@ -3,13 +3,12 @@ package com.github.mwegrz.scalautil.cassandra
 import akka.stream.ActorMaterializer
 import akka.{ Done, NotUsed }
 import akka.stream.alpakka.cassandra.scaladsl.{ CassandraSink, CassandraSource }
-import akka.stream.scaladsl.{ RestartSource, Sink, Source }
+import akka.stream.scaladsl.{ Sink, Source }
 import com.datastax.driver.core._
-import com.datastax.driver.core.policies.{ ExponentialReconnectionPolicy, ReconnectionPolicy }
+import com.datastax.driver.core.policies.ExponentialReconnectionPolicy
 import com.github.mwegrz.app.Shutdownable
 import com.github.mwegrz.scalastructlog.KeyValueLogging
 import com.typesafe.config.Config
-import com.github.mwegrz.scalautil.javaDurationToDuration
 
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.collection.JavaConverters._
@@ -25,6 +24,8 @@ trait CassandraClient extends Shutdownable {
   def createSource(cql: String, values: Seq[AnyRef]): Source[Row, NotUsed]
 
   def execute(cql: String)(implicit actorMaterializer: ActorMaterializer): Future[Done]
+
+  def registerCodec[A](codec: TypeCodec[A]): Unit
 }
 
 class DefaultCassandraClient(config: Config)(implicit executionContext: ExecutionContext)
@@ -56,6 +57,8 @@ class DefaultCassandraClient(config: Config)(implicit executionContext: Executio
     val statement = new SimpleStatement(cql, values: _*)
     CassandraSource(statement)
   }
+
+  override def registerCodec[A](codec: TypeCodec[A]): Unit = cluster.getConfiguration.getCodecRegistry.register(codec)
 
   def execute(cql: String)(implicit actorMaterializer: ActorMaterializer): Future[Done] =
     Source.single(Unit).runWith(createSink(cql)((a, b) => new BoundStatement(b)))
