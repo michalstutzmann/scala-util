@@ -5,8 +5,9 @@ val AkkaVersion = "2.5.8"
 val AkkaHttpVersion = "10.0.11"
 val AkkaStreamKafkaVersion = "0.18"
 val AkkaHttpCirceVersion = "1.18.1"
-val AlpakkaVersion = "0.15"
+val AlpakkaVersion = "0.15.1"
 val ScalaTestVersion = "3.0.4"
+val ScalaCheckVersion = "1.13.5"
 val ScodecCoreVersion = "1.10.3"
 val ScodecBitsVersion = "1.1.5"
 val SlickVersion = "3.2.1"
@@ -20,8 +21,8 @@ val ConfigVersion = "1.3.2"
 val CommonsVfs2Version = "2.1"
 val CommonsPoolVersion = "1.6"
 val BouncyCastleVersion = "1.58"
-val CirceVersion = "0.8.0"
-val CatsVersion = "0.9.0"
+val CirceVersion = "0.9.0"
+val CatsVersion = "1.0.1"
 val JwtCirceVersion = "0.14.1"
 val Avro4SVersion = "1.8.0"
 val KebsVersion = "1.5.1"
@@ -50,6 +51,7 @@ lazy val root = (project in file("."))
       "com.lightbend.akka" %% "akka-stream-alpakka-cassandra" % AlpakkaVersion % Optional,
       "com.lightbend.akka" %% "akka-stream-alpakka-mqtt" % AlpakkaVersion % Optional,
       "org.scalatest" %% "scalatest" % ScalaTestVersion % Optional,
+      "org.scalacheck" %% "scalacheck" % ScalaCheckVersion % Optional,
       "com.github.mwegrz" % "logback-hocon" % LogbackHoconVersion % Optional,
       "com.github.mwegrz" %% "scala-structlog" % ScalaStructlogVersion % Optional,
       "com.github.mwegrz" %% "scala-app" % ScalaAppVersion % Optional,
@@ -62,7 +64,7 @@ lazy val root = (project in file("."))
       "io.circe" %% "circe-generic" % CirceVersion % Optional,
       "io.circe" %% "circe-parser" % CirceVersion % Optional,
       "io.circe" %% "circe-java8" % CirceVersion % Optional,
-      "org.typelevel" %% "cats" % CatsVersion % Optional,
+      "org.typelevel" %% "cats-core" % CatsVersion % Optional,
       "org.apache.commons" % "commons-vfs2" % CommonsVfs2Version % Optional,
       "commons-pool" % "commons-pool" % CommonsPoolVersion % Optional,
       "com.pauldijou" %% "jwt-circe" % JwtCirceVersion % Optional,

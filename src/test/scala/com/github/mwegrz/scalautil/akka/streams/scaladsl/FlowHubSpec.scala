@@ -8,8 +8,8 @@ import org.scalatest.concurrent.Eventually
 import scala.concurrent.duration._
 
 class FlowHubSpec extends TestSpec with Eventually {
-  private implicit val actorSystem = ActorSystem()
-  private implicit val actorMaterializer = ActorMaterializer()
+  private implicit val actorSystem: ActorSystem = ActorSystem()
+  private implicit val actorMaterializer: ActorMaterializer = ActorMaterializer()
 
   describe("MergeBroadcastHub") {
     it("should correctly create flows") {
