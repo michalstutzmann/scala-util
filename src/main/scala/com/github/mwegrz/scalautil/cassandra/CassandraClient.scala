@@ -25,6 +25,9 @@ trait CassandraClient extends Shutdownable {
 
   def execute(cql: String)(implicit actorMaterializer: ActorMaterializer): Future[Done]
 
+  def createKeyspaceIfNotExists(keyspace: String, `class`: String, replicationFactor: Int)(
+      implicit actorMaterializer: ActorMaterializer): Future[Done]
+
   def registerCodec[A](codec: TypeCodec[A]): Unit
 }
 
@@ -57,6 +60,11 @@ class DefaultCassandraClient(config: Config)(implicit executionContext: Executio
     val statement = new SimpleStatement(cql, values: _*)
     CassandraSource(statement)
   }
+
+  override def createKeyspaceIfNotExists(keyspace: String, `class`: String, replicationFactor: Int)(
+      implicit actorMaterializer: ActorMaterializer): Future[Done] =
+    execute(s"""CREATE KEYSPACE IF NOT EXISTS $keyspace
+      WITH REPLICATION = { 'class' : '${`class`}', 'replication_factor' : $replicationFactor };""".stripMargin)
 
   override def registerCodec[A](codec: TypeCodec[A]): Unit = cluster.getConfiguration.getCodecRegistry.register(codec)
 

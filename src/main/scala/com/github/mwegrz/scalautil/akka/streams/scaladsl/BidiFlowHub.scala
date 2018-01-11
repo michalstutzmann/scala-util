@@ -2,13 +2,15 @@ package com.github.mwegrz.scalautil.akka.streams.scaladsl
 
 import akka.NotUsed
 import akka.stream.{ ActorMaterializer, KillSwitches }
-import akka.stream.scaladsl.{ BroadcastHub, Flow, Keep, MergeHub }
+import akka.stream.scaladsl.{ BroadcastHub, Flow, Keep, MergeHub, Sink }
 import com.github.mwegrz.app.Shutdownable
 
 class BidiFlowHub[A, B](aBufferSize: Int = 256,
                         aPerProducerBufferSize: Int = 16,
                         bBufferSize: Int = 256,
-                        bPerProducerBufferSize: Int = 16)(implicit actorMaterializer: ActorMaterializer)
+                        bPerProducerBufferSize: Int = 16,
+                        drainA: Boolean = false,
+                        drainB: Boolean = false)(implicit actorMaterializer: ActorMaterializer)
     extends Shutdownable {
 
   private val ((aSink, akillSwitch), aSource) =
@@ -28,6 +30,9 @@ class BidiFlowHub[A, B](aBufferSize: Int = 256,
   val leftFlow: Flow[A, B, NotUsed] = Flow.fromSinkAndSourceCoupled(aSink, bSource)
 
   val rightFlow: Flow[B, A, NotUsed] = Flow.fromSinkAndSourceCoupled(bSink, aSource)
+
+  if (drainA) aSource.runWith(Sink.ignore)
+  if (drainB) bSource.runWith(Sink.ignore)
 
   override def shutdown(): Unit = {
     akillSwitch.shutdown()

@@ -17,22 +17,29 @@ import akka.http.scaladsl.util.FastFuture
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.directives.Credentials.{ Missing, Provided }
 import akka.http.scaladsl.util.FastFuture.EnhancedFuture
+import com.typesafe.config.Config
 import pdi.jwt.{ JwtAlgorithm, JwtCirce, JwtClaim }
 import pdi.jwt.algorithms.{ JwtECDSAAlgorithm, JwtHmacAlgorithm, JwtRSAAlgorithm }
 
 object SecurityDirectives {
 
-  def jwtAuthenticator(secret: String, algorithm: JwtAlgorithm): Authenticator[JwtClaim] = {
+  def jwtAuthenticator(config: Config): Authenticator[JwtClaim] = {
+    val key = config.getString("key")
+    val algorithm = JwtAlgorithm.fromString(config.getString("algorithm"))
+    jwtAuthenticator(key, algorithm)
+  }
+
+  def jwtAuthenticator(key: String, algorithm: JwtAlgorithm): Authenticator[JwtClaim] = {
     val decode = algorithm match {
       case a: JwtHmacAlgorithm =>
         (identifier: String) =>
-          JwtCirce.decode(identifier, secret, Seq(a))
+          JwtCirce.decode(identifier, key, Seq(a))
       case a: JwtRSAAlgorithm =>
         (identifier: String) =>
-          JwtCirce.decode(identifier, secret, Seq(a))
+          JwtCirce.decode(identifier, key, Seq(a))
       case a: JwtECDSAAlgorithm =>
         (identifier: String) =>
-          JwtCirce.decode(identifier, secret, Seq(a))
+          JwtCirce.decode(identifier, key, Seq(a))
     }
 
     {
