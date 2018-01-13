@@ -6,15 +6,13 @@ import akka.http.scaladsl.server.{ AuthenticationFailedRejection, Directive1 }
 import akka.http.scaladsl.server.Directives.{
   AsyncAuthenticator,
   Authenticator,
-  authenticateOrRejectWithChallenge,
-  parameter
+  authenticateOrRejectWithChallenge
 }
 import akka.http.scaladsl.server.directives.BasicDirectives.{ extractExecutionContext, provide }
 import akka.http.scaladsl.server.directives.{ AuthenticationDirective, AuthenticationResult, Credentials }
 import akka.http.scaladsl.server.directives.FutureDirectives.onSuccess
 import akka.http.scaladsl.server.directives.RouteDirectives.reject
 import akka.http.scaladsl.util.FastFuture
-import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.directives.Credentials.{ Missing, Provided }
 import akka.http.scaladsl.util.FastFuture.EnhancedFuture
 import com.typesafe.config.Config
@@ -56,7 +54,7 @@ object SecurityDirectives {
     extractExecutionContext.flatMap { implicit ec ⇒
       def liftedAuthenticator(cred: Option[HttpCredentials]) = authenticator(Credentials(cred)).fast.map {
         case Some(t) ⇒ AuthenticationResult.success(t)
-        case None    ⇒ AuthenticationResult.failWithChallenge(HttpChallenges.oAuth2(realm))
+        case None ⇒ AuthenticationResult.failWithChallenge(HttpChallenges.oAuth2(realm))
       }
 
       authenticateOrRejectWithChallenge[OAuth2BearerToken, T](liftedAuthenticator).recoverPF {
