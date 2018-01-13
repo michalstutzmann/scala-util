@@ -55,25 +55,20 @@ object SecurityDirectives {
   private def authenticateOAuth2Async[T](realm: String,
                                          authenticator: AsyncAuthenticator[T]): AuthenticationDirective[T] =
     extractExecutionContext.flatMap { implicit ec ⇒
-      val accessToken = parameter('access_token.?)
-
-      def liftedAuthenticator(cred: Option[HttpCredentials]) = authenticator(Credentials(cred)).fast.map {
-        case Some(t) ⇒ AuthenticationResult.success(t)
-        case None ⇒ AuthenticationResult.failWithChallenge(HttpChallenges.oAuth2(realm))
+      val accessToken = {
+        import akka.http.scaladsl.server.Directives._
+        parameter('access_token.?)
       }
 
-      accessToken.flatMap {
-        case Some(_) =>
-          accessToken.flatMap { cred ⇒
-            onSuccess(liftedAuthenticator(cred.map(OAuth2BearerToken))).flatMap {
-              case Right(user) ⇒ provide(user)
-              case Left(challenge) ⇒
-                val cause = if (cred.isEmpty) CredentialsMissing else CredentialsRejected
-                reject(AuthenticationFailedRejection(cause, challenge)): Directive1[T]
-            }
+      accessToken.flatMap { uriCred ⇒
+        authenticateOrRejectWithChallenge[OAuth2BearerToken, T] { headerCred ⇒
+          // If `Authorization` header is missing try `access_token` URI query parameter
+          val cred = headerCred.orElse(uriCred.map(OAuth2BearerToken))
+          authenticator(Credentials(cred)).fast.map {
+            case Some(t) ⇒ AuthenticationResult.success(t)
+            case None ⇒ AuthenticationResult.failWithChallenge(HttpChallenges.oAuth2(realm))
           }
-        case None =>
-          authenticateOrRejectWithChallenge[OAuth2BearerToken, T](liftedAuthenticator)
+        }
       }
     }
 }
