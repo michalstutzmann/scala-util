@@ -1,4 +1,4 @@
-package com.github.mwegrz.scalautil.timeseriesstore
+package com.github.mwegrz.scalautil.store
 
 import java.nio.ByteBuffer
 import java.time.Instant
@@ -15,21 +15,31 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.{ Await, ExecutionContext, Future }
 
 trait TimeSeriesStore[A, B] {
-  def sink: Sink[(A, Instant, B), Future[Done]]
+  def store: Sink[(A, Instant, B), Future[Done]]
 
-  def source(keys: Set[A], fromTime: Instant, untilTime: Instant): Source[(A, B), NotUsed]
+  def retrieveRange(keys: Set[A], fromTime: Instant, untilTime: Instant): Source[(A, B), NotUsed]
+
+  def retrieveLast(keys: Set[A]): Source[(A, B), NotUsed]
 }
 
 class InMemoryTimeSeriesStore[A, B](initial: Map[A, SortedMap[Instant, B]] = Map.empty[A, SortedMap[Instant, B]])
     extends TimeSeriesStore[A, B] {
   private var events = initial.withDefaultValue(SortedMap.empty[Instant, B])
 
-  override def sink: Sink[(A, Instant, B), Future[Done]] =
+  override def store: Sink[(A, Instant, B), Future[Done]] =
     Sink.foreach { case (key, time, value) => events = events.updated(key, events(key).updated(time, value)) }
 
-  override def source(keys: Set[A], fromTime: Instant, untilTime: Instant): Source[(A, B), NotUsed] = {
+  override def retrieveRange(keys: Set[A], fromTime: Instant, untilTime: Instant): Source[(A, B), NotUsed] = {
     def forKey(key: A): Source[(A, B), NotUsed] = {
       Source(events(key).range(fromTime, untilTime).map(a => (key, a._2)).toList)
+    }
+
+    keys.map(forKey).foldLeft(Source.empty[(A, B)])((a, b) => a.concat(b))
+  }
+
+  override def retrieveLast(keys: Set[A]): Source[(A, B), NotUsed] = {
+    def forKey(key: A): Source[(A, B), NotUsed] = {
+      events(key).lastOption.map(a => (key, a._2)).fold(Source.empty[(A, B)])(Source.single)
     }
 
     keys.map(forKey).foldLeft(Source.empty[(A, B)])((a, b) => a.concat(b))
@@ -48,7 +58,7 @@ class CassandraTimeSeriesStore[A, B](cassandraClient: CassandraClient, config: C
 
   Await.ready(createTableIfNotExists(), Duration.Inf)
 
-  override def sink: Sink[(A, Instant, B), Future[Done]] = {
+  override def store: Sink[(A, Instant, B), Future[Done]] = {
     cassandraClient
       .createSink[(A, Instant, B)](s"""INSERT
                         |INTO $keyspace.$table(
@@ -65,7 +75,7 @@ class CassandraTimeSeriesStore[A, B](cassandraClient: CassandraClient, config: C
       }
   }
 
-  override def source(keys: Set[A], fromTime: Instant, toTime: Instant): Source[(A, B), NotUsed] = {
+  override def retrieveRange(keys: Set[A], fromTime: Instant, toTime: Instant): Source[(A, B), NotUsed] = {
     def forKey(key: A): Source[(A, B), NotUsed] = {
       val query = s"""SELECT value
                      |FROM $keyspace.$table
@@ -75,6 +85,27 @@ class CassandraTimeSeriesStore[A, B](cassandraClient: CassandraClient, config: C
         .createSource(
           query,
           List(ByteBuffer.wrap(aToBinary(key)), fromTime, toTime)
+        )
+        .map { row =>
+          (key, binaryToB(row.getBytes("value").array()))
+        }
+    }
+
+    keys.map(forKey).foldLeft(Source.empty[(A, B)]) { (a, b) =>
+      a.concat(b)
+    }
+  }
+
+  override def retrieveLast(keys: Set[A]): Source[(A, B), NotUsed] = {
+    def forKey(key: A): Source[(A, B), NotUsed] = {
+      val query = s"""SELECT value
+                     |FROM $keyspace.$table
+                     |WHERE key = ? LIMIT 1""".stripMargin
+
+      cassandraClient
+        .createSource(
+          query,
+          List(ByteBuffer.wrap(aToBinary(key)))
         )
         .map { row =>
           (key, binaryToB(row.getBytes("value").array()))

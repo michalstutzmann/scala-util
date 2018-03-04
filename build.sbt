@@ -1,7 +1,7 @@
 import ReleaseTransformations._
 
 val ScalaVersion = "2.12.4"
-val AkkaVersion = "2.5.8"
+val AkkaVersion = "2.5.11"
 val AkkaHttpVersion = "10.0.11"
 val AkkaStreamKafkaVersion = "0.18"
 val AkkaHttpCirceVersion = "1.19.0"
@@ -21,11 +21,11 @@ val ConfigVersion = "1.3.2"
 val CommonsVfs2Version = "2.1"
 val CommonsPoolVersion = "1.6"
 val BouncyCastleVersion = "1.58"
-val CirceVersion = "0.9.0"
+val CirceVersion = "0.9.1"
 val CatsVersion = "1.0.1"
-val JwtCirceVersion = "0.14.1"
-val Avro4SVersion = "1.8.0"
-val KebsVersion = "1.5.1"
+val JwtCirceVersion = "0.15.0"
+val Avro4SVersion = "1.8.3"
+val KebsVersion = "1.5.3"
 
 lazy val root = (project in file("."))
   .enablePlugins(ReleasePlugin, LogbackPlugin, ScalafmtPlugin)
@@ -44,6 +44,7 @@ lazy val root = (project in file("."))
       "com.typesafe.akka" %% "akka-actor" % AkkaVersion % Optional,
       "com.typesafe.akka" %% "akka-stream" % AkkaVersion % Optional,
       "com.typesafe.akka" %% "akka-http" % AkkaHttpVersion % Optional,
+      "com.typesafe.akka" %% "akka-persistence" % AkkaVersion % Optional,
       "com.typesafe.akka" %% "akka-slf4j" % AkkaVersion % Optional,
       "com.typesafe.akka" %% "akka-testkit" % AkkaVersion % IntegrationTest,
       "com.typesafe.akka" %% "akka-stream-kafka" % AkkaStreamKafkaVersion % Optional,
@@ -62,6 +63,7 @@ lazy val root = (project in file("."))
       "com.typesafe.slick" %% "slick-hikaricp" % SlickVersion % Optional,
       "io.circe" %% "circe-core" % CirceVersion % Optional,
       "io.circe" %% "circe-generic" % CirceVersion % Optional,
+      "io.circe" %% "circe-generic-extras" % CirceVersion % Optional,
       "io.circe" %% "circe-parser" % CirceVersion % Optional,
       "io.circe" %% "circe-java8" % CirceVersion % Optional,
       "org.typelevel" %% "cats-core" % CatsVersion % Optional,

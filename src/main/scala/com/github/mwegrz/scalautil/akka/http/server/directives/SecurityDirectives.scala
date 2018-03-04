@@ -3,11 +3,7 @@ package com.github.mwegrz.scalautil.akka.http.server.directives
 import akka.http.scaladsl.model.headers.{ HttpChallenges, HttpCredentials, OAuth2BearerToken }
 import akka.http.scaladsl.server.AuthenticationFailedRejection.{ CredentialsMissing, CredentialsRejected }
 import akka.http.scaladsl.server.{ AuthenticationFailedRejection, Directive1 }
-import akka.http.scaladsl.server.Directives.{
-  AsyncAuthenticator,
-  Authenticator,
-  authenticateOrRejectWithChallenge
-}
+import akka.http.scaladsl.server.Directives.{ AsyncAuthenticator, Authenticator, authenticateOrRejectWithChallenge }
 import akka.http.scaladsl.server.directives.BasicDirectives.{ extractExecutionContext, provide }
 import akka.http.scaladsl.server.directives.{ AuthenticationDirective, AuthenticationResult, Credentials }
 import akka.http.scaladsl.server.directives.FutureDirectives.onSuccess
@@ -15,11 +11,14 @@ import akka.http.scaladsl.server.directives.RouteDirectives.reject
 import akka.http.scaladsl.util.FastFuture
 import akka.http.scaladsl.server.directives.Credentials.{ Missing, Provided }
 import akka.http.scaladsl.util.FastFuture.EnhancedFuture
+import com.github.mwegrz.scalautil.auth0.Auth0JwtClaim
 import com.typesafe.config.Config
 import pdi.jwt.{ JwtAlgorithm, JwtCirce, JwtClaim }
 import pdi.jwt.algorithms.{ JwtECDSAAlgorithm, JwtHmacAlgorithm, JwtRSAAlgorithm }
 
 object SecurityDirectives {
+  def auth0JwtAuthenticator(config: Config): Authenticator[Auth0JwtClaim] =
+    credentials => jwtAuthenticator(config)(credentials).map(Auth0JwtClaim.fromJwtClaim)
 
   def jwtAuthenticator(config: Config): Authenticator[JwtClaim] = {
     val key = config.getString("key")
