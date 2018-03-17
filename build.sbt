@@ -2,28 +2,38 @@ import ReleaseTransformations._
 
 val ScalaVersion = "2.12.4"
 val AkkaVersion = "2.5.11"
-val AkkaHttpVersion = "10.0.11"
-val AkkaStreamKafkaVersion = "0.18"
-val AkkaHttpCirceVersion = "1.19.0"
-val AlpakkaVersion = "0.16"
-val ScalaTestVersion = "3.0.4"
+val AkkaHttpVersion = "10.1.0"
+val AkkaHttpCirceVersion = "1.20.0"
+val CirceVersion = "0.9.2"
+val CatsVersion = "1.1.0"
+val JwtCirceVersion = "0.16.0"
+val AlpakkaVersion = "0.17"
+
+val AkkaStreamKafkaVersion = "0.19"
+
+val ScalaTestVersion = "3.0.5"
 val ScalaCheckVersion = "1.13.5"
+
 val ScodecCoreVersion = "1.10.3"
 val ScodecBitsVersion = "1.1.5"
-val SlickVersion = "3.2.1"
-val ThreetenExtraVersion = "1.2"
+
+val ThreetenExtraVersion = "1.3.2"
+
 val Slf4jVersion = "1.7.25"
 val LogbackVersion = "1.2.3"
 val LogbackHoconVersion = "0.1.6"
-val ScalaStructlogVersion = "0.1.6"
-val ScalaAppVersion = "0.1.6"
-val ConfigVersion = "1.3.2"
+val ScalaStructlogVersion = "0.1.7"
+
+val ScalaAppVersion = "0.1.9"
+val ConfigVersion = "1.3.3"
+
+val SlickVersion = "3.2.2"
+
 val CommonsVfs2Version = "2.1"
 val CommonsPoolVersion = "1.6"
-val BouncyCastleVersion = "1.58"
-val CirceVersion = "0.9.1"
-val CatsVersion = "1.0.1"
-val JwtCirceVersion = "0.15.0"
+
+val BouncyCastleVersion = "1.59"
+
 val Avro4SVersion = "1.8.3"
 val KebsVersion = "1.5.3"
 

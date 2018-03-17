@@ -17,21 +17,23 @@ package object avro4s {
     }
   }
 
-  def parseAvro[A](bytes: Array[Byte])(implicit schemaFor: SchemaFor[A], toRecord: FromRecord[A]): A = {
+  def parseAvro[A](bytes: Array[Byte], writerSchema: Option[Schema] = None, readerSchema: Option[Schema] = None)(
+      implicit schemaFor: SchemaFor[A],
+      fromRecord: FromRecord[A]): A = {
     val in = new ByteArrayInputStream(bytes)
-    val input = AvroInputStream.binary[A](in)
+    val input = new AvroBinaryInputStream[A](in, writerSchema, readerSchema)
     input.iterator.toSeq.head
   }
 
-  def createToSchema[A](s: Schema) = new ToSchema[A] {
+  def createToSchema[A](s: Schema): ToSchema[A] = new ToSchema[A] {
     override val schema: Schema = s
   }
 
-  def createToValue[A, B](f: A => B) = new ToValue[A] {
+  def createToValue[A, B](f: A => B): ToValue[A] = new ToValue[A] {
     override def apply(value: A): B = f(value)
   }
 
-  def createFromValue[A](f: (Any, Field) => A) = new FromValue[A] {
+  def createFromValue[A](f: (Any, Field) => A): FromValue[A] = new FromValue[A] {
     override def apply(value: Any, field: Field): A = f(value, field)
   }
 }
