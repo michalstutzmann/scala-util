@@ -1,6 +1,6 @@
 package com.github.mwegrz.scalautil.akka.serialization
 
-import java.nio.{ ByteBuffer, IntBuffer }
+import java.nio.ByteBuffer
 
 import akka.serialization.SerializerWithStringManifest
 import com.github.mwegrz.scalautil.avro4s._

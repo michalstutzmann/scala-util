@@ -1,6 +1,6 @@
 import ReleaseTransformations._
 
-val ScalaVersion = "2.12.4"
+val ScalaVersion = "2.12.5"
 val AkkaVersion = "2.5.11"
 val AkkaHttpVersion = "10.1.0"
 val AkkaHttpCirceVersion = "1.20.0"
