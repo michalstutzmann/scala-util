@@ -1,11 +1,14 @@
 package com.github.mwegrz.scalautil.avro4s
 
-import java.time.Instant
+import java.time.{ Duration, Instant }
 
+import akka.http.scaladsl.model.Uri
 import com.sksamuel.avro4s._
 import org.apache.avro.{ Schema, SchemaBuilder }
 import org.apache.avro.Schema.Field
+import org.apache.avro.util.Utf8
 import scodec.bits.ByteVector
+import scala.collection.JavaConverters._
 
 object codecs {
   implicit val ByteToSchema: ToSchema[Byte] = new ToSchema[Byte] {
@@ -36,17 +39,40 @@ object codecs {
     override def apply(value: Any, field: Field): ByteVector = ByteVector(value.asInstanceOf[Array[Byte]])
   }
 
-  // Instant
-  implicit object InstantToSchema extends ToSchema[Instant] {
-    override val schema: Schema = Schema.create(Schema.Type.LONG)
+  implicit val InstantToSchema: ToSchema[Instant] = createToSchema[Instant](Schema.create(Schema.Type.STRING))
+  implicit val InstantToValue: ToValue[Instant] = createToValue[Instant, String](_.toString())
+  implicit val InstantFromValue: FromValue[Instant] =
+    createFromValue[Instant]((value, _) => Instant.parse(value.asInstanceOf[Utf8].toString))
+
+  implicit val DurationToSchema: ToSchema[Duration] = createToSchema[Duration](Schema.create(Schema.Type.STRING))
+  implicit val DurationToValue: ToValue[Duration] = createToValue[Duration, String](_.toString())
+  implicit val DurationFromValue: FromValue[Duration] =
+    createFromValue[Duration]((value, _) => Duration.parse(value.asInstanceOf[Utf8].toString))
+
+  implicit val UriToSchema: ToSchema[Uri] = createToSchema[Uri](Schema.create(Schema.Type.STRING))
+  implicit val UriToValue: ToValue[Uri] = createToValue[Uri, String](_.toString())
+  implicit val UriFromValue: FromValue[Uri] =
+    createFromValue[Uri]((value, _) => Uri(value.asInstanceOf[Utf8].toString))
+
+  implicit def TypedKeyMapToSchema[K, V](implicit valueToSchema: ToSchema[V]): ToSchema[Map[K, V]] = {
+    new ToSchema[Map[K, V]] {
+      override protected val schema: Schema = Schema.createMap(valueToSchema())
+    }
   }
 
-  implicit object InstantToValue extends ToValue[Instant] {
-    override def apply(value: Instant): Long = value.toEpochMilli
-  }
+  implicit def TypedKeyMapToValue[K, V](implicit keyToValue: ToValue[K], valueToValue: ToValue[V]): ToValue[Map[K, V]] =
+    new ToValue[Map[K, V]] {
+      override def apply(value: Map[K, V]): java.util.Map[String, V] = {
+        value.map { case (k, v) => (keyToValue(k), valueToValue(v)) }.asInstanceOf[Map[String, V]].asJava
+      }
+    }
 
-  implicit object InstantFromValue extends FromValue[Instant] {
-    override def apply(value: Any, field: Field): Instant = Instant.ofEpochMilli(value.asInstanceOf[Long])
-  }
-
+  implicit def TypedKeyMapFromValue[K, V](implicit keyFromValue: FromValue[K],
+                                          valueFromValue: FromValue[V]): FromValue[Map[K, V]] =
+    new FromValue[Map[K, V]] {
+      override def apply(value: Any, field: Field): Map[K, V] = value match {
+        case map: java.util.Map[_, _] => map.asScala.toMap.map { case (k, v) => keyFromValue(k) -> valueFromValue(v) }
+        case other                    => sys.error("Unsupported map " + other)
+      }
+    }
 }

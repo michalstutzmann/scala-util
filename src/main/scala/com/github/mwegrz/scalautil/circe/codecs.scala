@@ -1,9 +1,11 @@
 package com.github.mwegrz.scalautil.circe
 
+import akka.http.scaladsl.model.Uri
 import io.circe.{ Decoder, Encoder }
 import io.circe.java8.time.TimeInstances
 import shapeless.{ :+:, ::, CNil, Coproduct, Generic, HNil, Inl, Inr, LabelledGeneric, Lazy, Witness }
 import shapeless.labelled._
+import cats.syntax.either._
 
 object codecs extends TimeInstances {
   implicit def encodeAnyVal[T <: AnyVal, V](implicit g: Lazy[Generic.Aux[T, V :: HNil]], e: Encoder[V]): Encoder[T] =
@@ -52,4 +54,9 @@ object codecs extends TimeInstances {
     Decoder[String].emap { s =>
       rie.from(s).map(gen.from).toRight("enum")
     }
+
+  implicit val UriEncoder: Encoder[Uri] = Encoder.encodeString.contramap[Uri](_.toString)
+  implicit val UriDecoder: Decoder[Uri] = Decoder.decodeString.emap { string =>
+    Either.catchNonFatal(Uri(string)).leftMap(_ => "Uri")
+  }
 }

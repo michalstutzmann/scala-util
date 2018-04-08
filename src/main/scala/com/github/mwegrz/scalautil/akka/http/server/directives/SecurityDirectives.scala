@@ -1,13 +1,35 @@
 package com.github.mwegrz.scalautil.akka.http.server.directives
 
-import akka.http.scaladsl.server.Directives.Authenticator
+import akka.http.scaladsl.server.Directives.{ AsyncAuthenticator, Authenticator }
+import akka.http.scaladsl.server.directives.Credentials
 import akka.http.scaladsl.server.directives.Credentials.{ Missing, Provided }
 import com.github.mwegrz.scalautil.auth0.Auth0JwtClaim
+import com.github.mwegrz.scalautil.store.KeyValueStore
 import com.typesafe.config.Config
-import pdi.jwt.{ JwtAlgorithm, JwtCirce, JwtClaim }
-import pdi.jwt.algorithms.{ JwtECDSAAlgorithm, JwtHmacAlgorithm, JwtRSAAlgorithm }
+import pdi.jwt.{ JwtAlgorithm, JwtClaim }
+import com.github.mwegrz.scalautil.jwt.decode
+
+import scala.concurrent.{ ExecutionContext, Future }
 
 object SecurityDirectives {
+  trait SaltAndHashedSecret {
+    def salt: String
+    def hashedSecret: String
+  }
+
+  def keyValueStoreAuthenticator[K, V <: SaltAndHashedSecret](idToKey: String => K,
+                                                              hashSecret: (String, String) => String)(
+      implicit store: KeyValueStore[K, V],
+      executionContext: ExecutionContext): AsyncAuthenticator[V] = {
+    case credentials @ Credentials.Provided(id) =>
+      store.retrieveByKey(idToKey(id)).map {
+        case Some(client) if credentials.verify(client.hashedSecret, secret => hashSecret(secret, client.salt)) =>
+          Some(client)
+        case _ => None
+      }
+    case _ => Future.successful(None)
+  }
+
   def auth0JwtAuthenticator(config: Config): Authenticator[Auth0JwtClaim] =
     credentials => jwtAuthenticator(config)(credentials).map(Auth0JwtClaim.fromJwtClaim)
 
@@ -18,21 +40,7 @@ object SecurityDirectives {
   }
 
   def jwtAuthenticator(key: String, algorithm: JwtAlgorithm): Authenticator[JwtClaim] = {
-    val decode = algorithm match {
-      case a: JwtHmacAlgorithm =>
-        (identifier: String) =>
-          JwtCirce.decode(identifier, key, Seq(a))
-      case a: JwtRSAAlgorithm =>
-        (identifier: String) =>
-          JwtCirce.decode(identifier, key, Seq(a))
-      case a: JwtECDSAAlgorithm =>
-        (identifier: String) =>
-          JwtCirce.decode(identifier, key, Seq(a))
-    }
-
-    {
-      case Provided(id) => decode(id).toOption
-      case Missing      => None
-    }
+    case Provided(id) => decode(id, key, algorithm).toOption
+    case Missing      => None
   }
 }

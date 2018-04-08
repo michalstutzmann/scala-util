@@ -1,5 +1,6 @@
 package com.github.mwegrz.scalautil.akka.http
 
+import java.time.Instant
 import java.util.UUID
 
 import akka.actor.ActorSystem
@@ -43,8 +44,9 @@ class HttpServer private (config: Config, httpApis: Map[String, HttpApi])(implic
       }) {
         case (r, (name, a)) =>
           pathPrefix(name) {
-            val reqId = generateRequestId()
-            a.route(reqId)
+            val requestId = generateRequestId()
+            val time = Instant.now()
+            a.route(requestId, time)
           } ~ r
       }
   }
@@ -64,5 +66,5 @@ class HttpServer private (config: Config, httpApis: Map[String, HttpApi])(implic
 }
 
 trait HttpApi {
-  def route(requestId: String): Route
+  def route(requestId: String, time: Instant): Route
 }

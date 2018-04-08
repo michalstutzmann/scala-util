@@ -2,8 +2,8 @@ import ReleaseTransformations._
 
 val ScalaVersion = "2.12.5"
 val AkkaVersion = "2.5.11"
-val AkkaHttpVersion = "10.1.0"
-val AkkaHttpCirceVersion = "1.20.0"
+val AkkaHttpVersion = "10.1.1"
+val AkkaHttpJsonVersion = "1.20.1"
 val CirceVersion = "0.9.2"
 val CatsVersion = "1.1.0"
 val JwtCirceVersion = "0.16.0"
@@ -48,7 +48,7 @@ lazy val root = (project in file("."))
       "com.typesafe.akka" %% "akka-slf4j" % AkkaVersion % Optional,
       "com.typesafe.akka" %% "akka-testkit" % AkkaVersion % IntegrationTest,
       "com.typesafe.akka" %% "akka-stream-kafka" % AkkaStreamKafkaVersion % Optional,
-      "de.heikoseeberger" %% "akka-http-circe" % AkkaHttpCirceVersion % Optional,
+      "de.heikoseeberger" %% "akka-http-circe" % AkkaHttpJsonVersion % Optional,
       "com.lightbend.akka" %% "akka-stream-alpakka-cassandra" % AlpakkaVersion % Optional,
       "com.lightbend.akka" %% "akka-stream-alpakka-mqtt" % AlpakkaVersion % Optional,
       "org.scalatest" %% "scalatest" % ScalaTestVersion % Optional,
