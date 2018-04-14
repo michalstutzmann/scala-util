@@ -22,7 +22,7 @@ object SecurityDirectives {
       implicit store: KeyValueStore[K, V],
       executionContext: ExecutionContext): AsyncAuthenticator[V] = {
     case credentials @ Credentials.Provided(id) =>
-      store.retrieveByKey(idToKey(id)).map {
+      store.retrieve(idToKey(id)).map {
         case Some(client) if credentials.verify(client.hashedSecret, secret => hashSecret(secret, client.salt)) =>
           Some(client)
         case _ => None

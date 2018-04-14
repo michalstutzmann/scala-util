@@ -5,6 +5,7 @@ import java.io.{ ByteArrayInputStream, ByteArrayOutputStream }
 import com.sksamuel.avro4s._
 import org.apache.avro.Schema
 import org.apache.avro.Schema.Field
+import org.codehaus.jackson.map.PropertyNamingStrategy
 
 package object avro4s {
   implicit class AOps[A](c: A) {

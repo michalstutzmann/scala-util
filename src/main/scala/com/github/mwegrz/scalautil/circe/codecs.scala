@@ -1,11 +1,12 @@
 package com.github.mwegrz.scalautil.circe
 
 import akka.http.scaladsl.model.Uri
-import io.circe.{ Decoder, Encoder }
+import io.circe.{ Decoder, Encoder, KeyDecoder, KeyEncoder }
 import io.circe.java8.time.TimeInstances
+import io.circe.syntax._
+import io.circe.parser._
 import shapeless.{ :+:, ::, CNil, Coproduct, Generic, HNil, Inl, Inr, LabelledGeneric, Lazy, Witness }
 import shapeless.labelled._
-import cats.syntax.either._
 
 object codecs extends TimeInstances {
   implicit def encodeAnyVal[T <: AnyVal, V](implicit g: Lazy[Generic.Aux[T, V :: HNil]], e: Encoder[V]): Encoder[T] =
@@ -55,8 +56,14 @@ object codecs extends TimeInstances {
       rie.from(s).map(gen.from).toRight("enum")
     }
 
-  implicit val UriEncoder: Encoder[Uri] = Encoder.encodeString.contramap[Uri](_.toString)
-  implicit val UriDecoder: Decoder[Uri] = Decoder.decodeString.emap { string =>
-    Either.catchNonFatal(Uri(string)).leftMap(_ => "Uri")
+  implicit val uriEncoder: Encoder[Uri] = Encoder.encodeString.contramap(_.toString)
+  implicit val uriDecoder: Decoder[Uri] = Decoder.decodeString.map(Uri(_))
+
+  implicit def encodeMapKey[A <: AnyRef](implicit encoder: Encoder[A]): KeyEncoder[A] = new KeyEncoder[A] {
+    override def apply(key: A): String = key.asJson.toString
+  }
+
+  implicit def decodeMapKey[A <: AnyRef](implicit decoder: Decoder[A]): KeyDecoder[A] = new KeyDecoder[A] {
+    override def apply(key: String): Option[A] = parse(key).toOption.flatMap(_.as[A].toOption)
   }
 }

@@ -28,10 +28,15 @@ object routes {
                                 valueMarshaller: ToEntityMarshaller[Value],
                                 valueIterableMarshaller: ToEntityMarshaller[Envelope[Value]],
                                 unmarshaller: FromEntityUnmarshaller[Value],
+                                fromStringToKeyUnmarshaller: Unmarshaller[String, Key],
                                 executionContext: ExecutionContext): Route = {
     pathEnd {
       get {
-        complete(store.retrieveAll.map(a => Envelope(a.values.toList)))
+        parameters('from.as[Key].?, 'count.as[Int]) { (from, count) =>
+          complete(store.retrievePage(from, count).map(a => Envelope(a.values.toList)))
+        } ~ pass {
+          complete(store.retrieveAll.map(a => Envelope(a.values.toList)))
+        }
       }
     } ~ path(pathMatcher1) { id =>
       put {
@@ -40,10 +45,10 @@ object routes {
         }
       } ~
         get {
-          complete(store.retrieveByKey(id))
+          complete(store.retrieve(id))
         } ~
         delete {
-          complete(store.removeByKey(id))
+          complete(store.remove(id))
         }
     }
   }

@@ -1,6 +1,6 @@
 package com.github.mwegrz.scalautil
 
-import io.circe.{ KeyDecoder, KeyEncoder, Printer }
+import io.circe.Printer
 
 package object circe {
   implicit val jsonPrinter: Printer = Printer(
@@ -8,12 +8,4 @@ package object circe {
     dropNullValues = true,
     indent = ""
   )
-
-  def createKeyEncoder[A](f: A => String): KeyEncoder[A] = new KeyEncoder[A] {
-    override def apply(value: A): String = f(value)
-  }
-
-  def createKeyDecoder[A](f: String => Option[A]): KeyDecoder[A] = new KeyDecoder[A] {
-    override def apply(key: String): Option[A] = f(key)
-  }
 }
