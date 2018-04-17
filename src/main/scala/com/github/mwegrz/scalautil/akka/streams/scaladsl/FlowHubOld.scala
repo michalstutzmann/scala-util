@@ -5,7 +5,7 @@ import akka.stream.{ ActorMaterializer, ClosedShape, KillSwitches }
 import akka.stream.scaladsl.{ BroadcastHub, Flow, GraphDSL, Keep, MergeHub, RunnableGraph }
 import com.github.mwegrz.app.Shutdownable
 
-class FlowHub[A, B, _](flow: Flow[A, B, _], bufferSize: Int = 256, perProducerBufferSize: Int = 16)(
+class FlowHubOld[A, B, _](flow: Flow[A, B, _], bufferSize: Int = 256, perProducerBufferSize: Int = 16)(
     implicit actorMaterializer: ActorMaterializer)
     extends Shutdownable {
   private val broadcastHub = BroadcastHub.sink[B](bufferSize)

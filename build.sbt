@@ -1,13 +1,13 @@
 import ReleaseTransformations._
 
 val ScalaVersion = "2.12.5"
-val AkkaVersion = "2.5.11"
+val AkkaVersion = "2.5.12"
 val AkkaHttpVersion = "10.1.1"
 val AkkaHttpJsonVersion = "1.20.1"
-val CirceVersion = "0.9.2"
+val CirceVersion = "0.9.3"
 val CatsVersion = "1.1.0"
 val JwtCirceVersion = "0.16.0"
-val AlpakkaVersion = "0.17"
+val AlpakkaVersion = "0.18"
 val AkkaStreamKafkaVersion = "0.19"
 val ScalaTestVersion = "3.0.5"
 val ScalaCheckVersion = "1.13.5"
