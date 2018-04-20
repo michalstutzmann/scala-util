@@ -1,4 +1,4 @@
-package com.github.mwegrz.scalautil.auth0
+package com.github.mwegrz.scalautil.oauth2.auth0
 
 import java.time.Instant
 

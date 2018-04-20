@@ -4,6 +4,9 @@ import akka.actor.{ ActorRefFactory, Props }
 import akka.persistence.{ PersistentActor, RecoveryCompleted, SnapshotOffer }
 import akka.util.Timeout
 import com.github.mwegrz.app.Shutdownable
+import com.github.mwegrz.scalautil.akka.serialization.AvroSerializer
+import com.sksamuel.avro4s._
+import org.apache.avro.Schema
 
 import scala.collection.immutable.SortedMap
 import scala.concurrent.{ ExecutionContext, Future }
@@ -24,64 +27,79 @@ trait KeyValueStore[Key, Value] {
 }
 
 object ActorKeyValueStore {
-  private case class Store[Key, Value](key: Key, value: Value)
+  class StoreSerializer extends AvroSerializer[Store] {
+    override protected lazy val currentVersion: Int = 1
 
-  private case object RetrieveAll
+    override protected def versionToWriterSchema: PartialFunction[Int, Schema] = {
+      case `currentVersion` => SchemaFor[Store]()
+    }
 
-  private case class RetrievePage[Key](key: Option[Key], count: Int)
-
-  private case class Retrieve[Key](key: Key)
-
-  private case object RemoveAll
-
-  private case class Remove[Key](key: Key)
-
-  private object State {
-    def zero[Key: Ordering, Value]: State[Key, Value] =
-      State(SortedMap.empty[Key, Value])
+    override def identifier: Int = 666
   }
 
-  private case class State[Key: Ordering, Value](values: SortedMap[Key, Value]) {
-    def store(key: Key, value: Value): State[Key, Value] = copy(values = values + ((key, value)))
+  private implicit val keyBytesOrdering: Ordering[KeyBytes] = Ordering.by((_: Array[Byte]).toIterable)
 
-    def retrieveAll: SortedMap[Key, Value] = values
+  private type KeyBytes = Array[Byte]
 
-    def retrieve(key: Key): Option[Value] = values.get(key)
+  private type ValueBytes = Array[Byte]
 
-    def retrievePage(key: Option[Key], count: Int): SortedMap[Key, Value] =
+  case class Store(key: KeyBytes, value: ValueBytes)
+
+  case object RetrieveAll
+
+  case class RetrievePage(key: Option[KeyBytes], count: Int)
+
+  case class Retrieve(key: KeyBytes)
+
+  case object RemoveAll
+
+  case class Remove(key: KeyBytes)
+
+  private object State {
+    def zero: State =
+      State(SortedMap.empty[KeyBytes, ValueBytes])
+  }
+
+  private case class State(values: SortedMap[KeyBytes, ValueBytes]) {
+    def store(key: KeyBytes, value: ValueBytes): State = copy(values = values + ((key, value)))
+
+    def retrieveAll: SortedMap[KeyBytes, ValueBytes] = values
+
+    def retrieve(key: KeyBytes): Option[ValueBytes] = values.get(key)
+
+    def retrievePage(key: Option[KeyBytes], count: Int): SortedMap[KeyBytes, ValueBytes] =
       key
         .fold(values) { k =>
           values.from(k)
         }
         .take(count)
 
-    def removeAll: State[Key, Value] = copy(values = SortedMap.empty[Key, Value])
+    def removeAll: State = copy(values = SortedMap.empty[KeyBytes, ValueBytes])
 
-    def removeByKey1(key: Key): State[Key, Value] = copy(values = values - key)
+    def removeByKey1(key: KeyBytes): State = copy(values = values - key)
   }
 
   private object EventSourcedActor {
-    def props[Key: Ordering, Value](persistenceId: String): Props =
-      Props(new EventSourcedActor[Key, Value](persistenceId))
+    def props(persistenceId: String): Props =
+      Props(new EventSourcedActor(persistenceId))
   }
 
-  private class EventSourcedActor[Key: Ordering, Value](override val persistenceId: String,
-                                                        snapshotInterval: Int = 1000)
+  private class EventSourcedActor(override val persistenceId: String, snapshotInterval: Int = 1000)
       extends PersistentActor {
-    private var state = State.zero[Key, Value]
+    private var state = State.zero
 
     override val receiveRecover: Receive = {
-      case SnapshotOffer(_, snapshot: State[Key, Value]) => state = snapshot
+      case SnapshotOffer(_, snapshot: State) => state = snapshot
 
       case RecoveryCompleted => ()
 
-      case Remove(key: Key @unchecked) => state = state.removeByKey1(key)
+      case Remove(key: KeyBytes) => state = state.removeByKey1(key)
 
-      case Store(key: Key @unchecked, value: Value @unchecked) => state = state.store(key, value)
+      case Store(key: KeyBytes, value: ValueBytes) => state = state.store(key, value)
     }
 
     override val receiveCommand: Receive = {
-      case event @ Store(key: Key @unchecked, value: Value @unchecked) =>
+      case event @ Store(key: KeyBytes, value: ValueBytes) =>
         persist(event) { _ =>
           state = state.store(key, value)
           saveSnapshotIfNeeded()
@@ -90,9 +108,9 @@ object ActorKeyValueStore {
 
       case RetrieveAll => sender() ! state.retrieveAll
 
-      case RetrievePage(key: Option[Key] @unchecked, count: Int) => sender() ! state.retrievePage(key, count)
+      case RetrievePage(key: Option[KeyBytes], count: Int) => sender() ! state.retrievePage(key, count)
 
-      case Retrieve(key: Key @unchecked) => sender() ! state.retrieve(key)
+      case Retrieve(key: KeyBytes) => sender() ! state.retrieve(key)
 
       case event @ RemoveAll =>
         persist(event) { _ =>
@@ -101,7 +119,7 @@ object ActorKeyValueStore {
           sender() ! ()
         }
 
-      case event @ Remove(key: Key @unchecked) =>
+      case event @ Remove(key: KeyBytes) =>
         persist(event) { _ =>
           state = state.removeByKey1(key)
           saveSnapshotIfNeeded()
@@ -140,8 +158,11 @@ class InMemoryKeyValueStore[Key: Ordering, Value](initialValues: Map[Key, Value]
   override def remove(key: Key): Future[Unit] = Future.successful { valuesByKey = valuesByKey - key }
 }
 
-class ActorKeyValueStore[Key: Ordering, Value](persistenceId: String)(implicit executionContext: ExecutionContext,
-                                                                      actorRefFactory: ActorRefFactory)
+class ActorKeyValueStore[Key: Ordering, Value](persistenceId: String)(
+    keyToBinary: Key => Array[Byte],
+    valueToBinary: Value => Array[Byte],
+    binaryToKey: Array[Byte] => Key,
+    binaryToValue: Array[Byte] => Value)(implicit executionContext: ExecutionContext, actorRefFactory: ActorRefFactory)
     extends KeyValueStore[Key, Value]
     with Shutdownable {
 
@@ -151,24 +172,31 @@ class ActorKeyValueStore[Key: Ordering, Value](persistenceId: String)(implicit e
   private implicit val askTimeout: Timeout = Timeout(10.seconds)
 
   private val actor =
-    actorRefFactory.actorOf(EventSourcedActor.props[Key, Value](persistenceId))
+    actorRefFactory.actorOf(EventSourcedActor.props(persistenceId))
 
-  override def store(key: Key, value: Value): Future[Unit] = (actor ? Store(key, value)).mapTo[Unit]
+  override def store(key: Key, value: Value): Future[Unit] =
+    (actor ? Store(keyToBinary(key), valueToBinary(value))).mapTo[Unit]
 
   override def retrieveAll: Future[SortedMap[Key, Value]] =
-    (actor ? RetrieveAll).mapTo[SortedMap[Key, Value]]
+    (actor ? RetrieveAll)
+      .mapTo[SortedMap[Array[Byte], Array[Byte]]]
+      .map(_.map { case (binaryKey, binaryValue) => (binaryToKey(binaryKey), binaryToValue(binaryValue)) })
 
   override def retrievePage(key: Option[Key], count: Int): Future[SortedMap[Key, Value]] =
-    (actor ? RetrievePage(key, count)).mapTo[SortedMap[Key, Value]]
+    (actor ? RetrievePage(key.map(keyToBinary), count))
+      .mapTo[SortedMap[Array[Byte], Array[Byte]]]
+      .map(_.map { case (binaryKey, binaryValue) => (binaryToKey(binaryKey), binaryToValue(binaryValue)) })
 
   override def retrieve(key: Key): Future[Option[Value]] =
-    (actor ? Retrieve(key)).mapTo[Option[Value]]
+    (actor ? Retrieve(keyToBinary(key)))
+      .mapTo[Option[Array[Byte]]]
+      .map(_.map(binaryToValue))
 
   override def removeAll(): Future[Unit] =
     (actor ? RemoveAll).mapTo[Unit]
 
   override def remove(key: Key): Future[Unit] =
-    (actor ? Remove(key)).mapTo[Unit]
+    (actor ? Remove(keyToBinary(key))).mapTo[Unit]
 
   override def shutdown(): Unit = actorRefFactory.stop(actor)
 }

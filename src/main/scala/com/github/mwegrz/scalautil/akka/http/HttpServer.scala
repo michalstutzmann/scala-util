@@ -18,22 +18,24 @@ import com.github.mwegrz.scalautil.ConfigOps
 import scala.concurrent.ExecutionContext
 
 object HttpServer {
-  def apply(config: Config, httpApis: Map[String, HttpApi])(implicit actorSystem: ActorSystem,
-                                                            actorMaterializer: ActorMaterializer,
-                                                            executor: ExecutionContext): HttpServer =
+  def apply(config: Config, httpApis: Map[PathMatcher0, Set[HttpApi]])(implicit actorSystem: ActorSystem,
+                                                                       actorMaterializer: ActorMaterializer,
+                                                                       executor: ExecutionContext): HttpServer =
     new HttpServer(config.withReferenceDefaults("http-server"), httpApis)
 
   private def generateRequestId(): String = UUID.randomUUID().toString
 }
 
-class HttpServer private (config: Config, httpApis: Map[String, HttpApi])(implicit actorSystem: ActorSystem,
-                                                                          actorMaterializer: ActorMaterializer,
-                                                                          executor: ExecutionContext)
+class HttpServer private (config: Config, httpApis: Map[PathMatcher0, Set[HttpApi]])(
+    implicit actorSystem: ActorSystem,
+    actorMaterializer: ActorMaterializer,
+    executor: ExecutionContext)
     extends Shutdownable
     with KeyValueLogging {
   import HttpServer.generateRequestId
 
-  private val basePath = if (config.hasPath("base-path")) Some(config.getString("base-path")) else None
+  private val basePath =
+    if (config.hasPath("base-path")) Some(config.getString("base-path")).map(separateOnSlashes) else None
   private val host = config.getString("host")
   private val port = config.getInt("port")
 
@@ -42,16 +44,19 @@ class HttpServer private (config: Config, httpApis: Map[String, HttpApi])(implic
       .foldLeft(pathEndOrSingleSlash {
         reject
       }) {
-        case (r, (name, a)) =>
+        case (r, (name, apis)) =>
           pathPrefix(name) {
             val requestId = generateRequestId()
             val time = Instant.now()
-            a.route(requestId, time)
+            apis.foldLeft(pathEndOrSingleSlash(reject)) {
+              case (r, api) =>
+                api.route(requestId, time) ~ r
+            }
           } ~ r
       }
   }
 
-  private val route = redirectToNoTrailingSlashIfPresent(StatusCodes.MovedPermanently) {
+  private[http] val route = redirectToNoTrailingSlashIfPresent(StatusCodes.MovedPermanently) {
     basePath match {
       case Some(value) => pathPrefix(value)(path)
       case None        => path
