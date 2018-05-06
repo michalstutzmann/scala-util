@@ -25,7 +25,7 @@ val CommonsVfs2Version = "2.1"
 val CommonsPoolVersion = "1.6"
 val BouncyCastleVersion = "1.59"
 val Avro4SVersion = "1.8.3"
-val KebsVersion = "1.5.3"
+val KebsVersion = "1.5.4"
 
 lazy val root = (project in file("."))
   .enablePlugins(ReleasePlugin, LogbackPlugin, ScalafmtPlugin)

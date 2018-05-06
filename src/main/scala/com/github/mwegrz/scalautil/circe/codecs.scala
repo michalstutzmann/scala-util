@@ -1,6 +1,7 @@
 package com.github.mwegrz.scalautil.circe
 
 import akka.http.scaladsl.model.Uri
+import com.github.mwegrz.scalautil.StringVal
 import io.circe.{ Decoder, Encoder, KeyDecoder, KeyEncoder }
 import io.circe.java8.time.TimeInstances
 import io.circe.syntax._
@@ -21,7 +22,21 @@ object codecs extends TimeInstances {
       }
     }
 
-  trait IsEnum[C <: Coproduct] {
+  implicit def deriveStringValUnwrappedEncoder[T <: StringVal](implicit g: Lazy[Generic.Aux[T, String :: HNil]],
+                                                               e: Encoder[String]): Encoder[T] =
+    Encoder.instance { value ⇒
+      e(g.value.to(value).head)
+    }
+
+  implicit def deriveStringValUnwrappedDecoder[T <: StringVal](implicit g: Lazy[Generic.Aux[T, String :: HNil]],
+                                                               d: Decoder[String]): Decoder[T] =
+    Decoder.instance { cursor ⇒
+      d(cursor).map { value ⇒
+        g.value.from(value :: HNil)
+      }
+    }
+
+  /*trait IsEnum[C <: Coproduct] {
     def to(c: C): String
     def from(s: String): Option[C]
   }
@@ -54,7 +69,7 @@ object codecs extends TimeInstances {
   implicit def decodeEnum[A, C <: Coproduct](implicit gen: LabelledGeneric.Aux[A, C], rie: IsEnum[C]): Decoder[A] =
     Decoder[String].emap { s =>
       rie.from(s).map(gen.from).toRight("enum")
-    }
+    }*/
 
   implicit val uriEncoder: Encoder[Uri] = Encoder.encodeString.contramap(_.toString)
   implicit val uriDecoder: Decoder[Uri] = Decoder.decodeString.map(Uri(_))

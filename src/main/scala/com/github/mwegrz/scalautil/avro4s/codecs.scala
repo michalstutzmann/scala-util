@@ -3,14 +3,35 @@ package com.github.mwegrz.scalautil.avro4s
 import java.time.{ Duration, Instant }
 
 import akka.http.scaladsl.model.Uri
+import com.github.mwegrz.scalautil.StringVal
 import com.sksamuel.avro4s._
 import org.apache.avro.{ Schema, SchemaBuilder }
 import org.apache.avro.Schema.Field
 import org.apache.avro.util.Utf8
+import pl.iterators.kebs.macros.CaseClass1Rep
 import scodec.bits.ByteVector
+
 import scala.collection.JavaConverters._
 
 object codecs {
+  implicit def stringValToSchema[CC <: StringVal with Product](implicit rep: CaseClass1Rep[CC, String],
+                                                               subschema: ToSchema[String]): ToSchema[CC] =
+    new ToSchema[CC] {
+      override protected val schema = subschema()
+    }
+
+  implicit def stringValToValue[CC <: StringVal with Product](implicit rep: CaseClass1Rep[CC, String],
+                                                              delegate: ToValue[String]): ToValue[CC] =
+    new ToValue[CC] {
+      override def apply(value: CC) = delegate(rep.unapply(value))
+    }
+
+  implicit def stringValFromValue[CC <: StringVal with Product](implicit rep: CaseClass1Rep[CC, String],
+                                                                delegate: FromValue[String]): FromValue[CC] =
+    new FromValue[CC] {
+      override def apply(value: Any, field: Schema.Field) = rep.apply(delegate(value, field))
+    }
+
   implicit val ByteToSchema: ToSchema[Byte] = new ToSchema[Byte] {
     protected val schema: Schema = Schema.create(Schema.Type.INT)
   }
