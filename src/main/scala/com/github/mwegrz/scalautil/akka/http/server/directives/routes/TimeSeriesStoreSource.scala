@@ -34,7 +34,7 @@ class TimeSeriesStoreSource[Key, Value](valueStore: TimeSeriesStore[Key, Value],
     .run()
 
   def route(keys: Set[Key]): Route = get {
-    parameters('from_time.as[Instant], 'until_time.as[Instant]) { (fromTime, untilTime) =>
+    parameters('from_time.as[Instant], 'until_time.as[Instant] ? Instant.now) { (fromTime, untilTime) =>
       val response = valueStore
         .retrieveRange(keys, fromTime, untilTime)
         .map { case (_, value) => value }

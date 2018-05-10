@@ -8,12 +8,13 @@ import com.sksamuel.avro4s._
 import org.apache.avro.{ Schema, SchemaBuilder }
 import org.apache.avro.Schema.Field
 import org.apache.avro.util.Utf8
+import pl.iterators.kebs.avro.AvroKebs
 import pl.iterators.kebs.macros.CaseClass1Rep
 import scodec.bits.ByteVector
 
 import scala.collection.JavaConverters._
 
-object codecs {
+object codecs extends AvroKebs {
   implicit def stringValToSchema[CC <: StringVal with Product](implicit rep: CaseClass1Rep[CC, String],
                                                                subschema: ToSchema[String]): ToSchema[CC] =
     new ToSchema[CC] {

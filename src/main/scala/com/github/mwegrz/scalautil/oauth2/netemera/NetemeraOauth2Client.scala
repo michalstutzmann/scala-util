@@ -19,7 +19,7 @@ object NetemeraOauth2Client {
   def apply(config: Config)(implicit actorSystem: ActorSystem,
                             actorMaterializer: ActorMaterializer,
                             executionContext: ExecutionContext): NetemeraOauth2Client =
-    new NetemeraOauth2Client(config.withReferenceDefaults("netemera.authorization-client"))
+    new NetemeraOauth2Client(config.withReferenceDefaults("netemera-oauth2-client"))
 
   private implicit val circeConfiguration: Configuration = Configuration.default.withSnakeCaseMemberNames.withDefaults
 }
