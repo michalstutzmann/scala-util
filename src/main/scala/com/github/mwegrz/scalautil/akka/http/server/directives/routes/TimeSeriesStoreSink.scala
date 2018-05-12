@@ -3,7 +3,7 @@ package com.github.mwegrz.scalautil.akka.http.server.directives.routes
 import java.time.Instant
 
 import akka.NotUsed
-import akka.http.scaladsl.marshalling.{ ToEntityMarshaller, ToResponseMarshaller }
+import akka.http.scaladsl.marshalling.ToResponseMarshaller
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
@@ -18,7 +18,6 @@ import scala.concurrent.ExecutionContext
 class TimeSeriesStoreSink[Key, Value](valueStore: TimeSeriesStore[Key, Value], valueSink: Sink[Value, NotUsed])(
     implicit
     instantFromStringUnmarshaller: Unmarshaller[String, Instant],
-    valueToEntityMarshaller: ToEntityMarshaller[Value],
     valueSourceToResponseMarshaller: ToResponseMarshaller[Source[Value, NotUsed]],
     fromEntityToValueUnmarshaller: FromEntityUnmarshaller[Value],
     executionContext: ExecutionContext,
@@ -31,12 +30,14 @@ class TimeSeriesStoreSink[Key, Value](valueStore: TimeSeriesStore[Key, Value], v
           Source.single((key, Instant.now(), value)).runWith(valueStore.store)
           Source.single(value).runWith(valueSink)
         }
-        complete(StatusCodes.Created)
+        complete(
+          StatusCodes.Created
+            .copy(intValue = StatusCodes.Created.intValue)(reason = "", defaultMessage = "", allowsEntity = true))
       }
     } ~
       get {
         parameters('from_time.as[Instant], 'to_time.as[Instant]) { (fromTime, toTime) =>
-          complete(valueStore.retrieveRange(keys, fromTime, toTime).map { case (_, value) => value })
+          complete(valueStore.retrieveRange(keys, fromTime, toTime).map { case (_, _, value) => value })
         }
       }
   }

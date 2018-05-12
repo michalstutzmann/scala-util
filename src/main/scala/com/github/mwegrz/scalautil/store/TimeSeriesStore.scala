@@ -17,9 +17,9 @@ import scala.concurrent.{ Await, ExecutionContext, Future }
 trait TimeSeriesStore[A, B] {
   def store: Sink[(A, Instant, B), Future[Done]]
 
-  def retrieveRange(keys: Set[A], fromTime: Instant, untilTime: Instant): Source[(A, B), NotUsed]
+  def retrieveRange(keys: Set[A], fromTime: Instant, untilTime: Instant): Source[(A, Instant, B), NotUsed]
 
-  def retrieveLast(keys: Set[A]): Source[(A, B), NotUsed]
+  def retrieveLast(keys: Set[A], count: Int): Source[(A, Instant, B), NotUsed]
 }
 
 class InMemoryTimeSeriesStore[A, B](initial: Map[A, SortedMap[Instant, B]] = Map.empty[A, SortedMap[Instant, B]])
@@ -29,20 +29,20 @@ class InMemoryTimeSeriesStore[A, B](initial: Map[A, SortedMap[Instant, B]] = Map
   override def store: Sink[(A, Instant, B), Future[Done]] =
     Sink.foreach { case (key, time, value) => events = events.updated(key, events(key).updated(time, value)) }
 
-  override def retrieveRange(keys: Set[A], fromTime: Instant, untilTime: Instant): Source[(A, B), NotUsed] = {
-    def forKey(key: A): Source[(A, B), NotUsed] = {
-      Source(events(key).range(fromTime, untilTime).map(a => (key, a._2)).toList)
+  override def retrieveRange(keys: Set[A], fromTime: Instant, untilTime: Instant): Source[(A, Instant, B), NotUsed] = {
+    def forKey(key: A): Source[(A, Instant, B), NotUsed] = {
+      Source(events(key).range(fromTime, untilTime).map { case (time, value) => (key, time, value) }.toList)
     }
 
-    keys.map(forKey).foldLeft(Source.empty[(A, B)])((a, b) => a.concat(b))
+    keys.map(forKey).foldLeft(Source.empty[(A, Instant, B)])((a, b) => a.concat(b))
   }
 
-  override def retrieveLast(keys: Set[A]): Source[(A, B), NotUsed] = {
-    def forKey(key: A): Source[(A, B), NotUsed] = {
-      events(key).lastOption.map(a => (key, a._2)).fold(Source.empty[(A, B)])(Source.single)
+  override def retrieveLast(keys: Set[A], count: Int): Source[(A, Instant, B), NotUsed] = {
+    def forKey(key: A): Source[(A, Instant, B), NotUsed] = {
+      Source(events(key).takeRight(count).map { case (time, value) => (key, time, value) }.toList)
     }
 
-    keys.map(forKey).foldLeft(Source.empty[(A, B)])((a, b) => a.concat(b))
+    keys.map(forKey).foldLeft(Source.empty[(A, Instant, B)])((a, b) => a.concat(b))
   }
 }
 
@@ -75,11 +75,12 @@ class CassandraTimeSeriesStore[A, B](cassandraClient: CassandraClient, config: C
       }
   }
 
-  override def retrieveRange(keys: Set[A], fromTime: Instant, toTime: Instant): Source[(A, B), NotUsed] = {
-    def forKey(key: A): Source[(A, B), NotUsed] = {
-      val query = s"""SELECT value
+  override def retrieveRange(keys: Set[A], fromTime: Instant, toTime: Instant): Source[(A, Instant, B), NotUsed] = {
+    def forKey(key: A): Source[(A, Instant, B), NotUsed] = {
+      val query = s"""SELECT time, value
                      |FROM $keyspace.$table
-                     |WHERE key = ? AND time > ? AND time <= ?""".stripMargin
+                     |WHERE key = ? AND time > ? AND time <= ?
+                     |ORDER BY time ASC""".stripMargin
 
       cassandraClient
         .createSource(
@@ -87,32 +88,32 @@ class CassandraTimeSeriesStore[A, B](cassandraClient: CassandraClient, config: C
           List(ByteBuffer.wrap(aToBinary(key)), fromTime, toTime)
         )
         .map { row =>
-          (key, binaryToB(row.getBytes("value").array()))
+          (key, row.get("time", classOf[Instant]), binaryToB(row.getBytes("value").array()))
         }
     }
 
-    keys.map(forKey).foldLeft(Source.empty[(A, B)]) { (a, b) =>
+    keys.map(forKey).foldLeft(Source.empty[(A, Instant, B)]) { (a, b) =>
       a.concat(b)
     }
   }
 
-  override def retrieveLast(keys: Set[A]): Source[(A, B), NotUsed] = {
-    def forKey(key: A): Source[(A, B), NotUsed] = {
-      val query = s"""SELECT value
+  override def retrieveLast(keys: Set[A], count: Int): Source[(A, Instant, B), NotUsed] = {
+    def forKey(key: A): Source[(A, Instant, B), NotUsed] = {
+      val query = s"""SELECT time, value
                      |FROM $keyspace.$table
-                     |WHERE key = ? LIMIT 1""".stripMargin
+                     |WHERE key = ? LIMIT ?""".stripMargin
 
       cassandraClient
         .createSource(
           query,
-          List(ByteBuffer.wrap(aToBinary(key)))
+          List(ByteBuffer.wrap(aToBinary(key)), count.asInstanceOf[AnyRef])
         )
         .map { row =>
-          (key, binaryToB(row.getBytes("value").array()))
+          (key, row.get("time", classOf[Instant]), binaryToB(row.getBytes("value").array()))
         }
     }
 
-    keys.map(forKey).foldLeft(Source.empty[(A, B)]) { (a, b) =>
+    keys.map(forKey).foldLeft(Source.empty[(A, Instant, B)]) { (a, b) =>
       a.concat(b)
     }
   }
