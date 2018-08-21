@@ -36,11 +36,11 @@ class TimeSeriesStoreSink[Key, Value](valueStore: TimeSeriesStore[Key, Value], v
       }
     } ~
       get {
-        parameters('from_time.as[Instant], 'to_time.as[Instant]) { (fromTime, toTime) =>
-          complete(valueStore.retrieveRange(keys, fromTime, toTime).map { case (_, _, value) => value })
+        parameters('from_time.as[Instant], 'until_time.as[Instant] ? Instant.now) { (fromTime, untilTime) =>
+          complete(valueStore.retrieveRange(keys, fromTime, untilTime).map { case (_, _, value) => value })
         }
       }
   }
 
-  override def shutdown(): Unit = ???
+  override def shutdown(): Unit = ()
 }

@@ -3,54 +3,67 @@ package com.github.mwegrz.scalautil.store
 import java.nio.ByteBuffer
 import java.time.Instant
 
-import akka.stream.ActorMaterializer
+import akka.stream.{ ActorMaterializer, Materializer }
 import akka.{ Done, NotUsed }
 import akka.stream.scaladsl.{ Sink, Source }
 import com.github.mwegrz.scalastructlog.KeyValueLogging
 import com.github.mwegrz.scalautil.cassandra.CassandraClient
+import com.github.mwegrz.scalautil.serialization.Serde
 import com.typesafe.config.Config
 
 import scala.collection.SortedMap
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ Await, ExecutionContext, Future }
 
-trait TimeSeriesStore[A, B] {
-  def store: Sink[(A, Instant, B), Future[Done]]
+trait TimeSeriesStore[Key, Value] {
+  def store: Sink[(Key, Instant, Value), Future[Done]]
 
-  def retrieveRange(keys: Set[A], fromTime: Instant, untilTime: Instant): Source[(A, Instant, B), NotUsed]
+  def retrieveRange(fromTime: Instant, untilTime: Instant): Source[(Key, Instant, Value), NotUsed]
 
-  def retrieveLast(keys: Set[A], count: Int): Source[(A, Instant, B), NotUsed]
+  def retrieveRange(keys: Set[Key], fromTime: Instant, untilTime: Instant): Source[(Key, Instant, Value), NotUsed]
+
+  def retrieveLast(keys: Set[Key], count: Int): Source[(Key, Instant, Value), NotUsed]
 }
 
-class InMemoryTimeSeriesStore[A, B](initial: Map[A, SortedMap[Instant, B]] = Map.empty[A, SortedMap[Instant, B]])
-    extends TimeSeriesStore[A, B] {
-  private var events = initial.withDefaultValue(SortedMap.empty[Instant, B])
+class InMemoryTimeSeriesStore[Key, Value](
+    initial: Map[Key, SortedMap[Instant, Value]] = Map.empty[Key, SortedMap[Instant, Value]])
+    extends TimeSeriesStore[Key, Value] {
+  private var events = initial.withDefaultValue(SortedMap.empty[Instant, Value])
 
-  override def store: Sink[(A, Instant, B), Future[Done]] =
+  override def store: Sink[(Key, Instant, Value), Future[Done]] =
     Sink.foreach { case (key, time, value) => events = events.updated(key, events(key).updated(time, value)) }
 
-  override def retrieveRange(keys: Set[A], fromTime: Instant, untilTime: Instant): Source[(A, Instant, B), NotUsed] = {
-    def forKey(key: A): Source[(A, Instant, B), NotUsed] = {
+  override def retrieveRange(fromTime: Instant, untilTime: Instant): Source[(Key, Instant, Value), NotUsed] =
+    Source(events.foldLeft(List.empty[(Key, Instant, Value)]) {
+      case (b, (a, s)) =>
+        b ++ s.range(fromTime, untilTime).map(c => (a, c._1, c._2))
+    })
+
+  override def retrieveRange(keys: Set[Key],
+                             fromTime: Instant,
+                             untilTime: Instant): Source[(Key, Instant, Value), NotUsed] = {
+    def forKey(key: Key): Source[(Key, Instant, Value), NotUsed] = {
       Source(events(key).range(fromTime, untilTime).map { case (time, value) => (key, time, value) }.toList)
     }
 
-    keys.map(forKey).foldLeft(Source.empty[(A, Instant, B)])((a, b) => a.concat(b))
+    keys.map(forKey).foldLeft(Source.empty[(Key, Instant, Value)])((a, b) => a.concat(b))
   }
 
-  override def retrieveLast(keys: Set[A], count: Int): Source[(A, Instant, B), NotUsed] = {
-    def forKey(key: A): Source[(A, Instant, B), NotUsed] = {
+  override def retrieveLast(keys: Set[Key], count: Int): Source[(Key, Instant, Value), NotUsed] = {
+    def forKey(key: Key): Source[(Key, Instant, Value), NotUsed] = {
       Source(events(key).takeRight(count).map { case (time, value) => (key, time, value) }.toList)
     }
 
-    keys.map(forKey).foldLeft(Source.empty[(A, Instant, B)])((a, b) => a.concat(b))
+    keys.map(forKey).foldLeft(Source.empty[(Key, Instant, Value)])((a, b) => a.concat(b))
   }
 }
 
-class CassandraTimeSeriesStore[A, B](cassandraClient: CassandraClient, config: Config)(
-    aToBinary: A => Array[Byte],
-    bToBinary: B => Array[Byte],
-    binaryToB: Array[Byte] => B)(implicit executionContext: ExecutionContext, actorMaterializer: ActorMaterializer)
-    extends TimeSeriesStore[A, B]
+class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, config: Config)(
+    implicit executionContext: ExecutionContext,
+    actorMaterializer: ActorMaterializer,
+    keySerde: Serde[Key],
+    valueSerde: Serde[Value])
+    extends TimeSeriesStore[Key, Value]
     with KeyValueLogging {
   private val keyspace = config.getString("keyspace")
   private val table = config.getString("table")
@@ -58,9 +71,9 @@ class CassandraTimeSeriesStore[A, B](cassandraClient: CassandraClient, config: C
 
   Await.ready(createTableIfNotExists(), Duration.Inf)
 
-  override def store: Sink[(A, Instant, B), Future[Done]] = {
+  override def store: Sink[(Key, Instant, Value), Future[Done]] = {
     cassandraClient
-      .createSink[(A, Instant, B)](s"""INSERT
+      .createSink[(Key, Instant, Value)](s"""INSERT
                         |INTO $keyspace.$table(
                         |  key,
                         |  time,
@@ -68,15 +81,34 @@ class CassandraTimeSeriesStore[A, B](cassandraClient: CassandraClient, config: C
                         |) VALUES (?, ?, ?) USING TTL ${rowTtl.getSeconds}""".stripMargin) {
         case ((key, time, value), s) =>
           s.bind(
-            ByteBuffer.wrap(aToBinary(key)),
+            ByteBuffer.wrap(keySerde.valueToBinary(key)),
             time,
-            ByteBuffer.wrap(bToBinary(value))
+            ByteBuffer.wrap(valueSerde.valueToBinary(value))
           )
       }
   }
 
-  override def retrieveRange(keys: Set[A], fromTime: Instant, toTime: Instant): Source[(A, Instant, B), NotUsed] = {
-    def forKey(key: A): Source[(A, Instant, B), NotUsed] = {
+  override def retrieveRange(fromTime: Instant, toTime: Instant): Source[(Key, Instant, Value), NotUsed] = {
+    val query = s"""SELECT key, time, value
+                     |FROM $keyspace.$table
+                     |WHERE time > ? AND time <= ? ALLOW FILTERING""".stripMargin
+
+    cassandraClient
+      .createSource(
+        query,
+        List(fromTime, toTime)
+      )
+      .map { row =>
+        (keySerde.binaryToValue(row.getBytes("key").array()),
+         row.get("time", classOf[Instant]),
+         valueSerde.binaryToValue(row.getBytes("value").array()))
+      }
+  }
+
+  override def retrieveRange(keys: Set[Key],
+                             fromTime: Instant,
+                             toTime: Instant): Source[(Key, Instant, Value), NotUsed] = {
+    def forKey(key: Key): Source[(Key, Instant, Value), NotUsed] = {
       val query = s"""SELECT time, value
                      |FROM $keyspace.$table
                      |WHERE key = ? AND time > ? AND time <= ?
@@ -85,20 +117,20 @@ class CassandraTimeSeriesStore[A, B](cassandraClient: CassandraClient, config: C
       cassandraClient
         .createSource(
           query,
-          List(ByteBuffer.wrap(aToBinary(key)), fromTime, toTime)
+          List(ByteBuffer.wrap(keySerde.valueToBinary(key)), fromTime, toTime)
         )
         .map { row =>
-          (key, row.get("time", classOf[Instant]), binaryToB(row.getBytes("value").array()))
+          (key, row.get("time", classOf[Instant]), valueSerde.binaryToValue(row.getBytes("value").array()))
         }
     }
 
-    keys.map(forKey).foldLeft(Source.empty[(A, Instant, B)]) { (a, b) =>
+    keys.map(forKey).foldLeft(Source.empty[(Key, Instant, Value)]) { (a, b) =>
       a.concat(b)
     }
   }
 
-  override def retrieveLast(keys: Set[A], count: Int): Source[(A, Instant, B), NotUsed] = {
-    def forKey(key: A): Source[(A, Instant, B), NotUsed] = {
+  override def retrieveLast(keys: Set[Key], count: Int): Source[(Key, Instant, Value), NotUsed] = {
+    def forKey(key: Key): Source[(Key, Instant, Value), NotUsed] = {
       val query = s"""SELECT time, value
                      |FROM $keyspace.$table
                      |WHERE key = ? LIMIT ?""".stripMargin
@@ -106,14 +138,14 @@ class CassandraTimeSeriesStore[A, B](cassandraClient: CassandraClient, config: C
       cassandraClient
         .createSource(
           query,
-          List(ByteBuffer.wrap(aToBinary(key)), count.asInstanceOf[AnyRef])
+          List(ByteBuffer.wrap(keySerde.valueToBinary(key)), count.asInstanceOf[AnyRef])
         )
         .map { row =>
-          (key, row.get("time", classOf[Instant]), binaryToB(row.getBytes("value").array()))
+          (key, row.get("time", classOf[Instant]), valueSerde.binaryToValue(row.getBytes("value").array()))
         }
     }
 
-    keys.map(forKey).foldLeft(Source.empty[(A, Instant, B)]) { (a, b) =>
+    keys.map(forKey).foldLeft(Source.empty[(Key, Instant, Value)]) { (a, b) =>
       a.concat(b)
     }
   }

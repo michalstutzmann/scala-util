@@ -8,9 +8,8 @@ import akka.http.scaladsl.model.sse.ServerSentEvent
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.unmarshalling.Unmarshaller
-import akka.stream.{ KillSwitches, Materializer, OverflowStrategy }
-import akka.stream.scaladsl.{ Keep, Source }
-import com.github.mwegrz.app.Shutdownable
+import akka.stream.{ Materializer, OverflowStrategy }
+import akka.stream.scaladsl.Source
 import com.github.mwegrz.scalautil.store.TimeSeriesStore
 import akka.http.scaladsl.marshalling.sse.EventStreamMarshalling._
 import akka.http.scaladsl.model.MessageEntity
@@ -34,16 +33,10 @@ class TimeSeriesStoreSource[Key, Value: ClassTag](valueStore: TimeSeriesStore[Ke
     valueSourceToResponseMarshaller: ToResponseMarshaller[Source[Value, NotUsed]],
     executionContext: ExecutionContext,
     materializer: Materializer)
-    extends Shutdownable
-    with KeyValueLogging {
+    extends KeyValueLogging {
   import TimeSeriesStoreSource._
 
   private val valueTypeName = implicitly[ClassTag[Value]].runtimeClass.getSimpleName
-
-  private val storing = valueSource
-    .viaMat(KillSwitches.single)(Keep.right)
-    .toMat(valueStore.store)(Keep.left)
-    .run()
 
   def route(keys: Set[Key]): Route = get {
     parameters('from_time.as[Instant], 'until_time.as[Instant] ? Instant.now) { (fromTime, untilTime) =>
@@ -66,8 +59,6 @@ class TimeSeriesStoreSource[Key, Value: ClassTag](valueStore: TimeSeriesStore[Ke
         complete(response)
     }
   }
-
-  override def shutdown(): Unit = storing.shutdown()
 
   private def retrieveHistoricalValues(keys: Set[Key],
                                        fromTime: Instant,

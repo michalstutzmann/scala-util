@@ -1,12 +1,15 @@
 package com.github.mwegrz.scalautil.store
 
-import akka.actor.{ ActorRefFactory, Props }
+import akka.NotUsed
+import akka.actor.{ ActorRefFactory, ExtendedActorSystem, Props }
 import akka.persistence.{ PersistentActor, RecoveryCompleted, SnapshotOffer }
+import akka.stream.scaladsl.Sink
 import akka.util.Timeout
 import com.github.mwegrz.app.Shutdownable
-import com.github.mwegrz.scalautil.akka.serialization.AvroSerializer
+import com.github.mwegrz.scalautil.akka.serialization.ResourceAvroSerializer
+import com.github.mwegrz.scalautil.serialization.Serde
 import com.sksamuel.avro4s._
-import org.apache.avro.Schema
+import com.github.mwegrz.scalautil.avro4s.codecs._
 
 import scala.collection.immutable.SortedMap
 import scala.concurrent.{ ExecutionContext, Future }
@@ -27,21 +30,16 @@ trait KeyValueStore[Key, Value] {
 }
 
 object ActorKeyValueStore {
-  class StoreSerializer extends AvroSerializer[Store] {
-    override protected lazy val currentVersion: Int = 1
-
-    override protected def versionToWriterSchema: PartialFunction[Int, Schema] = {
-      case `currentVersion` => SchemaFor[Store]()
-    }
-
-    override def identifier: Int = 666
-  }
-
   private implicit val keyBytesOrdering: Ordering[KeyBytes] = Ordering.by((_: Array[Byte]).toIterable)
 
   private type KeyBytes = Array[Byte]
 
   private type ValueBytes = Array[Byte]
+
+  object Store {
+    class AkkaSerializer(extendedActorSystem: ExtendedActorSystem)
+        extends ResourceAvroSerializer[Store](extendedActorSystem)
+  }
 
   case class Store(key: KeyBytes, value: ValueBytes)
 
@@ -53,24 +51,32 @@ object ActorKeyValueStore {
 
   case object RemoveAll
 
+  object Remove {
+    class AkkaSerializer(extendedActorSystem: ExtendedActorSystem)
+        extends ResourceAvroSerializer[Remove](extendedActorSystem)
+  }
+
   case class Remove(key: KeyBytes)
 
   private object State {
     def zero: State =
-      State(SortedMap.empty[KeyBytes, ValueBytes])
+      State(Map.empty[KeyBytes, ValueBytes])
+
+    class AkkaSerializer(extendedActorSystem: ExtendedActorSystem)
+        extends ResourceAvroSerializer[Remove](extendedActorSystem)
   }
 
-  private case class State(values: SortedMap[KeyBytes, ValueBytes]) {
+  private case class State(values: Map[KeyBytes, ValueBytes]) {
     def store(key: KeyBytes, value: ValueBytes): State = copy(values = values + ((key, value)))
 
-    def retrieveAll: SortedMap[KeyBytes, ValueBytes] = values
+    def retrieveAll: Map[KeyBytes, ValueBytes] = values
 
     def retrieve(key: KeyBytes): Option[ValueBytes] = values.get(key)
 
-    def retrievePage(key: Option[KeyBytes], count: Int): SortedMap[KeyBytes, ValueBytes] =
+    def retrievePage(key: Option[KeyBytes], count: Int): Map[KeyBytes, ValueBytes] =
       key
         .fold(values) { k =>
-          values.from(k)
+          values.asInstanceOf[SortedMap[KeyBytes, ValueBytes]].from(k)
         }
         .take(count)
 
@@ -158,11 +164,10 @@ class InMemoryKeyValueStore[Key: Ordering, Value](initialValues: Map[Key, Value]
   override def remove(key: Key): Future[Unit] = Future.successful { valuesByKey = valuesByKey - key }
 }
 
-class ActorKeyValueStore[Key: Ordering, Value](persistenceId: String)(
-    keyToBinary: Key => Array[Byte],
-    valueToBinary: Value => Array[Byte],
-    binaryToKey: Array[Byte] => Key,
-    binaryToValue: Array[Byte] => Value)(implicit executionContext: ExecutionContext, actorRefFactory: ActorRefFactory)
+class ActorKeyValueStore[Key: Ordering, Value](persistenceId: String)(implicit executionContext: ExecutionContext,
+                                                                      actorRefFactory: ActorRefFactory,
+                                                                      keySerde: Serde[Key],
+                                                                      valueSerde: Serde[Value])
     extends KeyValueStore[Key, Value]
     with Shutdownable {
 
@@ -174,29 +179,41 @@ class ActorKeyValueStore[Key: Ordering, Value](persistenceId: String)(
   private val actor =
     actorRefFactory.actorOf(EventSourcedActor.props(persistenceId))
 
+  def store: Sink[(Key, Value), NotUsed] =
+    Sink
+      .foldAsync[Unit, (Key, Value)](()) {
+        case (_, (key, value)) =>
+          store(key, value)
+      }
+      .mapMaterializedValue(_ => NotUsed)
+
   override def store(key: Key, value: Value): Future[Unit] =
-    (actor ? Store(keyToBinary(key), valueToBinary(value))).mapTo[Unit]
+    (actor ? Store(keySerde.valueToBinary(key), valueSerde.valueToBinary(value))).mapTo[Unit]
 
   override def retrieveAll: Future[SortedMap[Key, Value]] =
     (actor ? RetrieveAll)
       .mapTo[SortedMap[Array[Byte], Array[Byte]]]
-      .map(_.map { case (binaryKey, binaryValue) => (binaryToKey(binaryKey), binaryToValue(binaryValue)) })
+      .map(_.map {
+        case (binaryKey, binaryValue) => (keySerde.binaryToValue(binaryKey), valueSerde.binaryToValue(binaryValue))
+      })
 
   override def retrievePage(key: Option[Key], count: Int): Future[SortedMap[Key, Value]] =
-    (actor ? RetrievePage(key.map(keyToBinary), count))
+    (actor ? RetrievePage(key.map(keySerde.valueToBinary), count))
       .mapTo[SortedMap[Array[Byte], Array[Byte]]]
-      .map(_.map { case (binaryKey, binaryValue) => (binaryToKey(binaryKey), binaryToValue(binaryValue)) })
+      .map(_.map {
+        case (binaryKey, binaryValue) => (keySerde.binaryToValue(binaryKey), valueSerde.binaryToValue(binaryValue))
+      })
 
   override def retrieve(key: Key): Future[Option[Value]] =
-    (actor ? Retrieve(keyToBinary(key)))
+    (actor ? Retrieve(keySerde.valueToBinary(key)))
       .mapTo[Option[Array[Byte]]]
-      .map(_.map(binaryToValue))
+      .map(_.map(valueSerde.binaryToValue))
 
   override def removeAll(): Future[Unit] =
     (actor ? RemoveAll).mapTo[Unit]
 
   override def remove(key: Key): Future[Unit] =
-    (actor ? Remove(keyToBinary(key))).mapTo[Unit]
+    (actor ? Remove(keySerde.valueToBinary(key))).mapTo[Unit]
 
   override def shutdown(): Unit = actorRefFactory.stop(actor)
 }

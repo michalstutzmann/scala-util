@@ -57,9 +57,12 @@ class HttpServer private (config: Config, httpApis: Map[PathMatcher0, Set[HttpAp
   }
 
   private[http] val route = redirectToNoTrailingSlashIfPresent(StatusCodes.MovedPermanently) {
-    basePath match {
-      case Some(value) => pathPrefix(value)(path)
-      case None        => path
+    extractRequestContext { context =>
+      log.debug("Received request", "request" -> context.request)
+      basePath match {
+        case Some(value) => pathPrefix(value)(path)
+        case None        => path
+      }
     }
   }
 

@@ -9,13 +9,23 @@ import com.datastax.driver.core.policies.ExponentialReconnectionPolicy
 import com.github.mwegrz.app.Shutdownable
 import com.github.mwegrz.scalastructlog.KeyValueLogging
 import com.typesafe.config.Config
+import com.github.mwegrz.scalautil.ConfigOps
 
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.collection.JavaConverters._
 
-object CassandraClient {
+object CassandraClient extends KeyValueLogging {
   def apply(config: Config)(implicit executionContext: ExecutionContext): CassandraClient =
-    new DefaultCassandraClient(config)
+    new DefaultCassandraClient(config.withReferenceDefaults("cassandra-client"))
+
+  def withKeyspaceIfNotExists(config: Config)(implicit executionContext: ExecutionContext,
+                                              actorMaterializer: ActorMaterializer): Future[CassandraClient] = {
+    val client = apply(config)
+    val keyspace = config.getString("keyspace")
+    val replicationStrategy = config.getString("replication-strategy")
+    val replicationFactor = config.getInt("replication-factor")
+    client.createKeyspaceIfNotExists(keyspace, replicationStrategy, replicationFactor).map(_ => client)
+  }
 }
 
 trait CassandraClient extends Shutdownable {

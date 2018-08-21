@@ -1,15 +1,14 @@
 import ReleaseTransformations._
 
 val ScalaVersion = "2.12.6"
-
-val AkkaVersion = "2.5.12"
-val AkkaHttpVersion = "10.1.1"
-val AkkaHttpJsonVersion = "1.20.1"
+val AkkaVersion = "2.5.14"
+val AkkaHttpVersion = "10.1.3"
+val AkkaHttpJsonVersion = "1.21.0"
 val CirceVersion = "0.9.3"
 val CatsVersion = "1.1.0"
 val JwtCirceVersion = "0.16.0"
-val AlpakkaVersion = "0.18"
-val AkkaStreamKafkaVersion = "0.19"
+val AlpakkaVersion = "0.20"
+val AlpakkaKafkaVersion = "0.22"
 val ScalaTestVersion = "3.0.5"
 val ScalaCheckVersion = "1.13.5"
 val ScodecCoreVersion = "1.10.3"
@@ -24,9 +23,11 @@ val ConfigVersion = "1.3.3"
 val SlickVersion = "3.2.2"
 val CommonsVfs2Version = "2.1"
 val CommonsPoolVersion = "1.6"
-val BouncyCastleVersion = "1.59"
-val Avro4SVersion = "1.8.3"
-val KebsVersion = "1.5.4"
+val BouncyCastleVersion = "1.60"
+val Avro4SVersion = "1.9.0"
+val KebsVersion = "1.6.1"
+val Pulsar4SVersion = "2.0.0"
+val GeodesyVersion = "1.1.3"
 
 lazy val root = (project in file("."))
   .enablePlugins(ReleasePlugin, LogbackPlugin, ScalafmtPlugin)
@@ -49,7 +50,7 @@ lazy val root = (project in file("."))
       "com.typesafe.akka" %% "akka-slf4j" % AkkaVersion % Optional,
       "com.typesafe.akka" %% "akka-testkit" % AkkaVersion % "it,test",
       "com.typesafe.akka" %% "akka-http-testkit" % AkkaHttpVersion % "it,test",
-      "com.typesafe.akka" %% "akka-stream-kafka" % AkkaStreamKafkaVersion % Optional,
+      "com.typesafe.akka" %% "akka-stream-kafka" % AlpakkaKafkaVersion % Optional,
       "de.heikoseeberger" %% "akka-http-circe" % AkkaHttpJsonVersion % Optional,
       "de.heikoseeberger" %% "akka-http-avro4s" % AkkaHttpJsonVersion % Optional,
       "com.lightbend.akka" %% "akka-stream-alpakka-cassandra" % AlpakkaVersion % Optional,
@@ -75,7 +76,9 @@ lazy val root = (project in file("."))
       "com.pauldijou" %% "jwt-circe" % JwtCirceVersion % Optional,
       "org.bouncycastle" % "bcpkix-jdk15on" % BouncyCastleVersion % Optional,
       "com.sksamuel.avro4s" %% "avro4s-core" % Avro4SVersion % Optional,
-      "pl.iterators" %% "kebs-avro" % KebsVersion % Optional
+      "pl.iterators" %% "kebs-avro" % KebsVersion % Optional,
+      "com.sksamuel.pulsar4s" %% "pulsar4s-akka-streams" % Pulsar4SVersion % Optional,
+      "org.gavaghan" % "geodesy" % GeodesyVersion
     ),
     Defaults.itSettings,
     fork := true,

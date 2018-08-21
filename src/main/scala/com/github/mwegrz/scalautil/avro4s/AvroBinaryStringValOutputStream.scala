@@ -24,4 +24,6 @@ case class AvroBinaryStringValOutputStream[T <: StringVal](os: OutputStream)(imp
   override def write(t: T): Unit = datumWriter.write(new Utf8(toValue(t).asInstanceOf[String]), encoder)
   override def fSync(): Unit = {}
   override def flush(): Unit = encoder.flush()
+
+  override def close(closeUnderlying: Boolean): Unit = ???
 }
