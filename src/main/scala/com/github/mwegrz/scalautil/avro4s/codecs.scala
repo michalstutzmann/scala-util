@@ -3,7 +3,7 @@ package com.github.mwegrz.scalautil.avro4s
 import java.time.{ Duration, Instant }
 
 import akka.http.scaladsl.model.Uri
-import com.github.mwegrz.scalautil.StringVal
+import com.github.mwegrz.scalautil.{ LongVal, StringVal }
 import com.sksamuel.avro4s._
 import org.apache.avro.{ Schema, SchemaBuilder }
 import org.apache.avro.Schema.Field
@@ -29,6 +29,24 @@ object codecs extends AvroKebs {
 
   implicit def stringValFromValue[CC <: StringVal with Product](implicit rep: CaseClass1Rep[CC, String],
                                                                 delegate: FromValue[String]): FromValue[CC] =
+    new FromValue[CC] {
+      override def apply(value: Any, field: Schema.Field) = rep.apply(delegate(value, field))
+    }
+
+  implicit def longValToSchema[CC <: LongVal with Product](implicit rep: CaseClass1Rep[CC, Long],
+                                                           subschema: ToSchema[Long]): ToSchema[CC] =
+    new ToSchema[CC] {
+      override protected val schema = subschema()
+    }
+
+  implicit def longValToValue[CC <: LongVal with Product](implicit rep: CaseClass1Rep[CC, Long],
+                                                          delegate: ToValue[Long]): ToValue[CC] =
+    new ToValue[CC] {
+      override def apply(value: CC) = delegate(rep.unapply(value))
+    }
+
+  implicit def longValFromValue[CC <: LongVal with Product](implicit rep: CaseClass1Rep[CC, Long],
+                                                            delegate: FromValue[Long]): FromValue[CC] =
     new FromValue[CC] {
       override def apply(value: Any, field: Schema.Field) = rep.apply(delegate(value, field))
     }

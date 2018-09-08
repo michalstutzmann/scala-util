@@ -7,8 +7,8 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{ PathMatcher1, Route }
 import akka.http.scaladsl.unmarshalling.{ FromEntityUnmarshaller, Unmarshaller }
 import com.github.mwegrz.scalautil.store.KeyValueStore
+import scodec.bits.ByteVector
 
-import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext
 
 package object routes {
@@ -25,10 +25,23 @@ package object routes {
                                 executionContext: ExecutionContext): Route = {
     pathEnd {
       get {
-        parameters('from.as[Key].?, 'count.as[Int]) { (from, count) =>
-          complete(store.retrievePage(from, count).map(a => Envelope(a.values.toList)))
+        parameters('cursor.as[Key].?, 'count.as[Int]) { (cursor, count) =>
+          val envelope = store
+            .retrievePage(cursor, count + 1)
+            .map { a =>
+              val data = a.values.take(count).toList
+              val nextCursor = a.keys.lastOption.map(b => ByteVector.encodeAscii(b.toString).right.get.toBase64)
+              Envelope(data, nextCursor)
+            }
+          complete(envelope)
         } ~ pass {
-          complete(store.retrieveAll.map(a => Envelope(a.values.toList)))
+          val envelope = store.retrieveAll
+            .map { a =>
+              val data = a.values.toList
+              val nextCursor = None
+              Envelope(data, nextCursor)
+            }
+          complete(envelope)
         }
       }
     } ~ path(keyPathMatcher) { id =>

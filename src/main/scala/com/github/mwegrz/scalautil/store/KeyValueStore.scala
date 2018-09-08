@@ -80,9 +80,9 @@ object ActorKeyValueStore {
         }
         .take(count)
 
-    def removeAll: State = copy(values = SortedMap.empty[KeyBytes, ValueBytes])
+    def removeAll(): State = copy(values = SortedMap.empty[KeyBytes, ValueBytes])
 
-    def removeByKey1(key: KeyBytes): State = copy(values = values - key)
+    def remove(key: KeyBytes): State = copy(values = values - key)
   }
 
   private object EventSourcedActor {
@@ -99,7 +99,7 @@ object ActorKeyValueStore {
 
       case RecoveryCompleted => ()
 
-      case Remove(key: KeyBytes) => state = state.removeByKey1(key)
+      case Remove(key: KeyBytes) => state = state.remove(key)
 
       case Store(key: KeyBytes, value: ValueBytes) => state = state.store(key, value)
     }
@@ -120,14 +120,14 @@ object ActorKeyValueStore {
 
       case event @ RemoveAll =>
         persist(event) { _ =>
-          state = state.removeAll
+          state = state.removeAll()
           saveSnapshotIfNeeded()
           sender() ! ()
         }
 
       case event @ Remove(key: KeyBytes) =>
         persist(event) { _ =>
-          state = state.removeByKey1(key)
+          state = state.remove(key)
           saveSnapshotIfNeeded()
           sender() ! ()
         }

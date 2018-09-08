@@ -9,7 +9,7 @@ import pdi.jwt.{ JwtAlgorithm, JwtClaim }
 import scala.util.Try
 
 object NetemeraJwtClaim {
-  case class JwtClaimContent(scope: String)
+  case class JwtClaimContent(scope: String, group: String)
 
   def fromString(string: String, key: String, algorithm: JwtAlgorithm): Try[NetemeraJwtClaim] =
     decode(string, key, algorithm).map(fromJwtClaim)
@@ -25,7 +25,8 @@ object NetemeraJwtClaim {
     val exp = jwtClaim.expiration.get
     val jwtClaimContent = parse(jwtClaim.content).toTry.flatMap(_.as[JwtClaimContent].toTry).get
     val scope = jwtClaimContent.scope.split(" ").toSet
-    NetemeraJwtClaim(iss, sub, aud, iat, exp, scope)
+    val organization = jwtClaimContent.group
+    NetemeraJwtClaim(iss, sub, aud, iat, exp, scope, organization)
   }
 }
 
@@ -35,7 +36,8 @@ case class NetemeraJwtClaim(
     aud: Set[String],
     iat: Long,
     exp: Long,
-    scope: Set[String]
+    scope: Set[String],
+    group: String
 ) {
   def toJwtClaim: JwtClaim =
     JwtClaim()
@@ -43,5 +45,6 @@ case class NetemeraJwtClaim(
       .about(sub)
       .to(aud)
       .issuedAt(iat)
-      .expiresAt(exp) + NetemeraJwtClaim.JwtClaimContent(scope = scope.mkString(" ")).asJson.noSpaces
+      .expiresAt(exp) +
+      NetemeraJwtClaim.JwtClaimContent(scope = scope.mkString(" "), group = group).asJson.noSpaces
 }

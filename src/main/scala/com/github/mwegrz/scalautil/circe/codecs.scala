@@ -1,7 +1,7 @@
 package com.github.mwegrz.scalautil.circe
 
 import akka.http.scaladsl.model.Uri
-import com.github.mwegrz.scalautil.StringVal
+import com.github.mwegrz.scalautil.{ LongVal, StringVal }
 import io.circe.{ Decoder, Encoder, KeyDecoder, KeyEncoder }
 import io.circe.java8.time.TimeInstances
 import io.circe.syntax._
@@ -30,6 +30,20 @@ object codecs extends TimeInstances {
 
   implicit def deriveStringValUnwrappedDecoder[T <: StringVal](implicit g: Lazy[Generic.Aux[T, String :: HNil]],
                                                                d: Decoder[String]): Decoder[T] =
+    Decoder.instance { cursor ⇒
+      d(cursor).map { value ⇒
+        g.value.from(value :: HNil)
+      }
+    }
+
+  implicit def deriveLongValUnwrappedEncoder[T <: LongVal](implicit g: Lazy[Generic.Aux[T, Long :: HNil]],
+                                                           e: Encoder[Long]): Encoder[T] =
+    Encoder.instance { value ⇒
+      e(g.value.to(value).head)
+    }
+
+  implicit def deriveLongValUnwrappedDecoder[T <: LongVal](implicit g: Lazy[Generic.Aux[T, Long :: HNil]],
+                                                           d: Decoder[Long]): Decoder[T] =
     Decoder.instance { cursor ⇒
       d(cursor).map { value ⇒
         g.value.from(value :: HNil)

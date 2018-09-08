@@ -78,7 +78,7 @@ lazy val root = (project in file("."))
       "com.sksamuel.avro4s" %% "avro4s-core" % Avro4SVersion % Optional,
       "pl.iterators" %% "kebs-avro" % KebsVersion % Optional,
       "com.sksamuel.pulsar4s" %% "pulsar4s-akka-streams" % Pulsar4SVersion % Optional,
-      "org.gavaghan" % "geodesy" % GeodesyVersion
+      "org.gavaghan" % "geodesy" % GeodesyVersion % Optional
     ),
     Defaults.itSettings,
     fork := true,

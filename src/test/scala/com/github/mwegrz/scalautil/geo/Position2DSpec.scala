@@ -12,7 +12,7 @@ class Position2DSpec extends TestSpec with Matchers {
       When("calculating the bearing")
       val result = position0.bearingAt(position1)
       Then("the result is correct")
-      assert(result == 44.9999995440233)
+      assert(result == 44.99998668183908)
     }
 
     it("should move in direction of a different 2D position by a distance") {
@@ -22,7 +22,7 @@ class Position2DSpec extends TestSpec with Matchers {
       When("calculating the bearing")
       val result = position0.moveTo(position1, 1000)
       Then("the result is correct")
-      assert(result == Position2D(Latitude(0.006359164066655004), Longitude(0.0063591640666785364)))
+      assert(result == Position2D(Latitude(0.00637334530333078), Longitude(0.00637334524131461)))
     }
   }
 }
