@@ -93,7 +93,8 @@ class SqlDatabaseClient private (database: Database, maxPoolSize: Int) {
       override def statements = Nil
       override def createBuilder = Vector.newBuilder[A]
       override def createInvoker(statements: Iterable[String]) = new Invoker[A] {
-        override def iteratorTo(maxRows: Int)(implicit session: JdbcBackend#SessionDef): CloseableIterator[A] = {
+        override def iteratorTo(maxRows: Int)(
+            implicit session: JdbcBackend#SessionDef): CloseableIterator[A] = {
           val ps = session.conn.prepareStatement(sql.queryParts.mkString)
           val pp = new PositionedParameters(ps)
           sql.unitPConv(Unit, pp)
@@ -122,7 +123,8 @@ class SqlDatabaseClient private (database: Database, maxPoolSize: Int) {
       override def statements = Nil
       override def createBuilder = Vector.newBuilder[A]
       override def createInvoker(statements: Iterable[String]) = new Invoker[A] {
-        override def iteratorTo(maxRows: Int)(implicit session: JdbcBackend#SessionDef): CloseableIterator[A] = {
+        override def iteratorTo(maxRows: Int)(
+            implicit session: JdbcBackend#SessionDef): CloseableIterator[A] = {
           val ps = session.conn.prepareStatement(sql)
           setParameters(ps, params)
           //ps.setQueryTimeout(timeout.toSeconds)
@@ -146,7 +148,8 @@ class SqlDatabaseClient private (database: Database, maxPoolSize: Int) {
     database.run(a.transactionally)
   }
 
-  def updateAsync(sql: String, params: Seq[Option[Any]] = Nil)(implicit timeout: Timeout): Future[Int] = {
+  def updateAsync(sql: String, params: Seq[Option[Any]] = Nil)(
+      implicit timeout: Timeout): Future[Int] = {
     val a = new SimpleJdbcAction[Int](c => {
       withPreparedStatement(c.connection, sql) { ps =>
         setParameters(ps, params)
@@ -170,7 +173,8 @@ class SqlDatabaseClient private (database: Database, maxPoolSize: Int) {
     database.run(DBIO.seq(as: _*).transactionally.withPinnedSession)
   }
 
-  def updateBatch(sql: String, params: Seq[Seq[Option[Any]]] = Nil)(implicit timeout: Timeout): Future[Array[Int]] = {
+  def updateBatch(sql: String, params: Seq[Seq[Option[Any]]] = Nil)(
+      implicit timeout: Timeout): Future[Array[Int]] = {
     val a = new SimpleJdbcAction[Array[Int]](c => {
       withPreparedStatement(c.connection, sql) { ps =>
         params foreach { elem =>
@@ -209,7 +213,8 @@ class SqlDatabaseClient private (database: Database, maxPoolSize: Int) {
       override def statements = Nil
       override def createBuilder = Vector.newBuilder[A]
       override def createInvoker(statements: Iterable[String]) = new Invoker[A] {
-        override def iteratorTo(maxRows: Int)(implicit session: JdbcBackend#SessionDef): CloseableIterator[A] = {
+        override def iteratorTo(maxRows: Int)(
+            implicit session: JdbcBackend#SessionDef): CloseableIterator[A] = {
           new ResultSetIterator[A](qf(session.metaData), maxRows = 0, autoClose = true)(f)
         }
       }
@@ -268,7 +273,8 @@ object SqlDatabaseClient {
   def apply(url: String,
             username: Option[String],
             password: Option[String],
-            driverClassName: Option[String]): SqlDatabaseClient = forConfig(ConfigFactory.parseString(s"""url = "$url"
+            driverClassName: Option[String]): SqlDatabaseClient =
+    forConfig(ConfigFactory.parseString(s"""url = "$url"
        |username = "${username.getOrElse("")}"
        |password = "${password.getOrElse("")}"
        |driver-class-name = "${driverClassName.getOrElse("")}"
@@ -382,7 +388,8 @@ object SqlDatabaseClient {
 
     def getLocalDateTime(name: String): LocalDateTime = getLocalDateTimeOption(name).get
 
-    def getLocalDateTime(name: String, timeZoneId: ZoneId): LocalDateTime = getLocalDateTimeOption(name, timeZoneId).get
+    def getLocalDateTime(name: String, timeZoneId: ZoneId): LocalDateTime =
+      getLocalDateTimeOption(name, timeZoneId).get
 
     def getByteArrayOption(name: String): Option[Array[Byte]]
 
@@ -390,24 +397,28 @@ object SqlDatabaseClient {
 
     def withBlobOptionInputStream[A](name: String)(f: InputStream => A): Option[A]
 
-    def withBlobInputStream[A](name: String)(f: InputStream => A): A = withBlobOptionInputStream(name)(f).get
+    def withBlobInputStream[A](name: String)(f: InputStream => A): A =
+      withBlobOptionInputStream(name)(f).get
 
     def withClobOptionInputStream[A](name: String)(f: InputStream => A): Option[A]
 
-    def withClobInputStream[A](name: String)(f: InputStream => A): A = withClobOptionInputStream(name)(f).get
+    def withClobInputStream[A](name: String)(f: InputStream => A): A =
+      withClobOptionInputStream(name)(f).get
 
   }
 
   object Implicits {
 
-    implicit def sqlInterpolation(s: StringContext): SqlInterpolation = driver.api.actionBasedSQLInterpolation(s)
+    implicit def sqlInterpolation(s: StringContext): SqlInterpolation =
+      driver.api.actionBasedSQLInterpolation(s)
 
     implicit class SqlOps(builder: Sql) {
 
       def stripMargin(marginChar: Char): Sql =
         builder.copy(builder.queryParts.map(_.asInstanceOf[String].stripMargin(marginChar)))
 
-      def stripMargin: Sql = builder.copy(builder.queryParts.map(_.asInstanceOf[String].stripMargin))
+      def stripMargin: Sql =
+        builder.copy(builder.queryParts.map(_.asInstanceOf[String].stripMargin))
 
     }
 
@@ -427,13 +438,16 @@ object SqlDatabaseClient {
 
       override def getDoubleOption(name: String): Option[Double] = Option(rs.getDouble(name))
 
-      override def getBigDecimalOption(name: String): Option[BigDecimal] = Option(rs.getBigDecimal(name))
+      override def getBigDecimalOption(name: String): Option[BigDecimal] =
+        Option(rs.getBigDecimal(name))
 
       override def getStringOption(name: String): Option[String] = Option(rs.getString(name))
 
-      override def getLocalDateOption(name: String): Option[LocalDate] = Option(rs.getDate(name)).map(_.toLocalDate)
+      override def getLocalDateOption(name: String): Option[LocalDate] =
+        Option(rs.getDate(name)).map(_.toLocalDate)
 
-      override def getLocalTimeOption(name: String): Option[LocalTime] = Option(rs.getTime(name)).map(_.toLocalTime)
+      override def getLocalTimeOption(name: String): Option[LocalTime] =
+        Option(rs.getTime(name)).map(_.toLocalTime)
 
       override def getLocalDateTimeOption(name: String): Option[LocalDateTime] =
         getLocalDateTimeOption(name, ZoneId.systemDefault())
@@ -459,11 +473,13 @@ object SqlDatabaseClient {
 
   private[sqldatabase] val DefaultConfigPath = "sql-database-client"
 
-  private[sqldatabase] val defaultReference = ConfigFactory.defaultReference.getConfig(DefaultConfigPath)
+  private[sqldatabase] val defaultReference =
+    ConfigFactory.defaultReference.getConfig(DefaultConfigPath)
 
   private[sqldatabase] val driver = new JdbcDriver {}
 
-  private[sqldatabase] class ResultSetIterator[+A](rs: ResultSet, maxRows: Int, autoClose: Boolean)(f: Row => A)
+  private[sqldatabase] class ResultSetIterator[+A](rs: ResultSet, maxRows: Int, autoClose: Boolean)(
+      f: Row => A)
       extends ReadAheadIterator[A]
       with CloseableIterator[A] {
 
@@ -510,8 +526,8 @@ object SqlDatabaseClient {
     }
   }
 
-  private[sqldatabase] def withTimeout[A](ps: PreparedStatement, timeout: Timeout)(f: PreparedStatement => A)(
-      implicit ec: ExecutionContext): A = {
+  private[sqldatabase] def withTimeout[A](ps: PreparedStatement, timeout: Timeout)(
+      f: PreparedStatement => A)(implicit ec: ExecutionContext): A = {
     val timedOut = new CountDownLatch(1)
     val cancellerDone = new CountDownLatch(1)
     val canceller = new Runnable {
@@ -534,7 +550,8 @@ object SqlDatabaseClient {
     val result = try {
       f(ps)
     } catch {
-      case ex: SQLException => if (canceller.cancelled) throw new SQLTimeoutException() else throw ex
+      case ex: SQLException =>
+        if (canceller.cancelled) throw new SQLTimeoutException() else throw ex
     } finally {
       canceller.finished = true
       timedOut.countDown()
@@ -586,12 +603,15 @@ object SqlDatabaseClient {
     ds.setAllowPoolSuspension(config.getBoolean("allow-pool-suspension"))
     ds.setReadOnly(config.getBoolean("read-only"))
     if (config.getString("catalog") != "") ds.setCatalog(config.getString("catalog"))
-    if (config.getString("connection-init-sql") != "") ds.setConnectionInitSql(config.getString("connection-init-sql"))
-    if (config.getString("driver-class-name") != "") ds.setDriverClassName(config.getString("driver-class-name"))
+    if (config.getString("connection-init-sql") != "")
+      ds.setConnectionInitSql(config.getString("connection-init-sql"))
+    if (config.getString("driver-class-name") != "")
+      ds.setDriverClassName(config.getString("driver-class-name"))
     if (config.getString("transaction-isolation") != "")
       ds.setTransactionIsolation(config.getString("transaction-isolation"))
     ds.setValidationTimeout(config.getDuration("validation-timeout", TimeUnit.MILLISECONDS))
-    ds.setLeakDetectionThreshold(config.getDuration("leak-detection-threshold", TimeUnit.MILLISECONDS))
+    ds.setLeakDetectionThreshold(
+      config.getDuration("leak-detection-threshold", TimeUnit.MILLISECONDS))
 
     val props: Properties = new Properties()
     config.getConfig("properties").entrySet().asScala.foreach { a =>

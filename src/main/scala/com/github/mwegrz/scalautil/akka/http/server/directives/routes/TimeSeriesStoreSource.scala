@@ -14,6 +14,7 @@ import com.github.mwegrz.scalautil.store.TimeSeriesStore
 import akka.http.scaladsl.marshalling.sse.EventStreamMarshalling._
 import akka.http.scaladsl.model.MessageEntity
 import com.github.mwegrz.scalastructlog.KeyValueLogging
+import com.github.mwegrz.scalautil.StringVal
 import scodec.bits.ByteVector
 
 import scala.concurrent.duration._
@@ -25,12 +26,15 @@ object TimeSeriesStoreSource {
   private val LiveValuesBufferSize = 1000
 }
 
-class TimeSeriesStoreSource[Key, Value: ClassTag](valueStore: TimeSeriesStore[Key, Value],
-                                                  valueSource: Source[(Key, Instant, Value), NotUsed])(
+class TimeSeriesStoreSource[Key <: StringVal, Value: ClassTag](
+    name: String,
+    valueStore: TimeSeriesStore[Key, Value],
+    valueSource: Source[(Key, Instant, Value), NotUsed])(
     implicit
     instantFromStringUnmarshaller: Unmarshaller[String, Instant],
     valueToEntityMarshaller: ToEntityMarshaller[Value],
     valueSourceToResponseMarshaller: ToResponseMarshaller[Source[Value, NotUsed]],
+    multiDocumentToEntityMarshaller: ToEntityMarshaller[MultiDocument[Value]],
     executionContext: ExecutionContext,
     materializer: Materializer)
     extends KeyValueLogging {
@@ -39,19 +43,26 @@ class TimeSeriesStoreSource[Key, Value: ClassTag](valueStore: TimeSeriesStore[Ke
   private val valueTypeName = implicitly[ClassTag[Value]].runtimeClass.getSimpleName
 
   def route(keys: Set[Key]): Route = get {
-    parameters('from_time.as[Instant], 'until_time.as[Instant] ? Instant.now) { (fromTime, untilTime) =>
-      val response = retrieveHistoricalValues(keys, fromTime, untilTime).map(_._2)
+    parameters(Symbol("filter[from_time]").as[Instant],
+               Symbol("filter[until_time]").as[Instant] ? Instant.now) { (fromTime, untilTime) =>
+      val response =
+        retrieveHistoricalValues(keys, fromTime, untilTime)
+          .runFold(List.empty[(Instant, Value)])((a, b) => b :: a)
+          .map(_.map { case (key, value) => Document.Resource(name, key.toString, value) })
+          .map(data => MultiDocument(data))
       complete(response)
     } ~ optionalHeaderValueByName("Last-Event-ID") {
       case Some(id) =>
-        val parseFromTime = Try(Instant.ofEpochMilli(ByteVector.fromBase64(id).get.toLong()).plusNanos(1))
+        val parseFromTime =
+          Try(Instant.ofEpochMilli(ByteVector.fromBase64(id).get.toLong()).plusNanos(1))
         validate(parseFromTime.isSuccess, "Provided `Last-Event-ID` header's value is not a valid") {
           val fromTime = parseFromTime.get
           val untilTime = Instant.now()
           val historicalValues = retrieveHistoricalValues(keys, fromTime, untilTime)
           val liveValues = receiveLiveValues(keys)
           val response = toServerSentEvents(
-            historicalValues.concat(liveValues.buffer(LiveValuesBufferSize, OverflowStrategy.dropNew)))
+            historicalValues.concat(
+              liveValues.buffer(LiveValuesBufferSize, OverflowStrategy.dropNew)))
           complete(response)
         }
       case None =>
@@ -74,7 +85,8 @@ class TimeSeriesStoreSource[Key, Value: ClassTag](valueStore: TimeSeriesStore[Ke
         case (_, time, value) => (time, value)
       }
 
-  private def toServerSentEvents(source: Source[(Instant, Value), NotUsed]): Source[ServerSentEvent, NotUsed] =
+  private def toServerSentEvents(
+      source: Source[(Instant, Value), NotUsed]): Source[ServerSentEvent, NotUsed] =
     source
       .mapAsync(2) {
         case (time, value) =>

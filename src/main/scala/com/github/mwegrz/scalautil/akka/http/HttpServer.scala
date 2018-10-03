@@ -18,9 +18,10 @@ import com.github.mwegrz.scalautil.ConfigOps
 import scala.concurrent.ExecutionContext
 
 object HttpServer {
-  def apply(config: Config, httpApis: Map[PathMatcher0, Set[HttpApi]])(implicit actorSystem: ActorSystem,
-                                                                       actorMaterializer: ActorMaterializer,
-                                                                       executor: ExecutionContext): HttpServer =
+  def apply(config: Config, httpApis: Map[PathMatcher0, Set[HttpApi]])(
+      implicit actorSystem: ActorSystem,
+      actorMaterializer: ActorMaterializer,
+      executor: ExecutionContext): HttpServer =
     new HttpServer(config.withReferenceDefaults("http-server"), httpApis)
 
   private def generateRequestId(): String = UUID.randomUUID().toString
@@ -35,7 +36,8 @@ class HttpServer private (config: Config, httpApis: Map[PathMatcher0, Set[HttpAp
   import HttpServer.generateRequestId
 
   private val basePath =
-    if (config.hasPath("base-path")) Some(config.getString("base-path")).map(separateOnSlashes) else None
+    if (config.hasPath("base-path")) Some(config.getString("base-path")).map(separateOnSlashes)
+    else None
   private val host = config.getString("host")
   private val port = config.getInt("port")
 

@@ -3,7 +3,7 @@ package com.github.mwegrz.scalautil.store
 import java.nio.ByteBuffer
 import java.time.Instant
 
-import akka.stream.{ ActorMaterializer, Materializer }
+import akka.stream.ActorMaterializer
 import akka.{ Done, NotUsed }
 import akka.stream.scaladsl.{ Sink, Source }
 import com.github.mwegrz.scalastructlog.KeyValueLogging
@@ -20,7 +20,9 @@ trait TimeSeriesStore[Key, Value] {
 
   def retrieveRange(fromTime: Instant, untilTime: Instant): Source[(Key, Instant, Value), NotUsed]
 
-  def retrieveRange(keys: Set[Key], fromTime: Instant, untilTime: Instant): Source[(Key, Instant, Value), NotUsed]
+  def retrieveRange(keys: Set[Key],
+                    fromTime: Instant,
+                    untilTime: Instant): Source[(Key, Instant, Value), NotUsed]
 
   def retrieveLast(keys: Set[Key], count: Int): Source[(Key, Instant, Value), NotUsed]
 }
@@ -31,9 +33,12 @@ class InMemoryTimeSeriesStore[Key, Value](
   private var events = initial.withDefaultValue(SortedMap.empty[Instant, Value])
 
   override def store: Sink[(Key, Instant, Value), Future[Done]] =
-    Sink.foreach { case (key, time, value) => events = events.updated(key, events(key).updated(time, value)) }
+    Sink.foreach {
+      case (key, time, value) => events = events.updated(key, events(key).updated(time, value))
+    }
 
-  override def retrieveRange(fromTime: Instant, untilTime: Instant): Source[(Key, Instant, Value), NotUsed] =
+  override def retrieveRange(fromTime: Instant,
+                             untilTime: Instant): Source[(Key, Instant, Value), NotUsed] =
     Source(events.foldLeft(List.empty[(Key, Instant, Value)]) {
       case (b, (a, s)) =>
         b ++ s.range(fromTime, untilTime).map(c => (a, c._1, c._2))
@@ -43,7 +48,11 @@ class InMemoryTimeSeriesStore[Key, Value](
                              fromTime: Instant,
                              untilTime: Instant): Source[(Key, Instant, Value), NotUsed] = {
     def forKey(key: Key): Source[(Key, Instant, Value), NotUsed] = {
-      Source(events(key).range(fromTime, untilTime).map { case (time, value) => (key, time, value) }.toList)
+      Source(
+        events(key)
+          .range(fromTime, untilTime)
+          .map { case (time, value) => (key, time, value) }
+          .toList)
     }
 
     keys.map(forKey).foldLeft(Source.empty[(Key, Instant, Value)])((a, b) => a.concat(b))
@@ -88,7 +97,8 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
       }
   }
 
-  override def retrieveRange(fromTime: Instant, toTime: Instant): Source[(Key, Instant, Value), NotUsed] = {
+  override def retrieveRange(fromTime: Instant,
+                             toTime: Instant): Source[(Key, Instant, Value), NotUsed] = {
     val query = s"""SELECT key, time, value
                      |FROM $keyspace.$table
                      |WHERE time > ? AND time <= ? ALLOW FILTERING""".stripMargin
@@ -120,7 +130,9 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
           List(ByteBuffer.wrap(keySerde.valueToBinary(key)), fromTime, toTime)
         )
         .map { row =>
-          (key, row.get("time", classOf[Instant]), valueSerde.binaryToValue(row.getBytes("value").array()))
+          (key,
+           row.get("time", classOf[Instant]),
+           valueSerde.binaryToValue(row.getBytes("value").array()))
         }
     }
 
@@ -141,7 +153,9 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
           List(ByteBuffer.wrap(keySerde.valueToBinary(key)), count.asInstanceOf[AnyRef])
         )
         .map { row =>
-          (key, row.get("time", classOf[Instant]), valueSerde.binaryToValue(row.getBytes("value").array()))
+          (key,
+           row.get("time", classOf[Instant]),
+           valueSerde.binaryToValue(row.getBytes("value").array()))
         }
     }
 

@@ -15,26 +15,30 @@ import scodec.bits.ByteVector
 import scala.collection.JavaConverters._
 
 object codecs extends AvroKebs {
-  implicit def stringValToSchema[CC <: StringVal with Product](implicit rep: CaseClass1Rep[CC, String],
-                                                               subschema: ToSchema[String]): ToSchema[CC] =
+  implicit def stringValToSchema[CC <: StringVal with Product](
+      implicit rep: CaseClass1Rep[CC, String],
+      subschema: ToSchema[String]): ToSchema[CC] =
     new ToSchema[CC] {
       override protected val schema = subschema()
     }
 
-  implicit def stringValToValue[CC <: StringVal with Product](implicit rep: CaseClass1Rep[CC, String],
-                                                              delegate: ToValue[String]): ToValue[CC] =
+  implicit def stringValToValue[CC <: StringVal with Product](
+      implicit rep: CaseClass1Rep[CC, String],
+      delegate: ToValue[String]): ToValue[CC] =
     new ToValue[CC] {
       override def apply(value: CC) = delegate(rep.unapply(value))
     }
 
-  implicit def stringValFromValue[CC <: StringVal with Product](implicit rep: CaseClass1Rep[CC, String],
-                                                                delegate: FromValue[String]): FromValue[CC] =
+  implicit def stringValFromValue[CC <: StringVal with Product](
+      implicit rep: CaseClass1Rep[CC, String],
+      delegate: FromValue[String]): FromValue[CC] =
     new FromValue[CC] {
       override def apply(value: Any, field: Schema.Field) = rep.apply(delegate(value, field))
     }
 
-  implicit def longValToSchema[CC <: LongVal with Product](implicit rep: CaseClass1Rep[CC, Long],
-                                                           subschema: ToSchema[Long]): ToSchema[CC] =
+  implicit def longValToSchema[CC <: LongVal with Product](
+      implicit rep: CaseClass1Rep[CC, Long],
+      subschema: ToSchema[Long]): ToSchema[CC] =
     new ToSchema[CC] {
       override protected val schema = subschema()
     }
@@ -45,8 +49,9 @@ object codecs extends AvroKebs {
       override def apply(value: CC) = delegate(rep.unapply(value))
     }
 
-  implicit def longValFromValue[CC <: LongVal with Product](implicit rep: CaseClass1Rep[CC, Long],
-                                                            delegate: FromValue[Long]): FromValue[CC] =
+  implicit def longValFromValue[CC <: LongVal with Product](
+      implicit rep: CaseClass1Rep[CC, Long],
+      delegate: FromValue[Long]): FromValue[CC] =
     new FromValue[CC] {
       override def apply(value: Any, field: Schema.Field) = rep.apply(delegate(value, field))
     }
@@ -76,15 +81,18 @@ object codecs extends AvroKebs {
   }
 
   implicit object ByteVectorFromValue extends FromValue[ByteVector] {
-    override def apply(value: Any, field: Field): ByteVector = ByteVector(value.asInstanceOf[Array[Byte]])
+    override def apply(value: Any, field: Field): ByteVector =
+      ByteVector(value.asInstanceOf[Array[Byte]])
   }
 
-  implicit val InstantToSchema: ToSchema[Instant] = createToSchema[Instant](Schema.create(Schema.Type.STRING))
+  implicit val InstantToSchema: ToSchema[Instant] =
+    createToSchema[Instant](Schema.create(Schema.Type.STRING))
   implicit val InstantToValue: ToValue[Instant] = createToValue[Instant, String](_.toString())
   implicit val InstantFromValue: FromValue[Instant] =
     createFromValue[Instant]((value, _) => Instant.parse(value.asInstanceOf[Utf8].toString))
 
-  implicit val DurationToSchema: ToSchema[Duration] = createToSchema[Duration](Schema.create(Schema.Type.STRING))
+  implicit val DurationToSchema: ToSchema[Duration] =
+    createToSchema[Duration](Schema.create(Schema.Type.STRING))
   implicit val DurationToValue: ToValue[Duration] = createToValue[Duration, String](_.toString())
   implicit val DurationFromValue: FromValue[Duration] =
     createFromValue[Duration]((value, _) => Duration.parse(value.asInstanceOf[Utf8].toString))
@@ -94,16 +102,21 @@ object codecs extends AvroKebs {
   implicit val UriFromValue: FromValue[Uri] =
     createFromValue[Uri]((value, _) => Uri(value.asInstanceOf[Utf8].toString))
 
-  implicit def TypedKeyMapToSchema[K, V](implicit valueToSchema: ToSchema[V]): ToSchema[Map[K, V]] = {
+  implicit def TypedKeyMapToSchema[K, V](
+      implicit valueToSchema: ToSchema[V]): ToSchema[Map[K, V]] = {
     new ToSchema[Map[K, V]] {
       override protected val schema: Schema = Schema.createMap(valueToSchema())
     }
   }
 
-  implicit def TypedKeyMapToValue[K, V](implicit keyToValue: ToValue[K], valueToValue: ToValue[V]): ToValue[Map[K, V]] =
+  implicit def TypedKeyMapToValue[K, V](implicit keyToValue: ToValue[K],
+                                        valueToValue: ToValue[V]): ToValue[Map[K, V]] =
     new ToValue[Map[K, V]] {
       override def apply(value: Map[K, V]): java.util.Map[String, V] = {
-        value.map { case (k, v) => (keyToValue(k), valueToValue(v)) }.asInstanceOf[Map[String, V]].asJava
+        value
+          .map { case (k, v) => (keyToValue(k), valueToValue(v)) }
+          .asInstanceOf[Map[String, V]]
+          .asJava
       }
     }
 
@@ -111,8 +124,9 @@ object codecs extends AvroKebs {
                                           valueFromValue: FromValue[V]): FromValue[Map[K, V]] =
     new FromValue[Map[K, V]] {
       override def apply(value: Any, field: Field): Map[K, V] = value match {
-        case map: java.util.Map[_, _] => map.asScala.toMap.map { case (k, v) => keyFromValue(k) -> valueFromValue(v) }
-        case other                    => sys.error("Unsupported map " + other)
+        case map: java.util.Map[_, _] =>
+          map.asScala.toMap.map { case (k, v) => keyFromValue(k) -> valueFromValue(v) }
+        case other => sys.error("Unsupported map " + other)
       }
     }
 }

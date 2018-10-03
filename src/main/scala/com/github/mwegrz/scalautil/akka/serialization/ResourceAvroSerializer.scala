@@ -6,7 +6,8 @@ import org.apache.avro.Schema
 
 import scala.reflect.ClassTag
 
-class ResourceAvroSerializer[A: SchemaFor: ToRecord: FromRecord: ClassTag](extendedActorSystem: ExtendedActorSystem)
+class ResourceAvroSerializer[A: SchemaFor: ToRecord: FromRecord: ClassTag](
+    extendedActorSystem: ExtendedActorSystem)
     extends AvroSerializer[A](extendedActorSystem) {
 
   protected def versionToWriterSchemaResource: PartialFunction[Int, String] = {

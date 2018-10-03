@@ -18,13 +18,16 @@ object CassandraClient extends KeyValueLogging {
   def apply(config: Config)(implicit executionContext: ExecutionContext): CassandraClient =
     new DefaultCassandraClient(config.withReferenceDefaults("cassandra-client"))
 
-  def withKeyspaceIfNotExists(config: Config)(implicit executionContext: ExecutionContext,
-                                              actorMaterializer: ActorMaterializer): Future[CassandraClient] = {
+  def withKeyspaceIfNotExists(config: Config)(
+      implicit executionContext: ExecutionContext,
+      actorMaterializer: ActorMaterializer): Future[CassandraClient] = {
     val client = apply(config)
     val keyspace = config.getString("keyspace")
     val replicationStrategy = config.getString("replication-strategy")
     val replicationFactor = config.getInt("replication-factor")
-    client.createKeyspaceIfNotExists(keyspace, replicationStrategy, replicationFactor).map(_ => client)
+    client
+      .createKeyspaceIfNotExists(keyspace, replicationStrategy, replicationFactor)
+      .map(_ => client)
   }
 }
 
@@ -54,7 +57,8 @@ class DefaultCassandraClient(config: Config)(implicit executionContext: Executio
       .addContactPoints(contactPoints: _*)
       .withPort(port)
       .withReconnectionPolicy(
-        new ExponentialReconnectionPolicy(reconnectionPolicyBaseDelay.toMillis, reconnectionPolicyMaxDelay.toMillis))
+        new ExponentialReconnectionPolicy(reconnectionPolicyBaseDelay.toMillis,
+                                          reconnectionPolicyMaxDelay.toMillis))
       .build
   private implicit val session: Session = cluster.connect()
 
@@ -76,7 +80,8 @@ class DefaultCassandraClient(config: Config)(implicit executionContext: Executio
     execute(s"""CREATE KEYSPACE IF NOT EXISTS $keyspace
       WITH REPLICATION = { 'class' : '${`class`}', 'replication_factor' : $replicationFactor };""".stripMargin)
 
-  override def registerCodec[A](codec: TypeCodec[A]): Unit = cluster.getConfiguration.getCodecRegistry.register(codec)
+  override def registerCodec[A](codec: TypeCodec[A]): Unit =
+    cluster.getConfiguration.getCodecRegistry.register(codec)
 
   def execute(cql: String)(implicit actorMaterializer: ActorMaterializer): Future[Done] =
     Source.single(Unit).runWith(createSink(cql)((a, b) => new BoundStatement(b)))

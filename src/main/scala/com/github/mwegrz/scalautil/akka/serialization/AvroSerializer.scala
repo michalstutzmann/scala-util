@@ -9,13 +9,15 @@ import com.github.mwegrz.scalautil.serialization.Serde
 import com.sksamuel.avro4s.{ FromRecord, SchemaFor, ToRecord }
 import org.apache.avro.Schema
 
-abstract class AvroSerializer[Value: SchemaFor: ToRecord: FromRecord](extendedActorSystem: ExtendedActorSystem)
+abstract class AvroSerializer[Value: SchemaFor: ToRecord: FromRecord](
+    extendedActorSystem: ExtendedActorSystem)
     extends BaseSerializer
     with Serde[Value] {
   override def system: ExtendedActorSystem = extendedActorSystem
 
   protected def currentVersion: Int =
-    system.settings.config.getInt(s""""akka.actor.serialization-avro-versions"."${getClass.getName}"""")
+    system.settings.config
+      .getInt(s""""akka.actor.serialization-avro-versions"."${getClass.getName}"""")
 
   override final def includeManifest: Boolean = false
 

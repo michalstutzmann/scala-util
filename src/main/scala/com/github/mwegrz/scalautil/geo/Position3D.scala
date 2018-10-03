@@ -12,5 +12,6 @@ object Position3D {
 }
 
 final case class Position3D(latitude: Latitude, longitude: Longitude, altitude: Altitude) {
-  def toByteVector: ByteVector = latitude.toByteVector ++ longitude.toByteVector ++ altitude.toByteVector
+  def toByteVector: ByteVector =
+    latitude.toByteVector ++ longitude.toByteVector ++ altitude.toByteVector
 }

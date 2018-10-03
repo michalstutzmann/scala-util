@@ -17,7 +17,8 @@ import com.github.mwegrz.scalautil.ConfigOps
 import scala.concurrent.Future
 
 object KafkaClient {
-  def apply(config: Config)(implicit actorSystem: ActorSystem, actorMaterializer: ActorMaterializer): KafkaClient =
+  def apply(config: Config)(implicit actorSystem: ActorSystem,
+                            actorMaterializer: ActorMaterializer): KafkaClient =
     new DefaultKafkaClient(config)
 }
 
@@ -38,7 +39,8 @@ trait KafkaClient {
 
   def committableFlow[A, B](inTopic: String, outTopics: Set[String])(
       toBinary: A => (Array[Byte], Array[Byte]),
-      fromBinary: (Array[Byte], Array[Byte]) => B): Flow[(A, CommittableOffset), (B, CommittableOffset), NotUsed]
+      fromBinary: (Array[Byte], Array[Byte]) => B)
+    : Flow[(A, CommittableOffset), (B, CommittableOffset), NotUsed]
 }
 
 class DefaultKafkaClient private[kafka] (config: Config)(implicit actorSystem: ActorSystem,
@@ -53,7 +55,8 @@ class DefaultKafkaClient private[kafka] (config: Config)(implicit actorSystem: A
                      new ByteArrayDeserializer,
                      new ByteArrayDeserializer)
 
-  override def source[A](topic: String)(fromBinary: (Array[Byte], Array[Byte]) => A): Source[A, NotUsed] =
+  override def source[A](topic: String)(
+      fromBinary: (Array[Byte], Array[Byte]) => A): Source[A, NotUsed] =
     Consumer
       .plainSource(consumerSettings, Subscriptions.topics(topic))
       .map { r =>
@@ -71,7 +74,8 @@ class DefaultKafkaClient private[kafka] (config: Config)(implicit actorSystem: A
       }
       .mapMaterializedValue(_ => NotUsed)
 
-  override def sink[A](topic: String)(toBinary: A => (Array[Byte], Array[Byte])): Sink[A, Future[Done]] =
+  override def sink[A](topic: String)(
+      toBinary: A => (Array[Byte], Array[Byte])): Sink[A, Future[Done]] =
     Flow[A]
       .map { a =>
         val (key, value) = toBinary(a)
@@ -125,8 +129,10 @@ class DefaultKafkaClient private[kafka] (config: Config)(implicit actorSystem: A
 
   override def committableFlow[A, B](inTopic: String, outTopics: Set[String])(
       toBinary: A => (Array[Byte], Array[Byte]),
-      fromBinary: (Array[Byte], Array[Byte]) => B): Flow[(A, CommittableOffset), (B, CommittableOffset), NotUsed] = {
-    val kafkaFlow = KafkaCommitableFlow(producerSettings, consumerSettings, Subscriptions.topics(outTopics))
+      fromBinary: (Array[Byte], Array[Byte]) => B)
+    : Flow[(A, CommittableOffset), (B, CommittableOffset), NotUsed] = {
+    val kafkaFlow =
+      KafkaCommitableFlow(producerSettings, consumerSettings, Subscriptions.topics(outTopics))
 
     val downlink =
       Flow[(A, CommittableOffset)].map {
@@ -140,7 +146,8 @@ class DefaultKafkaClient private[kafka] (config: Config)(implicit actorSystem: A
                                   offset)
       }
 
-    val uplink: Flow[CommittableMessage[Array[Byte], Array[Byte]], (B, CommittableOffset), NotUsed] =
+    val uplink
+      : Flow[CommittableMessage[Array[Byte], Array[Byte]], (B, CommittableOffset), NotUsed] =
       Flow[CommittableMessage[Array[Byte], Array[Byte]]].map { m =>
         val b = fromBinary(m.record.key(), m.record.value())
         (b, m.committableOffset)

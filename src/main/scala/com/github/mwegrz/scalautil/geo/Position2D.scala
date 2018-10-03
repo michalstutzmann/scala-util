@@ -19,29 +19,32 @@ final case class Position2D(latitude: Latitude, longitude: Longitude) {
   def bearingAt(that: Position2D): Double = {
     val calc = new GeodeticCalculator()
     val reference = Ellipsoid.WGS84
-    val dest = calc.calculateGeodeticCurve(reference,
-                                           new GlobalCoordinates(latitude.value, longitude.value),
-                                           new GlobalCoordinates(that.latitude.value, that.longitude.value))
+    val dest = calc.calculateGeodeticCurve(
+      reference,
+      new GlobalCoordinates(latitude.value, longitude.value),
+      new GlobalCoordinates(that.latitude.value, that.longitude.value))
     dest.getAzimuth
   }
 
   def distanceTo(that: Position2D): Double = {
     val calc = new GeodeticCalculator()
     val reference = Ellipsoid.WGS84
-    val dest = calc.calculateGeodeticCurve(reference,
-                                           new GlobalCoordinates(latitude.value, longitude.value),
-                                           new GlobalCoordinates(that.latitude.value, that.longitude.value))
+    val dest = calc.calculateGeodeticCurve(
+      reference,
+      new GlobalCoordinates(latitude.value, longitude.value),
+      new GlobalCoordinates(that.latitude.value, that.longitude.value))
     dest.getEllipsoidalDistance
   }
 
   def move(bearing: Double, distance: Double): Position2D = {
     val calc = new GeodeticCalculator()
     val reference = Ellipsoid.WGS84
-    val dest = calc.calculateEndingGlobalCoordinates(reference,
-                                                     new GlobalCoordinates(latitude.value, longitude.value),
-                                                     bearing,
-                                                     distance,
-                                                     Array(0.0))
+    val dest = calc.calculateEndingGlobalCoordinates(
+      reference,
+      new GlobalCoordinates(latitude.value, longitude.value),
+      bearing,
+      distance,
+      Array(0.0))
     Position2D(Latitude(dest.getLatitude), Longitude(dest.getLongitude))
   }
 

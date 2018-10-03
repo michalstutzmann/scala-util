@@ -6,44 +6,62 @@ import io.circe.{ Decoder, Encoder, KeyDecoder, KeyEncoder }
 import io.circe.java8.time.TimeInstances
 import io.circe.syntax._
 import io.circe.parser._
-import shapeless.{ :+:, ::, CNil, Coproduct, Generic, HNil, Inl, Inr, LabelledGeneric, Lazy, Witness }
+import shapeless.{
+  :+:,
+  ::,
+  CNil,
+  Coproduct,
+  Generic,
+  HNil,
+  Inl,
+  Inr,
+  LabelledGeneric,
+  Lazy,
+  Witness
+}
 import shapeless.labelled._
 
 object codecs extends TimeInstances {
-  implicit def encodeAnyVal[T <: AnyVal, V](implicit g: Lazy[Generic.Aux[T, V :: HNil]], e: Encoder[V]): Encoder[T] =
+  implicit def encodeAnyVal[T <: AnyVal, V](implicit g: Lazy[Generic.Aux[T, V :: HNil]],
+                                            e: Encoder[V]): Encoder[T] =
     Encoder.instance { value ⇒
       e(g.value.to(value).head)
     }
 
-  implicit def decodeAnyVal[T <: AnyVal, V](implicit g: Lazy[Generic.Aux[T, V :: HNil]], d: Decoder[V]): Decoder[T] =
+  implicit def decodeAnyVal[T <: AnyVal, V](implicit g: Lazy[Generic.Aux[T, V :: HNil]],
+                                            d: Decoder[V]): Decoder[T] =
     Decoder.instance { cursor ⇒
       d(cursor).map { value ⇒
         g.value.from(value :: HNil)
       }
     }
 
-  implicit def deriveStringValUnwrappedEncoder[T <: StringVal](implicit g: Lazy[Generic.Aux[T, String :: HNil]],
-                                                               e: Encoder[String]): Encoder[T] =
+  implicit def deriveStringValUnwrappedEncoder[T <: StringVal](
+      implicit g: Lazy[Generic.Aux[T, String :: HNil]],
+      e: Encoder[String]): Encoder[T] =
     Encoder.instance { value ⇒
       e(g.value.to(value).head)
     }
 
-  implicit def deriveStringValUnwrappedDecoder[T <: StringVal](implicit g: Lazy[Generic.Aux[T, String :: HNil]],
-                                                               d: Decoder[String]): Decoder[T] =
+  implicit def deriveStringValUnwrappedDecoder[T <: StringVal](
+      implicit g: Lazy[Generic.Aux[T, String :: HNil]],
+      d: Decoder[String]): Decoder[T] =
     Decoder.instance { cursor ⇒
       d(cursor).map { value ⇒
         g.value.from(value :: HNil)
       }
     }
 
-  implicit def deriveLongValUnwrappedEncoder[T <: LongVal](implicit g: Lazy[Generic.Aux[T, Long :: HNil]],
-                                                           e: Encoder[Long]): Encoder[T] =
+  implicit def deriveLongValUnwrappedEncoder[T <: LongVal](
+      implicit g: Lazy[Generic.Aux[T, Long :: HNil]],
+      e: Encoder[Long]): Encoder[T] =
     Encoder.instance { value ⇒
       e(g.value.to(value).head)
     }
 
-  implicit def deriveLongValUnwrappedDecoder[T <: LongVal](implicit g: Lazy[Generic.Aux[T, Long :: HNil]],
-                                                           d: Decoder[Long]): Decoder[T] =
+  implicit def deriveLongValUnwrappedDecoder[T <: LongVal](
+      implicit g: Lazy[Generic.Aux[T, Long :: HNil]],
+      d: Decoder[Long]): Decoder[T] =
     Decoder.instance { cursor ⇒
       d(cursor).map { value ⇒
         g.value.from(value :: HNil)
@@ -88,11 +106,13 @@ object codecs extends TimeInstances {
   implicit val uriEncoder: Encoder[Uri] = Encoder.encodeString.contramap(_.toString)
   implicit val uriDecoder: Decoder[Uri] = Decoder.decodeString.map(Uri(_))
 
-  implicit def encodeMapKey[A <: AnyRef](implicit encoder: Encoder[A]): KeyEncoder[A] = new KeyEncoder[A] {
-    override def apply(key: A): String = key.asJson.toString
-  }
+  implicit def encodeMapKey[A <: AnyRef](implicit encoder: Encoder[A]): KeyEncoder[A] =
+    new KeyEncoder[A] {
+      override def apply(key: A): String = key.asJson.toString
+    }
 
-  implicit def decodeMapKey[A <: AnyRef](implicit decoder: Decoder[A]): KeyDecoder[A] = new KeyDecoder[A] {
-    override def apply(key: String): Option[A] = parse(key).toOption.flatMap(_.as[A].toOption)
-  }
+  implicit def decodeMapKey[A <: AnyRef](implicit decoder: Decoder[A]): KeyDecoder[A] =
+    new KeyDecoder[A] {
+      override def apply(key: String): Option[A] = parse(key).toOption.flatMap(_.as[A].toOption)
+    }
 }

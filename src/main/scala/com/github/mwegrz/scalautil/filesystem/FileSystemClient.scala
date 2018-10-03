@@ -142,16 +142,19 @@ class FileSystemClient private (conf: Config) extends Shutdownable {
       source.getLines().toList
     }
 
-  def writeBytes(path: String, bytes: Array[Byte])(implicit compression: Option[Compression] = None): Unit =
+  def writeBytes(path: String, bytes: Array[Byte])(
+      implicit compression: Option[Compression] = None): Unit =
     withOutputStream(path) { os =>
       val cos = compressOutputStream(os, compression)
       os.write(bytes)
     }(compression)
 
-  def writeString(path: String, string: String)(implicit compression: Option[Compression] = None): Unit =
+  def writeString(path: String, string: String)(
+      implicit compression: Option[Compression] = None): Unit =
     writeLines(path, List(string))(compression)
 
-  def writeLines(path: String, lines: List[String])(implicit compression: Option[Compression] = None): Unit =
+  def writeLines(path: String, lines: List[String])(
+      implicit compression: Option[Compression] = None): Unit =
     withOutputStream(path) { os =>
       val cos = compressOutputStream(os, compression)
       arm.using(new PrintWriter(cos)) { w =>
@@ -174,7 +177,9 @@ class FileSystemClient private (conf: Config) extends Shutdownable {
     FileInfo.fromFileObject(file, file.getName)
   }
 
-  def list(path: String, filter: Option[String => Boolean] = None, recursive: Boolean = true): List[FileInfo] = {
+  def list(path: String,
+           filter: Option[String => Boolean] = None,
+           recursive: Boolean = true): List[FileInfo] = {
     val selector = new FileSelector() {
       override def includeFile(fileInfo: FileSelectInfo): Boolean = {
         val fo = fileInfo.getFile
@@ -187,7 +192,8 @@ class FileSystemClient private (conf: Config) extends Shutdownable {
 
     withFile(path) { dir =>
       if (dir.getType != FileType.FOLDER)
-        throw new IllegalArgumentException(s"Path does not refer to a directory: ${dir.getName.getURI}")
+        throw new IllegalArgumentException(
+          s"Path does not refer to a directory: ${dir.getName.getURI}")
       val rootName = dir.getName
       //log.debug("Files found", "files" -> dir.getChildren.map(_.getName).mkString(","))
       //dir.findFiles(selector).toList map { file =>
@@ -278,7 +284,8 @@ class FileSystemClient private (conf: Config) extends Shutdownable {
     }
   }
 
-  def withInputStream[A](path: String)(f: InputStream => A)(implicit compression: Option[Compression] = None): A =
+  def withInputStream[A](path: String)(f: InputStream => A)(
+      implicit compression: Option[Compression] = None): A =
     withFile(path) { file =>
       arm.using(file.getContent.getInputStream) { is =>
         val cIs = decompressInputStream(is, compression)
@@ -286,7 +293,8 @@ class FileSystemClient private (conf: Config) extends Shutdownable {
       }
     }
 
-  def withOutputStream[A](path: String)(f: OutputStream => A)(implicit compression: Option[Compression] = None): A =
+  def withOutputStream[A](path: String)(f: OutputStream => A)(
+      implicit compression: Option[Compression] = None): A =
     withFile(path) { file =>
       arm.using(file.getContent.getOutputStream) { os =>
         val cOs = compressOutputStream(os, compression)
@@ -320,7 +328,10 @@ object FileSystemClient {
   case class Encoding(value: String)
   case class BufferSize(value: Int)
 
-  case class FileInfo(name: String, lastModified: Option[Instant], isDirectory: Boolean, size: Option[Long])
+  case class FileInfo(name: String,
+                      lastModified: Option[Instant],
+                      isDirectory: Boolean,
+                      size: Option[Long])
 
   object FileInfo {
     def fromFileObject(file: FileObject, baseName: FileName): FileInfo = {
@@ -333,9 +344,11 @@ object FileSystemClient {
     }
   }
 
-  def apply(config: Config): FileSystemClient = new FileSystemClient(config.withReferenceDefaults("file-system-client"))
+  def apply(config: Config): FileSystemClient =
+    new FileSystemClient(config.withReferenceDefaults("file-system-client"))
 
-  private def decompressInputStream(is: InputStream, compression: Option[Compression]): InputStream =
+  private def decompressInputStream(is: InputStream,
+                                    compression: Option[Compression]): InputStream =
     compression.fold(is) {
       case Compression.Gzip => new GZIPInputStream(is)
       case Compression.Zip =>
@@ -345,7 +358,8 @@ object FileSystemClient {
     }
 
   //TODO finish
-  private def compressOutputStream(os: OutputStream, compression: Option[Compression]): OutputStream =
+  private def compressOutputStream(os: OutputStream,
+                                   compression: Option[Compression]): OutputStream =
     compression.fold(os) {
       case Compression.Gzip => new GZIPOutputStream(os)
       case Compression.Zip =>

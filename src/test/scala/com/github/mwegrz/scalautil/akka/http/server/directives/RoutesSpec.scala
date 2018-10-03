@@ -14,7 +14,8 @@ import io.circe.generic.extras.Configuration
 import scala.util.Try
 
 object RoutesSpec {
-  implicit val configuration: Configuration = Configuration.default.withSnakeCaseMemberNames.withDefaults
+  implicit val configuration: Configuration =
+    Configuration.default.withSnakeCaseMemberNames.withDefaults
 
   private object EntryId {
     implicit val ordering: Ordering[EntryId] = Ordering.by(_.value)

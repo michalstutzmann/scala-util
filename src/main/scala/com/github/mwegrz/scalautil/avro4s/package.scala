@@ -17,9 +17,10 @@ package object avro4s {
     }
   }
 
-  def parseAvro[A](bytes: Array[Byte], writerSchema: Option[Schema] = None, readerSchema: Option[Schema] = None)(
-      implicit schemaFor: SchemaFor[A],
-      fromRecord: FromRecord[A]): A = {
+  def parseAvro[A](bytes: Array[Byte],
+                   writerSchema: Option[Schema] = None,
+                   readerSchema: Option[Schema] = None)(implicit schemaFor: SchemaFor[A],
+                                                        fromRecord: FromRecord[A]): A = {
     val in = new ByteArrayInputStream(bytes)
     val input = new AvroBinaryInputStream[A](in, writerSchema, readerSchema)
     input.iterator.toSeq.head

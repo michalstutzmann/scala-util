@@ -21,7 +21,8 @@ object NetemeraOauth2Client {
                             executionContext: ExecutionContext): NetemeraOauth2Client =
     new NetemeraOauth2Client(config.withReferenceDefaults("netemera-oauth2-client"))
 
-  private implicit val circeConfiguration: Configuration = Configuration.default.withSnakeCaseMemberNames.withDefaults
+  private implicit val circeConfiguration: Configuration =
+    Configuration.default.withSnakeCaseMemberNames.withDefaults
 }
 
 class NetemeraOauth2Client private (config: Config)(implicit actorSystem: ActorSystem,

@@ -18,15 +18,18 @@ import scala.concurrent.duration.FiniteDuration
 package object scaladsl {
   type KafkaFlow[K1, V1, K2, V2] = Flow[ProducerRecord[K1, V1], ConsumerRecord[K2, V2], NotUsed]
 
-  type KafkaCommitableFlow[K1, V1, K2, V2] = Flow[Message[K1, V1, Committable], CommittableMessage[K2, V2], NotUsed]
+  type KafkaCommitableFlow[K1, V1, K2, V2] =
+    Flow[Message[K1, V1, Committable], CommittableMessage[K2, V2], NotUsed]
 
-  def byteMessageFlow[A, B](inTopic: String, outTopic: String)(toBinary: A => (Array[Byte], Array[Byte]),
-                                                               fromBinary: (Array[Byte], Array[Byte]) => B)(
+  def byteMessageFlow[A, B](inTopic: String, outTopic: String)(
+      toBinary: A => (Array[Byte], Array[Byte]),
+      fromBinary: (Array[Byte], Array[Byte]) => B)(
       implicit producerSettings: ProducerSettings[Array[Byte], Array[Byte]],
       consumerSettings: ConsumerSettings[Array[Byte], Array[Byte]],
       actorSystem: ActorSystem,
       actorMaterializer: ActorMaterializer): Flow[A, B, NotUsed] = {
-    val kafkaFlow = KafkaCommitableFlow(producerSettings, consumerSettings, Subscriptions.topics(outTopic))
+    val kafkaFlow =
+      KafkaCommitableFlow(producerSettings, consumerSettings, Subscriptions.topics(outTopic))
 
     val downlink: Flow[A, Message[Array[Byte], Array[Byte], Committable], NotUsed] = ???
     val uplink: Flow[CommittableMessage[Array[Byte], Array[Byte]], B, NotUsed] = ???

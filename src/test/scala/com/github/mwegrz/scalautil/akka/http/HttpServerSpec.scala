@@ -13,7 +13,12 @@ import akka.http.scaladsl.server._
 import akka.http.scaladsl.model.StatusCodes._
 import com.typesafe.config.ConfigFactory
 
-class HttpServerSpec extends TestSpec with Matchers with ScalatestRouteTest with Eventually with BeforeAndAfterAll {
+class HttpServerSpec
+    extends TestSpec
+    with Matchers
+    with ScalatestRouteTest
+    with Eventually
+    with BeforeAndAfterAll {
   private val httpApiA: HttpApi = (requestId: String, time: Instant) => path("a") { complete("a") }
   private val httpApiB: HttpApi = (requestId: String, time: Instant) => path("b") { complete("b") }
 
@@ -24,7 +29,8 @@ class HttpServerSpec extends TestSpec with Matchers with ScalatestRouteTest with
     """.stripMargin
   )
 
-  private val httpServer = HttpServer(config, Map(separateOnSlashes("test/aa") -> Set(httpApiA, httpApiB)))
+  private val httpServer =
+    HttpServer(config, Map(separateOnSlashes("test/aa") -> Set(httpApiA, httpApiB)))
 
   override def afterAll: Unit = httpServer.shutdown()
 
