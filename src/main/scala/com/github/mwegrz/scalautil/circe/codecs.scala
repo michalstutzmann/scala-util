@@ -3,7 +3,6 @@ package com.github.mwegrz.scalautil.circe
 import akka.http.scaladsl.model.Uri
 import com.github.mwegrz.scalautil.{ LongVal, StringVal }
 import io.circe.{ Decoder, Encoder, KeyDecoder, KeyEncoder }
-import io.circe.java8.time.TimeInstances
 import io.circe.syntax._
 import io.circe.parser._
 import shapeless.{
@@ -21,7 +20,7 @@ import shapeless.{
 }
 import shapeless.labelled._
 
-object codecs extends TimeInstances {
+object codecs {
   implicit def encodeAnyVal[T <: AnyVal, V](implicit g: Lazy[Generic.Aux[T, V :: HNil]],
                                             e: Encoder[V]): Encoder[T] =
     Encoder.instance { value ⇒

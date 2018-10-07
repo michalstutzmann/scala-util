@@ -1,6 +1,7 @@
 package com.github.mwegrz.scalautil.oauth2.netemera
 
 import com.github.mwegrz.scalautil.jwt.decode
+import com.github.mwegrz.scalautil.oauth2.JwtKey
 import io.circe.syntax._
 import io.circe.generic.auto._
 import io.circe.parser.parse
@@ -9,13 +10,14 @@ import pdi.jwt.{ JwtAlgorithm, JwtClaim }
 import scala.util.Try
 
 object NetemeraJwtClaim {
-  case class JwtClaimContent(scope: String, group: String)
+  final case class JwtClaimContent(scope: String, group: String)
 
-  def fromString(string: String, key: String, algorithm: JwtAlgorithm): Try[NetemeraJwtClaim] =
-    decode(string, key, algorithm).map(fromJwtClaim)
+  def apply(string: String)(implicit key: JwtKey, algorithm: JwtAlgorithm): Try[NetemeraJwtClaim] =
+    fromString(string)
 
-  def fromString(string: String, key: String, algorithm: String): Try[NetemeraJwtClaim] =
-    decode(string, key, algorithm).map(fromJwtClaim)
+  def fromString(string: String)(implicit key: JwtKey,
+                                 algorithm: JwtAlgorithm): Try[NetemeraJwtClaim] =
+    decode(string, key.value, algorithm).map(fromJwtClaim)
 
   def fromJwtClaim(jwtClaim: JwtClaim): NetemeraJwtClaim = {
     val iss = jwtClaim.issuer.get
@@ -24,13 +26,15 @@ object NetemeraJwtClaim {
     val iat = jwtClaim.issuedAt.get
     val exp = jwtClaim.expiration.get
     val jwtClaimContent = parse(jwtClaim.content).toTry.flatMap(_.as[JwtClaimContent].toTry).get
-    val scope = jwtClaimContent.scope.split(" ").toSet
+    val scope = if (jwtClaimContent.scope.nonEmpty) { jwtClaimContent.scope.split(" ").toSet } else {
+      Set.empty[String]
+    }
     val organization = jwtClaimContent.group
     NetemeraJwtClaim(iss, sub, aud, iat, exp, scope, organization)
   }
 }
 
-case class NetemeraJwtClaim(
+final case class NetemeraJwtClaim(
     iss: String,
     sub: String,
     aud: Set[String],

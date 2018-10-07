@@ -21,7 +21,6 @@ lazy val root = (project in file("."))
       CirceCore % Optional,
       CirceGenericExtras % Optional,
       CirceParser % Optional,
-      CirceJava8 % Optional,
       CatsCore % Optional,
       Avro4sCore % Optional,
       JwtCirce % Optional,
