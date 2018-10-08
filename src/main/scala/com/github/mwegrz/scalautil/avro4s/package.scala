@@ -4,13 +4,16 @@ import java.io.{ ByteArrayInputStream, ByteArrayOutputStream }
 
 import com.sksamuel.avro4s._
 import org.apache.avro.Schema
+import org.apache.avro.io.EncoderFactory
 
 package object avro4s {
-  implicit class AOps[A: Encoder](c: A) {
+  implicit class AOps[A: Encoder](underlaying: A) {
     def toAvro(implicit schemaFor: SchemaFor[A]): Array[Byte] = {
       val baos = new ByteArrayOutputStream()
-      val os = AvroOutputStream.binary[A].to(baos).build(schemaFor.schema)
-      os.write(c)
+      val os = new WrapperAvroOutputStream[A](baos,
+                                              schemaFor.schema,
+                                              EncoderFactory.get().binaryEncoder(baos, null))
+      os.write(underlaying)
       os.close()
       baos.toByteArray
     }
@@ -22,10 +25,11 @@ package object avro4s {
       readerSchema: Option[Schema] = None)(implicit schemaFor: SchemaFor[A]): A = {
     val defaultSchema = schemaFor.schema
     val in = new ByteArrayInputStream(bytes)
-    val input = AvroInputStream
-      .binary[A]
-      .from(in)
-      .build(writerSchema.getOrElse(defaultSchema), readerSchema.getOrElse(defaultSchema))
+
+    val input = new WrapperAvroInputStream[A](in,
+                                              writerSchema.getOrElse(defaultSchema),
+                                              readerSchema.getOrElse(defaultSchema))
+
     input.iterator.toSeq.head
   }
 }
