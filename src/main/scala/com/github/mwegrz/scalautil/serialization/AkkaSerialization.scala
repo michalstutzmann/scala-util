@@ -7,7 +7,7 @@ import com.sksamuel.avro4s.{ Decoder, Encoder, SchemaFor }
 import scala.language.implicitConversions
 import scala.reflect.ClassTag
 
-class AkkaSerialization[Value: ClassTag: SchemaFor: Encoder: Decoder]() {
+abstract class AkkaSerialization[Value: SchemaFor: Encoder: Decoder: ClassTag] {
   implicit def serde(actorSystem: ActorSystem): Serde[Value] =
     new AkkaSerializer(actorSystem.asInstanceOf[ExtendedActorSystem])
 

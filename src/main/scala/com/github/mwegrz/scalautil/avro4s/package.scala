@@ -7,11 +7,11 @@ import org.apache.avro.Schema
 import org.apache.avro.io.EncoderFactory
 
 package object avro4s {
-  implicit class AOps[A: Encoder](underlaying: A) {
-    def toAvro(implicit schemaFor: SchemaFor[A]): Array[Byte] = {
+  implicit class AOps[A: SchemaFor: Encoder](underlaying: A) {
+    def toAvro: Array[Byte] = {
       val baos = new ByteArrayOutputStream()
       val os = new WrapperAvroOutputStream[A](baos,
-                                              schemaFor.schema,
+                                              implicitly[SchemaFor[A]].schema,
                                               EncoderFactory.get().binaryEncoder(baos, null))
       os.write(underlaying)
       os.close()
@@ -19,11 +19,10 @@ package object avro4s {
     }
   }
 
-  def parseAvro[A: Decoder](
-      bytes: Array[Byte],
-      writerSchema: Option[Schema] = None,
-      readerSchema: Option[Schema] = None)(implicit schemaFor: SchemaFor[A]): A = {
-    val defaultSchema = schemaFor.schema
+  def parseAvro[A: SchemaFor: Decoder](bytes: Array[Byte],
+                                       writerSchema: Option[Schema] = None,
+                                       readerSchema: Option[Schema] = None): A = {
+    val defaultSchema = implicitly[SchemaFor[A]].schema
     val in = new ByteArrayInputStream(bytes)
 
     val input = new WrapperAvroInputStream[A](in,
