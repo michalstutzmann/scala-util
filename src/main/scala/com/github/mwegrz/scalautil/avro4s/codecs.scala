@@ -1,6 +1,7 @@
 package com.github.mwegrz.scalautil.avro4s
 
 import java.time.Duration
+import java.util.Base64
 
 import akka.http.scaladsl.model.Uri
 import com.github.mwegrz.scalautil.{
@@ -17,7 +18,6 @@ import com.sksamuel.avro4s._
 import org.apache.avro.Schema
 import pl.iterators.kebs.macros.CaseClass1Rep
 import scodec.bits.ByteVector
-import shapeless.{ ::, Generic, HNil, Lazy }
 
 object codecs {
   implicit def byteWrapperSchemaFor[V <: ShortWrapper]: SchemaFor[V] =
@@ -73,7 +73,7 @@ object codecs {
     Decoder.DoubleDecoder.map(rep.apply)
 
   implicit def stringWrapperSchemaFor[V <: StringWrapper]: SchemaFor[V] =
-    SchemaFor.const(Schema.create(Schema.Type.DOUBLE))
+    SchemaFor.const(Schema.create(Schema.Type.STRING))
   implicit def stringWrapperEncoder[V <: StringWrapper](
       implicit rep: CaseClass1Rep[V, String]): Encoder[V] =
     Encoder.StringEncoder.comap(rep.unapply)
@@ -114,19 +114,35 @@ object codecs {
   implicit val UriEncoder: Encoder[Uri] = Encoder.StringEncoder.comap(_.toString)
   implicit val UriDecoder: Decoder[Uri] = Decoder.StringDecoder.map(Uri(_))
 
-  implicit def typedKeyMapSchemaFor[K, V](
+  implicit def typedKeyMapSchemaFor[K <: StringWrapper, V](
       implicit valueSchemaFor: SchemaFor[V]): SchemaFor[Map[K, V]] =
     SchemaFor.const(Schema.createMap(valueSchemaFor.schema))
 
-  implicit def typedKeyMapEncoder[K, V](
+  implicit def typedKeyMapEncoder[K <: StringWrapper, V](
       implicit valueEncoder: Encoder[V],
-      generic: Lazy[Generic.Aux[K, String :: HNil]]): Encoder[Map[K, V]] =
-    Encoder.mapEncoder[V].comap(_.map { case (key, value) => (generic.value.to(key).head, value) })
+      rep: CaseClass1Rep[K, String]): Encoder[Map[K, V]] =
+    Encoder.mapEncoder[V].comap(_.map { case (key, value) => (rep.unapply(key), value) })
 
-  implicit def typedKeyMapDecoder[K, V](
+  implicit def typedKeyMapDecoder[K <: StringWrapper, V](
       implicit valueDecoder: Decoder[V],
-      generic: Lazy[Generic.Aux[K, String :: HNil]]): Decoder[Map[K, V]] =
+      rep: CaseClass1Rep[K, String]): Decoder[Map[K, V]] =
     Decoder
       .mapDecoder[V]
-      .map(_.map { case (key, value) => (generic.value.from(key :: HNil), value) })
+      .map(_.map { case (key, value) => (rep.apply(key), value) })
+
+  implicit def byteArrayKeyMapSchemaFor[V](
+      implicit valueSchemaFor: SchemaFor[V]): SchemaFor[Map[Array[Byte], V]] =
+    SchemaFor.const(Schema.createMap(valueSchemaFor.schema))
+
+  implicit def byteArrayKeyMapEncoder[V](
+      implicit valueEncoder: Encoder[V]): Encoder[Map[Array[Byte], V]] =
+    Encoder
+      .mapEncoder[V]
+      .comap(_.map { case (key, value) => (Base64.getEncoder.encodeToString(key), value) })
+
+  implicit def byteArrayKeyMapDecoder[V](
+      implicit valueDecoder: Decoder[V]): Decoder[Map[Array[Byte], V]] =
+    Decoder
+      .mapDecoder[V]
+      .map(_.map { case (key, value) => (Base64.getDecoder.decode(key), value) })
 }
