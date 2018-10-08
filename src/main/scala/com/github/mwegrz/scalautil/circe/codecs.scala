@@ -1,109 +1,106 @@
 package com.github.mwegrz.scalautil.circe
 
 import akka.http.scaladsl.model.Uri
-import com.github.mwegrz.scalautil.{ LongVal, StringVal }
+import com.github.mwegrz.scalautil.{
+  BigDecimalWrapper,
+  ByteVectorWrapper,
+  ByteWrapper,
+  DoubleWrapper,
+  FloatWrapper,
+  IntWrapper,
+  LongWrapper,
+  ShortWrapper,
+  StringWrapper
+}
 import io.circe.{ Decoder, Encoder, KeyDecoder, KeyEncoder }
 import io.circe.syntax._
 import io.circe.parser._
-import shapeless.{
-  :+:,
-  ::,
-  CNil,
-  Coproduct,
-  Generic,
-  HNil,
-  Inl,
-  Inr,
-  LabelledGeneric,
-  Lazy,
-  Witness
-}
-import shapeless.labelled._
+import pl.iterators.kebs.macros.CaseClass1Rep
+import scodec.bits.ByteVector
+import shapeless.{ ::, Generic, HNil, Lazy }
 
 object codecs {
-  implicit def encodeAnyVal[T <: AnyVal, V](implicit g: Lazy[Generic.Aux[T, V :: HNil]],
-                                            e: Encoder[V]): Encoder[T] =
+  implicit def byteWrapperEncoder[V <: ByteWrapper](
+      implicit rep: CaseClass1Rep[V, Byte]): Encoder[V] =
+    Encoder.encodeByte.contramap(rep.unapply)
+  implicit def byteWrapperDecoder[V <: ByteWrapper](
+      implicit rep: CaseClass1Rep[V, Byte]): Decoder[V] =
+    Decoder.decodeByte.map(rep.apply)
+
+  implicit def shortWrapperEncoder[V <: ShortWrapper](
+      implicit rep: CaseClass1Rep[V, Short]): Encoder[V] =
+    Encoder.encodeShort.contramap(rep.unapply)
+  implicit def shortWrapperDecoder[V <: ShortWrapper](
+      implicit rep: CaseClass1Rep[V, Short]): Decoder[V] =
+    Decoder.decodeShort.map(rep.apply)
+
+  implicit def intWrapperEncoder[V <: IntWrapper](implicit rep: CaseClass1Rep[V, Int]): Encoder[V] =
+    Encoder.encodeInt.contramap(rep.unapply)
+  implicit def intWrapperDecoder[V <: IntWrapper](implicit rep: CaseClass1Rep[V, Int]): Decoder[V] =
+    Decoder.decodeInt.map(rep.apply)
+
+  implicit def longWrapperEncoder[V <: LongWrapper](
+      implicit rep: CaseClass1Rep[V, Long]): Encoder[V] =
+    Encoder.encodeLong.contramap(rep.unapply)
+  implicit def longWrapperDecoder[V <: LongWrapper](
+      implicit rep: CaseClass1Rep[V, Long]): Decoder[V] =
+    Decoder.decodeLong.map(rep.apply)
+
+  implicit def floatWrapperEncoder[V <: FloatWrapper](
+      implicit rep: CaseClass1Rep[V, Float]): Encoder[V] =
+    Encoder.encodeFloat.contramap(rep.unapply)
+  implicit def floatWrapperDecoder[V <: FloatWrapper](
+      implicit rep: CaseClass1Rep[V, Float]): Decoder[V] =
+    Decoder.decodeFloat.map(rep.apply)
+
+  implicit def doubleWrapperEncoder[V <: DoubleWrapper](
+      implicit rep: CaseClass1Rep[V, Double]): Encoder[V] =
+    Encoder.encodeDouble.contramap(rep.unapply)
+  implicit def doubleWrapperDecoder[V <: DoubleWrapper](
+      implicit rep: CaseClass1Rep[V, Double]): Decoder[V] =
+    Decoder.decodeDouble.map(rep.apply)
+
+  implicit def stringWrapperEncoder[V <: StringWrapper](
+      implicit rep: CaseClass1Rep[V, String]): Encoder[V] =
+    Encoder.encodeString.contramap(rep.unapply)
+  implicit def stringWrapperDecoder[V <: StringWrapper](
+      implicit rep: CaseClass1Rep[V, String]): Decoder[V] =
+    Decoder.decodeString.map(rep.apply)
+
+  implicit def bigDecimalWrapperEncoder[V <: BigDecimalWrapper](
+      implicit rep: CaseClass1Rep[V, BigDecimal]): Encoder[V] =
+    Encoder.encodeBigDecimal.contramap(rep.unapply)
+  implicit def bigDecimalWrapperDecoder[V <: BigDecimalWrapper](
+      implicit rep: CaseClass1Rep[V, BigDecimal]): Decoder[V] =
+    Decoder.decodeBigDecimal.map(rep.apply)
+
+  implicit def byteVectorWrapperEncoder[V <: ByteVectorWrapper](
+      implicit rep: CaseClass1Rep[V, ByteVector]): Encoder[V] =
+    ByteVectorEncoder.contramap(rep.unapply)
+  implicit def byteVectorWrapperDecoder[V <: ByteVectorWrapper](
+      implicit rep: CaseClass1Rep[V, ByteVector]): Decoder[V] =
+    ByteVectorDecoder.map(rep.apply)
+
+  implicit def anyValEncoder[T <: AnyVal, V](implicit g: Lazy[Generic.Aux[T, V :: HNil]],
+                                             e: Encoder[V]): Encoder[T] =
     Encoder.instance { value ⇒
       e(g.value.to(value).head)
     }
 
-  implicit def decodeAnyVal[T <: AnyVal, V](implicit g: Lazy[Generic.Aux[T, V :: HNil]],
-                                            d: Decoder[V]): Decoder[T] =
+  implicit def anyValDecoder[T <: AnyVal, V](implicit g: Lazy[Generic.Aux[T, V :: HNil]],
+                                             d: Decoder[V]): Decoder[T] =
     Decoder.instance { cursor ⇒
       d(cursor).map { value ⇒
         g.value.from(value :: HNil)
       }
     }
 
-  implicit def deriveStringValUnwrappedEncoder[T <: StringVal](
-      implicit g: Lazy[Generic.Aux[T, String :: HNil]],
-      e: Encoder[String]): Encoder[T] =
-    Encoder.instance { value ⇒
-      e(g.value.to(value).head)
-    }
+  implicit val ByteVectorEncoder: Encoder[ByteVector] = Encoder.encodeString.contramap(_.toBase64)
+  implicit val ByteVectorDecoder: Decoder[ByteVector] =
+    Decoder.decodeString.map(ByteVector.fromBase64(_).get)
 
-  implicit def deriveStringValUnwrappedDecoder[T <: StringVal](
-      implicit g: Lazy[Generic.Aux[T, String :: HNil]],
-      d: Decoder[String]): Decoder[T] =
-    Decoder.instance { cursor ⇒
-      d(cursor).map { value ⇒
-        g.value.from(value :: HNil)
-      }
-    }
-
-  implicit def deriveLongValUnwrappedEncoder[T <: LongVal](
-      implicit g: Lazy[Generic.Aux[T, Long :: HNil]],
-      e: Encoder[Long]): Encoder[T] =
-    Encoder.instance { value ⇒
-      e(g.value.to(value).head)
-    }
-
-  implicit def deriveLongValUnwrappedDecoder[T <: LongVal](
-      implicit g: Lazy[Generic.Aux[T, Long :: HNil]],
-      d: Decoder[Long]): Decoder[T] =
-    Decoder.instance { cursor ⇒
-      d(cursor).map { value ⇒
-        g.value.from(value :: HNil)
-      }
-    }
-
-  /*trait IsEnum[C <: Coproduct] {
-    def to(c: C): String
-    def from(s: String): Option[C]
-  }
-
-  object IsEnum {
-    implicit val cnilIsEnum: IsEnum[CNil] = new IsEnum[CNil] {
-      def to(c: CNil): String = sys.error("Impossible")
-      def from(s: String): Option[CNil] = None
-    }
-
-    implicit def cconsIsEnum[K <: Symbol, H <: Product, T <: Coproduct](implicit witK: Witness.Aux[K],
-                                                                        witH: Witness.Aux[H],
-                                                                        gen: Generic.Aux[H, HNil],
-                                                                        tie: IsEnum[T]): IsEnum[FieldType[K, H] :+: T] =
-      new IsEnum[FieldType[K, H] :+: T] {
-        def to(c: FieldType[K, H] :+: T): String = c match {
-          case Inl(h) => witK.value.name
-          case Inr(t) => tie.to(t)
-        }
-
-        def from(s: String): Option[FieldType[K, H] :+: T] =
-          if (s == witK.value.name) Some(Inl(field[K](witH.value)))
-          else tie.from(s).map(Inr(_))
-      }
-  }
-
-  implicit def encodeEnum[A, C <: Coproduct](implicit gen: LabelledGeneric.Aux[A, C], rie: IsEnum[C]): Encoder[A] =
-    Encoder[String].contramap[A](a => rie.to(gen.to(a)))
-
-  implicit def decodeEnum[A, C <: Coproduct](implicit gen: LabelledGeneric.Aux[A, C], rie: IsEnum[C]): Decoder[A] =
-    Decoder[String].emap { s =>
-      rie.from(s).map(gen.from).toRight("enum")
-    }*/
-
-  implicit val uriEncoder: Encoder[Uri] = Encoder.encodeString.contramap(_.toString)
-  implicit val uriDecoder: Decoder[Uri] = Decoder.decodeString.map(Uri(_))
+  implicit val UriEncoder: Encoder[Uri] = Encoder.encodeString.contramap(_.toString)
+  implicit val UriDecoder: Decoder[Uri] = Decoder.decodeString.map(Uri(_))
 
   implicit def encodeMapKey[A <: AnyRef](implicit encoder: Encoder[A]): KeyEncoder[A] =
     new KeyEncoder[A] {

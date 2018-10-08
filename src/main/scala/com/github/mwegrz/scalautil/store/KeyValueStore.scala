@@ -10,6 +10,7 @@ import com.github.mwegrz.scalautil.akka.serialization.ResourceAvroSerializer
 import com.github.mwegrz.scalautil.serialization.Serde
 import com.sksamuel.avro4s._
 import com.github.mwegrz.scalautil.avro4s.codecs._
+import org.apache.avro.Schema
 
 import scala.collection.immutable.SortedMap
 import scala.concurrent.{ ExecutionContext, Future }
@@ -38,13 +39,15 @@ object ActorKeyValueStore {
   private type ValueBytes = Array[Byte]
 
   object Store {
+    val avroSchema: Schema = SchemaFor[Store].schema
+
     class AkkaSerializer(extendedActorSystem: ExtendedActorSystem)
         extends ResourceAvroSerializer[Store](extendedActorSystem)
   }
 
-  case class Store(key: KeyBytes, value: ValueBytes)
+  final case class Store(key: KeyBytes, value: ValueBytes)
 
-  case class Retrieve(key: KeyBytes)
+  final case class Retrieve(key: KeyBytes)
 
   case object RetrieveAll
 
@@ -53,13 +56,17 @@ object ActorKeyValueStore {
   case object RemoveAll
 
   object Remove {
+    val avroSchema: Schema = SchemaFor[Remove].schema
+
     class AkkaSerializer(extendedActorSystem: ExtendedActorSystem)
         extends ResourceAvroSerializer[Remove](extendedActorSystem)
   }
 
-  case class Remove(key: KeyBytes)
+  final case class Remove(key: KeyBytes)
 
-  private object State {
+  object State {
+    val avroSchema: Schema = SchemaFor[State].schema
+
     def zero: State =
       State(Map.empty[KeyBytes, ValueBytes])
 
@@ -67,7 +74,7 @@ object ActorKeyValueStore {
         extends ResourceAvroSerializer[Remove](extendedActorSystem)
   }
 
-  private case class State(values: Map[KeyBytes, ValueBytes]) {
+  final case class State(values: Map[KeyBytes, ValueBytes]) {
     def store(key: KeyBytes, value: ValueBytes): State = copy(values = values + ((key, value)))
 
     def retrieveAll: Map[KeyBytes, ValueBytes] = values

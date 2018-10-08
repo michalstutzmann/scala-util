@@ -1,12 +1,12 @@
 package com.github.mwegrz.scalautil.akka.serialization
 
 import akka.actor.ExtendedActorSystem
-import com.sksamuel.avro4s.{ FromRecord, SchemaFor, ToRecord }
+import com.sksamuel.avro4s.{ Decoder, Encoder, SchemaFor }
 import org.apache.avro.Schema
 
 import scala.reflect.ClassTag
 
-class ResourceAvroSerializer[A: SchemaFor: ToRecord: FromRecord: ClassTag](
+class ResourceAvroSerializer[A: SchemaFor: Encoder: Decoder: ClassTag](
     extendedActorSystem: ExtendedActorSystem)
     extends AvroSerializer[A](extendedActorSystem) {
 
@@ -22,6 +22,7 @@ class ResourceAvroSerializer[A: SchemaFor: ToRecord: FromRecord: ClassTag](
   override protected val versionToWriterSchema: PartialFunction[Int, Schema] = {
     case version =>
       val resource = versionToWriterSchemaResource(version)
+      println(resource)
       new Schema.Parser().parse(getClass.getClassLoader.getResourceAsStream(resource))
   }
 }

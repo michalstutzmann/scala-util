@@ -1,0 +1,14 @@
+{
+  "type": "record",
+  "name": "State",
+  "namespace": "com.github.mwegrz.scalautil.store.ActorKeyValueStore",
+  "fields": [
+    {
+      "name": "values",
+      "type": {
+        "type": "map",
+        "values": "bytes"
+      }
+    }
+  ]
+}

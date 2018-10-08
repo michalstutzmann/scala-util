@@ -1,0 +1,15 @@
+{
+  "type": "record",
+  "name": "Store",
+  "namespace": "com.github.mwegrz.scalautil.store.ActorKeyValueStore",
+  "fields": [
+    {
+      "name": "key",
+      "type": "bytes"
+    },
+    {
+      "name": "value",
+      "type": "bytes"
+    }
+  ]
+}
