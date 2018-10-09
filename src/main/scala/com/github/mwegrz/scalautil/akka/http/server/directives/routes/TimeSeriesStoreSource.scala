@@ -14,7 +14,6 @@ import com.github.mwegrz.scalautil.store.TimeSeriesStore
 import akka.http.scaladsl.marshalling.sse.EventStreamMarshalling._
 import akka.http.scaladsl.model.MessageEntity
 import com.github.mwegrz.scalastructlog.KeyValueLogging
-import com.github.mwegrz.scalautil.StringWrapper
 import scodec.bits.ByteVector
 
 import scala.concurrent.duration._
@@ -26,7 +25,7 @@ object TimeSeriesStoreSource {
   private val LiveValuesBufferSize = 1000
 }
 
-class TimeSeriesStoreSource[Key <: StringWrapper, Value: ClassTag](
+class TimeSeriesStoreSource[Key, Value: ClassTag](
     name: String,
     valueStore: TimeSeriesStore[Key, Value],
     valueSource: Source[(Key, Instant, Value), NotUsed])(

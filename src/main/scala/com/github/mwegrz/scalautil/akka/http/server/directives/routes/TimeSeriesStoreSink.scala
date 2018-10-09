@@ -11,14 +11,13 @@ import akka.http.scaladsl.unmarshalling.{ FromEntityUnmarshaller, Unmarshaller }
 import akka.stream.Materializer
 import akka.stream.scaladsl.{ Sink, Source }
 import com.github.mwegrz.app.Shutdownable
-import com.github.mwegrz.scalautil.StringWrapper
 import com.github.mwegrz.scalautil.store.TimeSeriesStore
 
 import scala.concurrent.ExecutionContext
 
-class TimeSeriesStoreSink[Key <: StringWrapper, Value](name: String,
-                                                       valueStore: TimeSeriesStore[Key, Value],
-                                                       valueSink: Sink[Value, NotUsed])(
+class TimeSeriesStoreSink[Key, Value](name: String,
+                                      valueStore: TimeSeriesStore[Key, Value],
+                                      valueSink: Sink[Value, NotUsed])(
     implicit
     instantFromStringUnmarshaller: Unmarshaller[String, Instant],
     valueSourceToResponseMarshaller: ToResponseMarshaller[Source[Value, NotUsed]],

@@ -6,9 +6,7 @@ import akka.http.scaladsl.marshalling.ToEntityMarshaller
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{ PathMatcher1, Route }
 import akka.http.scaladsl.unmarshalling.{ FromEntityUnmarshaller, Unmarshaller }
-import com.github.mwegrz.scalautil.StringWrapper
 import com.github.mwegrz.scalautil.store.KeyValueStore
-import scodec.bits.ByteVector
 
 import scala.concurrent.ExecutionContext
 
@@ -16,7 +14,7 @@ package object routes {
   implicit private val instantDeserializer: Unmarshaller[String, Instant] =
     Unmarshaller.strict[String, Instant](a => Instant.parse(a))
 
-  def keyValueStore[Key <: StringWrapper, Value](name: String)(
+  def keyValueStore[Key, Value](name: String)(
       implicit store: KeyValueStore[Key, Value],
       keyPathMatcher: PathMatcher1[Key],
       unitToEntityMarshaller: ToEntityMarshaller[Unit],
