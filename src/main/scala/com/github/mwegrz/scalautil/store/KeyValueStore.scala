@@ -9,8 +9,8 @@ import com.github.mwegrz.app.Shutdownable
 import com.github.mwegrz.scalautil.akka.serialization.ResourceAvroSerializer
 import com.github.mwegrz.scalautil.serialization.Serde
 import com.sksamuel.avro4s._
-import com.github.mwegrz.scalautil.avro4s.codecs._
-import org.apache.avro.Schema
+import com.github.mwegrz.scalautil.circe.coding.{ byteArrayKeyEncoder, byteArrayKeyDecoder }
+import com.github.mwegrz.scalautil.avro4s.coding._
 
 import scala.collection.immutable.SortedMap
 import scala.concurrent.{ ExecutionContext, Future }
@@ -39,8 +39,6 @@ object ActorKeyValueStore {
   private type ValueBytes = Array[Byte]
 
   object Store {
-    val avroSchema: Schema = SchemaFor[Store].schema
-
     class AkkaSerializer(extendedActorSystem: ExtendedActorSystem)
         extends ResourceAvroSerializer[Store](extendedActorSystem)
   }
@@ -56,8 +54,6 @@ object ActorKeyValueStore {
   case object RemoveAll
 
   object Remove {
-    val avroSchema: Schema = SchemaFor[Remove].schema
-
     class AkkaSerializer(extendedActorSystem: ExtendedActorSystem)
         extends ResourceAvroSerializer[Remove](extendedActorSystem)
   }
@@ -65,8 +61,6 @@ object ActorKeyValueStore {
   final case class Remove(key: KeyBytes)
 
   object State {
-    val avroSchema: Schema = SchemaFor[State].schema
-
     def zero: State =
       State(Map.empty[KeyBytes, ValueBytes])
 
