@@ -18,13 +18,6 @@ object unmarshalling {
       generic.value.from(value :: HNil)
     }
 
-  implicit def stringToIntValueClassUnmarshaller[ValueClass, Ref](
-      implicit generic: Lazy[Generic.Aux[ValueClass, Ref]],
-      evidence: (Int :: HNil) =:= Ref): Unmarshaller[String, ValueClass] =
-    Unmarshaller.strict { value =>
-      generic.value.from(value.toInt :: HNil)
-    }
-
   implicit def stringToNetemeraJwtClaimUnmarshaller(
       implicit jwtKey: JwtKey,
       jwtAlgorithm: JwtAlgorithm): Unmarshaller[String, NetemeraJwtClaim] =
