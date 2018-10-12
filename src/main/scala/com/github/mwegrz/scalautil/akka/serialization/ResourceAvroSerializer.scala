@@ -9,14 +9,13 @@ import scala.reflect.ClassTag
 class ResourceAvroSerializer[A: SchemaFor: Encoder: Decoder: ClassTag](
     extendedActorSystem: ExtendedActorSystem)
     extends AvroSerializer[A](extendedActorSystem) {
+  private val classTag = implicitly[ClassTag[A]]
+  private val packageName = classTag.runtimeClass.getPackage.getName
+  private val path = packageName.replaceAll("\\.", "/")
+  private val name = classTag.runtimeClass.getName.stripPrefix(s"$packageName.")
 
   protected def versionToWriterSchemaResource: PartialFunction[Int, String] = {
-    case version =>
-      val classTag = implicitly[ClassTag[A]]
-      val packageName = classTag.runtimeClass.getPackage.getName
-      val path = packageName.replaceAll("\\.", "/")
-      val name = classTag.runtimeClass.getName.stripPrefix(s"$packageName.")
-      s"$path/$name-$version.avsc"
+    case version => s"$path/$name-$version.avsc"
   }
 
   override protected val versionToWriterSchema: PartialFunction[Int, Schema] = {

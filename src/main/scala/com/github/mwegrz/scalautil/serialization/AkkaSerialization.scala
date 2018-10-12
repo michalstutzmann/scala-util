@@ -7,6 +7,7 @@ import com.sksamuel.avro4s.{ Decoder, Encoder, SchemaFor }
 import scala.language.implicitConversions
 import scala.reflect.ClassTag
 
+// Does not work because of https://github.com/milessabin/shapeless/issues/837, https://docs.scala-lang.org/sips/byname-implicits.html. Will work in Scala 2.13.
 abstract class AkkaSerialization[Value: SchemaFor: Encoder: Decoder: ClassTag] {
   implicit def serde(actorSystem: ActorSystem): Serde[Value] =
     new AkkaSerializer(actorSystem.asInstanceOf[ExtendedActorSystem])

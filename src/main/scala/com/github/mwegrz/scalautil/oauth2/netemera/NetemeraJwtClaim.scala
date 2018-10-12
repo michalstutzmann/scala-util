@@ -1,7 +1,6 @@
 package com.github.mwegrz.scalautil.oauth2.netemera
 
-import com.github.mwegrz.scalautil.jwt.decode
-import com.github.mwegrz.scalautil.oauth2.JwtKey
+import com.github.mwegrz.scalautil.jwt.{ JwtKey, decode }
 import io.circe.syntax._
 import io.circe.generic.auto._
 import io.circe.parser.parse
