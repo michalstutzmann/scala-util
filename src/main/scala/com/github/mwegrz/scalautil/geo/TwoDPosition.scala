@@ -4,19 +4,19 @@ import scodec.bits.ByteVector
 
 import org.gavaghan.geodesy.{ Ellipsoid, GeodeticCalculator, GlobalCoordinates }
 
-object Position2D {
-  def fromByteVector(bytes: ByteVector): Position2D = {
+object TwoDPosition {
+  def fromByteVector(bytes: ByteVector): TwoDPosition = {
     require(bytes.length == 8)
     val latitude = Latitude.fromByteVector(bytes.take(4))
     val longitude = Longitude.fromByteVector(bytes.drop(4))
-    Position2D(latitude, longitude)
+    TwoDPosition(latitude, longitude)
   }
 }
 
-final case class Position2D(latitude: Latitude, longitude: Longitude) {
+final case class TwoDPosition(latitude: Latitude, longitude: Longitude) {
   def toByteVector: ByteVector = latitude.toByteVector ++ longitude.toByteVector
 
-  def bearingAt(that: Position2D): Double = {
+  def bearingAt(that: TwoDPosition): Double = {
     val calc = new GeodeticCalculator()
     val reference = Ellipsoid.WGS84
     val dest = calc.calculateGeodeticCurve(
@@ -26,7 +26,7 @@ final case class Position2D(latitude: Latitude, longitude: Longitude) {
     dest.getAzimuth
   }
 
-  def distanceTo(that: Position2D): Double = {
+  def distanceTo(that: TwoDPosition): Double = {
     val calc = new GeodeticCalculator()
     val reference = Ellipsoid.WGS84
     val dest = calc.calculateGeodeticCurve(
@@ -36,7 +36,7 @@ final case class Position2D(latitude: Latitude, longitude: Longitude) {
     dest.getEllipsoidalDistance
   }
 
-  def move(bearing: Double, distance: Double): Position2D = {
+  def move(bearing: Double, distance: Double): TwoDPosition = {
     val calc = new GeodeticCalculator()
     val reference = Ellipsoid.WGS84
     val dest = calc.calculateEndingGlobalCoordinates(
@@ -45,8 +45,8 @@ final case class Position2D(latitude: Latitude, longitude: Longitude) {
       bearing,
       distance,
       Array(0.0))
-    Position2D(Latitude(dest.getLatitude), Longitude(dest.getLongitude))
+    TwoDPosition(Latitude(dest.getLatitude), Longitude(dest.getLongitude))
   }
 
-  def moveTo(that: Position2D, distance: Double): Position2D = move(bearingAt(that), distance)
+  def moveTo(that: TwoDPosition, distance: Double): TwoDPosition = move(bearingAt(that), distance)
 }
