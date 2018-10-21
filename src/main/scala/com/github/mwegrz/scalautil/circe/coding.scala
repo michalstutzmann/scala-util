@@ -26,9 +26,9 @@ object coding {
       }
     }
 
-  implicit val ByteVectorEncoder: Encoder[ByteVector] = Encoder.encodeString.contramap(_.toBase64)
+  implicit val ByteVectorEncoder: Encoder[ByteVector] = Encoder.encodeString.contramap(_.toHex)
   implicit val ByteVectorDecoder: Decoder[ByteVector] =
-    Decoder.decodeString.map(ByteVector.fromBase64(_).get)
+    Decoder.decodeString.map(ByteVector.fromHex(_).get)
 
   implicit val UriEncoder: Encoder[Uri] = Encoder.encodeString.contramap(_.toString)
   implicit val UriDecoder: Decoder[Uri] = Decoder.decodeString.map(Uri(_))
