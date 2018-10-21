@@ -17,7 +17,7 @@ import scala.concurrent.{ ExecutionContext, Future }
 import scala.concurrent.duration._
 
 trait KeyValueStore[Key, Value] {
-  def store(key: Key, value: Value): Future[Unit]
+  def add(key: Key, value: Value): Future[Unit]
 
   def retrieve(key: Key): Future[Option[Value]]
 
@@ -25,9 +25,7 @@ trait KeyValueStore[Key, Value] {
 
   def retrievePage(cursor: Option[Key], count: Int): Future[SortedMap[Key, Value]]
 
-  def removeAll(): Future[Unit]
-
-  def remove(key: Key): Future[Unit]
+  def delete(key: Key): Future[Unit]
 }
 
 object ActorKeyValueStore {
@@ -38,12 +36,12 @@ object ActorKeyValueStore {
 
   private type ValueBytes = Array[Byte]
 
-  object Store {
+  object Add {
     class AkkaSerializer(extendedActorSystem: ExtendedActorSystem)
-        extends ResourceAvroSerializer[Store](extendedActorSystem)
+        extends ResourceAvroSerializer[Add](extendedActorSystem)
   }
 
-  final case class Store(key: KeyBytes, value: ValueBytes)
+  final case class Add(key: KeyBytes, value: ValueBytes)
 
   final case class Retrieve(key: KeyBytes)
 
@@ -51,25 +49,23 @@ object ActorKeyValueStore {
 
   case class RetrievePage(key: Option[KeyBytes], count: Int)
 
-  case object RemoveAll
-
-  object Remove {
+  object Delete {
     class AkkaSerializer(extendedActorSystem: ExtendedActorSystem)
-        extends ResourceAvroSerializer[Remove](extendedActorSystem)
+        extends ResourceAvroSerializer[Delete](extendedActorSystem)
   }
 
-  final case class Remove(key: KeyBytes)
+  final case class Delete(key: KeyBytes)
 
   object State {
     def zero: State =
       State(Map.empty[KeyBytes, ValueBytes])
 
     class AkkaSerializer(extendedActorSystem: ExtendedActorSystem)
-        extends ResourceAvroSerializer[Remove](extendedActorSystem)
+        extends ResourceAvroSerializer[Delete](extendedActorSystem)
   }
 
   final case class State(values: Map[KeyBytes, ValueBytes]) {
-    def store(key: KeyBytes, value: ValueBytes): State = copy(values = values + ((key, value)))
+    def add(key: KeyBytes, value: ValueBytes): State = copy(values = values + ((key, value)))
 
     def retrieveAll: Map[KeyBytes, ValueBytes] = values
 
@@ -82,9 +78,7 @@ object ActorKeyValueStore {
         }
         .take(count)
 
-    def removeAll(): State = copy(values = SortedMap.empty[KeyBytes, ValueBytes])
-
-    def remove(key: KeyBytes): State = copy(values = values - key)
+    def delete(key: KeyBytes): State = copy(values = values - key)
   }
 
   private object EventSourcedActor {
@@ -101,15 +95,15 @@ object ActorKeyValueStore {
 
       case RecoveryCompleted => ()
 
-      case Remove(key: KeyBytes) => state = state.remove(key)
+      case Delete(key: KeyBytes) => state = state.delete(key)
 
-      case Store(key: KeyBytes, value: ValueBytes) => state = state.store(key, value)
+      case Add(key: KeyBytes, value: ValueBytes) => state = state.add(key, value)
     }
 
     override val receiveCommand: Receive = {
-      case event @ Store(key: KeyBytes, value: ValueBytes) =>
+      case event @ Add(key: KeyBytes, value: ValueBytes) =>
         persist(event) { _ =>
-          state = state.store(key, value)
+          state = state.add(key, value)
           saveSnapshotIfNeeded()
           sender() ! ()
         }
@@ -121,16 +115,9 @@ object ActorKeyValueStore {
 
       case Retrieve(key: KeyBytes) => sender() ! state.retrieve(key)
 
-      case event @ RemoveAll =>
+      case event @ Delete(key: KeyBytes) =>
         persist(event) { _ =>
-          state = state.removeAll()
-          saveSnapshotIfNeeded()
-          sender() ! ()
-        }
-
-      case event @ Remove(key: KeyBytes) =>
-        persist(event) { _ =>
-          state = state.remove(key)
+          state = state.delete(key)
           saveSnapshotIfNeeded()
           sender() ! ()
         }
@@ -147,7 +134,7 @@ class InMemoryKeyValueStore[Key: Ordering, Value](initialValues: Map[Key, Value]
     extends KeyValueStore[Key, Value] {
   private var valuesByKey = SortedMap(initialValues.toSeq: _*)
 
-  override def store(key: Key, value: Value): Future[Unit] = Future.successful {
+  override def add(key: Key, value: Value): Future[Unit] = Future.successful {
     valuesByKey = valuesByKey.updated(key, value)
   }
 
@@ -166,11 +153,7 @@ class InMemoryKeyValueStore[Key: Ordering, Value](initialValues: Map[Key, Value]
         .take(count)
     }
 
-  override def removeAll(): Future[Unit] = Future.successful {
-    valuesByKey = SortedMap.empty[Key, Value]
-  }
-
-  override def remove(key: Key): Future[Unit] = Future.successful {
+  override def delete(key: Key): Future[Unit] = Future.successful {
     valuesByKey = valuesByKey - key
   }
 }
@@ -195,12 +178,12 @@ class ActorKeyValueStore[Key: Ordering, Value](persistenceId: String)(
     Sink
       .foldAsync[Unit, (Key, Value)](()) {
         case (_, (key, value)) =>
-          store(key, value)
+          add(key, value)
       }
       .mapMaterializedValue(_ => NotUsed)
 
-  override def store(key: Key, value: Value): Future[Unit] =
-    (actor ? Store(keySerde.valueToBinary(key), valueSerde.valueToBinary(value))).mapTo[Unit]
+  override def add(key: Key, value: Value): Future[Unit] =
+    (actor ? Add(keySerde.valueToBinary(key), valueSerde.valueToBinary(value))).mapTo[Unit]
 
   override def retrieve(key: Key): Future[Option[Value]] =
     (actor ? Retrieve(keySerde.valueToBinary(key)))
@@ -223,11 +206,8 @@ class ActorKeyValueStore[Key: Ordering, Value](persistenceId: String)(
           (keySerde.binaryToValue(binaryKey), valueSerde.binaryToValue(binaryValue))
       })
 
-  override def removeAll(): Future[Unit] =
-    (actor ? RemoveAll).mapTo[Unit]
-
-  override def remove(key: Key): Future[Unit] =
-    (actor ? Remove(keySerde.valueToBinary(key))).mapTo[Unit]
+  override def delete(key: Key): Future[Unit] =
+    (actor ? Delete(keySerde.valueToBinary(key))).mapTo[Unit]
 
   override def shutdown(): Unit = actorRefFactory.stop(actor)
 }

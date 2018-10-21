@@ -62,14 +62,14 @@ package object routes {
       post {
         entity(as[SingleDocument[Value]]) {
           case SingleDocument(Resource(_, _, entity)) =>
-            complete(valueStore.store(id, entity))
+            complete(valueStore.add(id, entity))
         }
       } ~
         get {
           complete(valueStore.retrieve(id))
         } ~
         delete {
-          complete(valueStore.remove(id))
+          complete(valueStore.delete(id))
         }
     }
 
@@ -110,7 +110,7 @@ package object routes {
     entity(as[SingleDocument[Value]]) {
       case SingleDocument(Resource(_, _, value)) =>
         keys foreach { key =>
-          Source.single((key, Instant.now(), value)).runWith(valueStore.store)
+          Source.single((key, Instant.now(), value)).runWith(valueStore.add)
           Source.single(value).runWith(valueSink)
         }
         complete(

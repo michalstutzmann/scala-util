@@ -16,7 +16,7 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.{ Await, ExecutionContext, Future }
 
 trait TimeSeriesStore[Key, Value] {
-  def store: Sink[(Key, Instant, Value), Future[Done]]
+  def add: Sink[(Key, Instant, Value), Future[Done]]
 
   def retrieveRange(fromTime: Instant, untilTime: Instant): Source[(Key, Instant, Value), NotUsed]
 
@@ -32,7 +32,7 @@ class InMemoryTimeSeriesStore[Key, Value](
     extends TimeSeriesStore[Key, Value] {
   private var events = initial.withDefaultValue(SortedMap.empty[Instant, Value])
 
-  override def store: Sink[(Key, Instant, Value), Future[Done]] =
+  override def add: Sink[(Key, Instant, Value), Future[Done]] =
     Sink.foreach {
       case (key, time, value) => events = events.updated(key, events(key).updated(time, value))
     }
@@ -80,7 +80,7 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
 
   Await.ready(createTableIfNotExists(), Duration.Inf)
 
-  override def store: Sink[(Key, Instant, Value), Future[Done]] = {
+  override def add: Sink[(Key, Instant, Value), Future[Done]] = {
     cassandraClient
       .createSink[(Key, Instant, Value)](s"""INSERT
                         |INTO $keyspace.$table(
