@@ -7,6 +7,7 @@ lazy val root = (project in file("."))
     libraryDependencies ++= Seq(
       AkkaActor % Optional,
       AkkaStream % Optional,
+      AkkaStreamTestKit % Optional,
       AkkaHttp % Optional,
       AkkaHttpTestkit % "it,test",
       AkkaPersistence % Optional,

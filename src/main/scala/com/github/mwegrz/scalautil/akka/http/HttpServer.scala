@@ -18,16 +18,15 @@ import com.github.mwegrz.scalautil.ConfigOps
 import scala.concurrent.ExecutionContext
 
 object HttpServer {
-  def apply(config: Config, httpApis: Map[PathMatcher0, Set[HttpApi]])(
-      implicit actorSystem: ActorSystem,
-      actorMaterializer: ActorMaterializer,
-      executor: ExecutionContext): HttpServer =
+  def apply(config: Config, httpApis: Set[HttpApi])(implicit actorSystem: ActorSystem,
+                                                    actorMaterializer: ActorMaterializer,
+                                                    executor: ExecutionContext): HttpServer =
     new HttpServer(config.withReferenceDefaults("http-server"), httpApis)
 
   private def generateRequestId(): String = UUID.randomUUID().toString
 }
 
-class HttpServer private (config: Config, httpApis: Map[PathMatcher0, Set[HttpApi]])(
+class HttpServer private (config: Config, httpApis: Set[HttpApi])(
     implicit actorSystem: ActorSystem,
     actorMaterializer: ActorMaterializer,
     executor: ExecutionContext)
@@ -42,19 +41,12 @@ class HttpServer private (config: Config, httpApis: Map[PathMatcher0, Set[HttpAp
   private val port = config.getInt("port")
 
   private val path: Route = {
+    val requestId = generateRequestId()
+    val time = Instant.now()
     httpApis
-      .foldLeft(pathEndOrSingleSlash {
-        reject
-      }) {
-        case (r, (name, apis)) =>
-          pathPrefix(name) {
-            val requestId = generateRequestId()
-            val time = Instant.now()
-            apis.foldLeft(pathEndOrSingleSlash(reject)) {
-              case (r, api) =>
-                api.route(requestId, time) ~ r
-            }
-          } ~ r
+      .foldLeft(pathEndOrSingleSlash(reject)) {
+        case (r, api) =>
+          api.route(requestId, time) ~ r
       }
   }
 

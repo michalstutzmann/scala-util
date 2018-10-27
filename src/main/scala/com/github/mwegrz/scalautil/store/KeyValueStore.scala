@@ -9,8 +9,9 @@ import com.github.mwegrz.app.Shutdownable
 import com.github.mwegrz.scalautil.akka.serialization.ResourceAvroSerializer
 import com.github.mwegrz.scalautil.serialization.Serde
 import com.sksamuel.avro4s._
-import com.github.mwegrz.scalautil.circe.coding.{ byteArrayKeyEncoder, byteArrayKeyDecoder }
+import com.github.mwegrz.scalautil.circe.coding.{ byteArrayKeyDecoder, byteArrayKeyEncoder }
 import com.github.mwegrz.scalautil.avro4s.coding._
+import scodec.bits.ByteVector
 
 import scala.collection.immutable.SortedMap
 import scala.concurrent.{ ExecutionContext, Future }
@@ -29,8 +30,8 @@ trait KeyValueStore[Key, Value] {
 }
 
 object ActorKeyValueStore {
-  private implicit val keyBytesOrdering: Ordering[KeyBytes] =
-    Ordering.by((_: Array[Byte]).toIterable)
+  private implicit val keyBytesOrdering: Ordering[ByteVector] =
+    Ordering.by((_: ByteVector).toIterable)
 
   private type KeyBytes = Array[Byte]
 
@@ -58,27 +59,31 @@ object ActorKeyValueStore {
 
   object State {
     def zero: State =
-      State(Map.empty[KeyBytes, ValueBytes])
+      State(SortedMap.empty[ByteVector, ValueBytes])
 
     class AkkaSerializer(extendedActorSystem: ExtendedActorSystem)
         extends ResourceAvroSerializer[Delete](extendedActorSystem)
   }
 
-  final case class State(values: Map[KeyBytes, ValueBytes]) {
-    def add(key: KeyBytes, value: ValueBytes): State = copy(values = values + ((key, value)))
+  final case class State(values: SortedMap[ByteVector, ValueBytes]) {
+    def add(key: KeyBytes, value: ValueBytes): State =
+      copy(values = values + ((ByteVector(key), value)))
 
-    def retrieveAll: Map[KeyBytes, ValueBytes] = values
+    def retrieveAll: Map[KeyBytes, ValueBytes] = values.map {
+      case (key, value) => (key.toArray, value)
+    }
 
-    def retrieve(key: KeyBytes): Option[ValueBytes] = values.get(key)
+    def retrieve(key: KeyBytes): Option[ValueBytes] = values.get(ByteVector(key))
 
     def retrievePage(key: Option[KeyBytes], count: Int): Map[KeyBytes, ValueBytes] =
       key
         .fold(values) { k =>
-          values.asInstanceOf[SortedMap[KeyBytes, ValueBytes]].from(k)
+          values.from(ByteVector(k))
         }
         .take(count)
+        .map { case (key, value) => (key.toArray, value) }
 
-    def delete(key: KeyBytes): State = copy(values = values - key)
+    def delete(key: KeyBytes): State = copy(values = values - ByteVector(key))
   }
 
   private object EventSourcedActor {

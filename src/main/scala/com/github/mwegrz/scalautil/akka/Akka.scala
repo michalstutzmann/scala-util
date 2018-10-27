@@ -15,8 +15,8 @@ import scala.concurrent.duration._
 class Akka private (config: Config)(implicit executor: ExecutionContext)
     extends Shutdownable
     with KeyValueLogging {
-  implicit val actorSystem = ActorSystem(UUID.randomUUID().toString, config)
-  implicit val actorMaterializer = ActorMaterializer()
+  implicit val actorSystem: ActorSystem = ActorSystem(UUID.randomUUID().toString, config)
+  implicit val actorMaterializer: ActorMaterializer = ActorMaterializer()
 
   log.debug("Initialized")
 

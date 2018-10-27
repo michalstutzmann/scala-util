@@ -1,8 +1,10 @@
 package com.github.mwegrz
 
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 import com.typesafe.config.{ Config, ConfigFactory }
+import scodec.bits.ByteVector
 
 import scala.concurrent.duration.FiniteDuration
 import scala.language.implicitConversions

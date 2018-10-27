@@ -18,7 +18,8 @@ class TwoDPositionSpec extends TestSpec with Matchers {
     it("should move in direction of a different 2D position by a distance") {
       Given("two 2D positions")
       val position0 = TwoDPosition(Latitude(0.0), Longitude(0.0))
-      val position1 = TwoDPosition(Latitude(0.0063591640976794015), Longitude(0.0063591640356363225))
+      val position1 =
+        TwoDPosition(Latitude(0.0063591640976794015), Longitude(0.0063591640356363225))
       When("calculating the bearing")
       val result = position0.moveTo(position1, 1000)
       Then("the result is correct")

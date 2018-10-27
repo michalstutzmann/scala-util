@@ -9,7 +9,7 @@ import pdi.jwt.{ JwtAlgorithm, JwtClaim }
 import scala.util.Try
 
 object NetemeraJwtClaim {
-  final case class JwtClaimContent(scope: String, group: String)
+  final case class JwtClaimContent(scope: String, organization: String)
 
   def apply(string: String)(implicit key: JwtKey, algorithm: JwtAlgorithm): Try[NetemeraJwtClaim] =
     fromString(string)
@@ -28,7 +28,7 @@ object NetemeraJwtClaim {
     val scope = if (jwtClaimContent.scope.nonEmpty) { jwtClaimContent.scope.split(" ").toSet } else {
       Set.empty[String]
     }
-    val organization = jwtClaimContent.group
+    val organization = jwtClaimContent.organization
     NetemeraJwtClaim(iss, sub, aud, iat, exp, scope, organization)
   }
 }
@@ -40,7 +40,7 @@ final case class NetemeraJwtClaim(
     iat: Long,
     exp: Long,
     scope: Set[String],
-    group: String
+    organization: String
 ) {
   def toJwtClaim: JwtClaim =
     JwtClaim()
@@ -49,5 +49,8 @@ final case class NetemeraJwtClaim(
       .to(aud)
       .issuedAt(iat)
       .expiresAt(exp) +
-      NetemeraJwtClaim.JwtClaimContent(scope = scope.mkString(" "), group = group).asJson.noSpaces
+      NetemeraJwtClaim
+        .JwtClaimContent(scope = scope.mkString(" "), organization = organization)
+        .asJson
+        .noSpaces
 }
