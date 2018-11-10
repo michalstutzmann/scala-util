@@ -73,6 +73,32 @@ package object routes {
         }
     }
 
+  def singleValue[Key, Value](name: String, id: Key)(
+      implicit valueStore: KeyValueStore[Key, Value],
+      //keyPathMatcher: PathMatcher1[Key],
+      unitToEntityMarshaller: ToEntityMarshaller[Unit],
+      valueToEntityMarshaller: ToEntityMarshaller[Value],
+      //multiDocumentToEntityMarshaller: ToEntityMarshaller[MultiDocument[Value]],
+      entityToSingleDocumentUnmarshaller: FromEntityUnmarshaller[SingleDocument[Value]],
+      //entityToValueUnmarshaller: FromEntityUnmarshaller[Value],
+      //fromStringToKeyUnmarshaller: Unmarshaller[String, Key],
+      //executionContext: ExecutionContext
+  ): Route =
+    pathEnd {
+      post {
+        entity(as[SingleDocument[Value]]) {
+          case SingleDocument(Resource(_, _, entity)) =>
+            complete(valueStore.add(id, entity))
+        }
+      } ~
+        get {
+          complete(valueStore.retrieve(id))
+        } ~
+        delete {
+          complete(valueStore.delete(id))
+        }
+    }
+
   def timeSeriesStoreSource[Key, Value](name: String, keys: Set[Key])(
       implicit
       valueStore: TimeSeriesStore[Key, Value],
