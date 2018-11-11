@@ -1,7 +1,7 @@
 package com.github.mwegrz.scalautil.akka.http.server.directives
 
 import akka.NotUsed
-import akka.http.scaladsl.marshalling.{ Marshal, ToEntityMarshaller, ToResponseMarshaller }
+import akka.http.scaladsl.marshalling.{ Marshal, ToEntityMarshaller }
 import akka.http.scaladsl.model.{ MessageEntity, StatusCodes }
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{ PathMatcher1, Route }
@@ -105,8 +105,6 @@ package object routes {
       valueSource: Source[(Key, Instant, Value), NotUsed],
       instantFromStringUnmarshaller: Unmarshaller[String, Instant],
       valueToEntityMarshaller: ToEntityMarshaller[Value],
-      valueSourceToResponseMarshaller: ToResponseMarshaller[Source[Value, NotUsed]],
-      multiDocumentToEntityMarshaller: ToEntityMarshaller[MultiDocument[Value]],
       executionContext: ExecutionContext,
       materializer: Materializer): Route = get {
     parameters(Symbol("filter[from_time]").as[Instant].?,

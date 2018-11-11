@@ -52,7 +52,7 @@ class HttpServer private (config: Config, httpApis: Set[HttpApi])(
 
   private[http] val route = redirectToNoTrailingSlashIfPresent(StatusCodes.MovedPermanently) {
     extractRequestContext { context =>
-      log.debug("Received request", "request" -> context.request)
+      log.info("Received request", "request" -> context.request)
       basePath match {
         case Some(value) => pathPrefix(value)(path)
         case None        => path
@@ -63,6 +63,11 @@ class HttpServer private (config: Config, httpApis: Set[HttpApi])(
   private val bindingFuture = Http().bindAndHandle(route, host, port)
 
   log.debug("Initialized")
+
+  bindingFuture
+    .map(_.localAddress)
+    .map(localAddress =>
+      log.info(s"Bound to ${localAddress.getHostString}:${localAddress.getPort}"))
 
   override def shutdown(): Unit = bindingFuture.flatMap(_.unbind()).map(_ => log.debug("Shut down"))
 }
