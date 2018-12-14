@@ -10,7 +10,27 @@ import scodec.bits.ByteVector
 import shapeless.{ ::, Generic, HNil, Lazy }
 
 object coding {
-  implicit def anyValValueClassSchemaFor[ValueClass, Ref, Value <: AnyVal](
+  implicit def anyValValueClassSchemaFor[ValueClass <: AnyVal, Ref, Value](
+      implicit generic: Lazy[Generic.Aux[ValueClass, Ref]],
+      evidence: Ref <:< (Value :: HNil),
+      schemaFor: SchemaFor[Value]): SchemaFor[ValueClass] =
+    SchemaFor.const(schemaFor.schema)
+
+  implicit def anyValValueClassEncoder[ValueClass <: AnyVal, Ref, Value](
+      implicit generic: Lazy[Generic.Aux[ValueClass, Ref]],
+      evidence: Ref <:< (Value :: HNil),
+      encoder: Encoder[Value]): Encoder[ValueClass] =
+    encoder.comap(generic.value.to(_).head)
+
+  implicit def anyValValueClassDecoder[ValueClass <: AnyVal, Ref, Value](
+      implicit generic: Lazy[Generic.Aux[ValueClass, Ref]],
+      evidence: (Value :: HNil) =:= Ref,
+      decoder: Decoder[Value]): Decoder[ValueClass] =
+    decoder.map { value =>
+      generic.value.from(value :: HNil)
+    }
+
+  /*implicit def anyValValueClassSchemaFor[ValueClass, Ref, Value <: AnyVal](
       implicit generic: Lazy[Generic.Aux[ValueClass, Ref]],
       evidence: Ref <:< (Value :: HNil),
       schemaFor: SchemaFor[Value]): SchemaFor[ValueClass] =
@@ -62,7 +82,7 @@ object coding {
       evidence: (BigDecimal :: HNil) =:= Ref,
       decoder: Decoder[BigDecimal]): Decoder[ValueClass] = decoder.map { value =>
     generic.value.from(value :: HNil)
-  }
+  }*/
 
   implicit val ByteVectorSchemaFor: SchemaFor[ByteVector] =
     SchemaFor.const(Schema.create(Schema.Type.BYTES))

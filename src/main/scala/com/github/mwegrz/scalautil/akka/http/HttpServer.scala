@@ -5,7 +5,7 @@ import java.util.UUID
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.server.directives.RouteDirectives.reject
@@ -14,6 +14,7 @@ import com.github.mwegrz.app.Shutdownable
 import com.github.mwegrz.scalastructlog.KeyValueLogging
 import com.typesafe.config.Config
 import com.github.mwegrz.scalautil.ConfigOps
+import com.github.mwegrz.scalautil.ByteStringOps
 
 import scala.concurrent.ExecutionContext
 
@@ -43,20 +44,55 @@ class HttpServer private (config: Config, httpApis: Set[HttpApi])(
   private val path: Route = {
     val requestId = generateRequestId()
     val time = Instant.now()
-    httpApis
-      .foldLeft(pathEndOrSingleSlash(reject)) {
-        case (r, api) =>
-          api.route(requestId, time) ~ r
+    extractClientIP { clientIp =>
+      extractRequestContext { context =>
+        context.request match {
+          case HttpRequest(HttpMethod(method, _, _, _),
+                           uri,
+                           headers,
+                           HttpEntity.Strict(contentType, data),
+                           HttpProtocol(protocol)) =>
+            log.info(
+              "Received request",
+              ("id" -> requestId,
+               "client-ip" -> clientIp.value,
+               "method" -> method,
+               "uri" -> uri,
+               "protocol" -> protocol,
+               "headers" -> headers.mkString(","),
+               "content-type" -> contentType,
+               "data" -> data.toByteVector.toBase64)
+            )
+          case HttpRequest(HttpMethod(method, _, _, _),
+                           uri,
+                           headers,
+                           HttpEntity.Default(contentType, contentLength, _),
+                           HttpProtocol(protocol)) =>
+            log.info(
+              "Received request",
+              ("id" -> requestId,
+               "client-ip" -> clientIp.value,
+               "method" -> method,
+               "uri" -> uri,
+               "protocol" -> protocol,
+               "headers" -> headers.mkString(","),
+               "content-type" -> contentType,
+               "content-length" -> contentLength)
+            )
+        }
+        httpApis
+          .foldLeft(pathEndOrSingleSlash(reject)) {
+            case (r, api) =>
+              api.route(requestId, time) ~ r
+          }
       }
+    }
   }
 
   private[http] val route = redirectToNoTrailingSlashIfPresent(StatusCodes.MovedPermanently) {
-    extractRequestContext { context =>
-      log.info("Received request", "request" -> context.request)
-      basePath match {
-        case Some(value) => pathPrefix(value)(path)
-        case None        => path
-      }
+    basePath match {
+      case Some(value) => pathPrefix(value)(path)
+      case None        => path
     }
   }
 

@@ -1,8 +1,8 @@
 package com.github.mwegrz
 
-import java.util.UUID
 import java.util.concurrent.TimeUnit
 
+import akka.util.ByteString
 import com.typesafe.config.{ Config, ConfigFactory }
 import scodec.bits.ByteVector
 
@@ -21,6 +21,10 @@ package object scalautil {
 
       if (referenceExists) config.withFallback(defaults) else config
     }
+  }
+
+  implicit class ByteStringOps(byteBuffer: ByteString) {
+    def toByteVector: ByteVector = ByteVector(byteBuffer.toArray)
   }
 
   /*def retry[T](f: => Future[T], delay: Seq[FiniteDuration], retries: Int, defaultDelay: FiniteDuration )(implicit ec: ExecutionContext, s: Scheduler): Future[T] = {

@@ -3,16 +3,33 @@ package com.github.mwegrz.scalautil.circe
 import java.util.Base64
 
 import akka.http.scaladsl.model.Uri
-import io.circe.generic.AutoDerivation
 import io.circe.{ Decoder, Encoder, KeyDecoder, KeyEncoder }
 import scodec.bits.ByteVector
 import shapeless.{ ::, Generic, HNil, Lazy }
 
-object coding extends AutoDerivation {
+object coding {
   implicit val UriEncoder: Encoder[Uri] = Encoder.encodeString.contramap(_.toString)
   implicit val UriDecoder: Decoder[Uri] = Decoder.decodeString.map(Uri(_))
 
-  implicit def anyValValueClassEncoder[ValueClass, Ref, Value <: AnyVal](
+  implicit def anyValValueClassEncoder[ValueClass <: AnyVal, Ref, Value](
+      implicit generic: Lazy[Generic.Aux[ValueClass, Ref]],
+      evidence: Ref <:< (Value :: HNil),
+      encoder: Encoder[Value]): Encoder[ValueClass] =
+    Encoder.instance { value ⇒
+      encoder(generic.value.to(value).head)
+    }
+
+  implicit def anyValValueClassDecoder[ValueClass <: AnyVal, Ref, Value](
+      implicit generic: Lazy[Generic.Aux[ValueClass, Ref]],
+      evidence: (Value :: HNil) =:= Ref,
+      decoder: Decoder[Value]): Decoder[ValueClass] =
+    Decoder.instance { cursor ⇒
+      decoder(cursor).map { value ⇒
+        generic.value.from(value :: HNil)
+      }
+    }
+
+  /*implicit def anyValValueClassEncoder[ValueClass, Ref, Value <: AnyVal](
       implicit generic: Lazy[Generic.Aux[ValueClass, Ref]],
       evidence: Ref <:< (Value :: HNil),
       encoder: Encoder[Value]): Encoder[ValueClass] =
@@ -60,7 +77,7 @@ object coding extends AutoDerivation {
     decoder(cursor).map { value ⇒
       generic.value.from(value :: HNil)
     }
-  }
+  }*/
 
   implicit val ByteVectorEncoder: Encoder[ByteVector] = Encoder.encodeString.contramap(_.toHex)
   implicit val ByteVectorDecoder: Decoder[ByteVector] =

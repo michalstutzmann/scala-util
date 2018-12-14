@@ -42,7 +42,7 @@ package object routes {
                   elems
                     .take(limit)
                     .toList
-                    .map { case (key, value) => Resource(name, key.toString, value) }
+                    .map { case (key, value) => Resource(name, Some(key.toString), value) }
                 //val nextCursor = a.keys.lastOption.map(b => ByteVector.encodeAscii(b.toString).right.get.toBase64)
                 MultiDocument(data)
               }
@@ -52,7 +52,7 @@ package object routes {
             .map { values =>
               val data = values.toList
               MultiDocument(data.map {
-                case (key, value) => Resource(name, key.toString, value)
+                case (key, value) => Resource(name, Some(key.toString), value)
               })
             }
           complete(envelope)
@@ -65,6 +65,12 @@ package object routes {
             complete(valueStore.add(id, entity))
         }
       } ~
+        patch {
+          entity(as[SingleDocument[Value]]) {
+            case SingleDocument(Resource(_, _, entity)) =>
+              complete(valueStore.add(id, entity))
+          }
+        } ~
         get {
           complete(valueStore.retrieve(id))
         } ~
@@ -91,6 +97,12 @@ package object routes {
             complete(valueStore.add(id, entity))
         }
       } ~
+        patch {
+          entity(as[SingleDocument[Value]]) {
+            case SingleDocument(Resource(_, _, entity)) =>
+              complete(valueStore.add(id, entity))
+          }
+        } ~
         get {
           complete(valueStore.retrieve(id))
         } ~
