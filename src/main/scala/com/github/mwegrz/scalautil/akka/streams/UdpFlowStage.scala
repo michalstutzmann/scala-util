@@ -33,7 +33,7 @@ class UdpFlowStage(localAddr: InetSocketAddress,
       private val (drop, droppedDone) =
         Source.actorRef(0, OverflowStrategy.dropNew).toMat(dropped)(Keep.both).run()
 
-      private def binding(receive: (ActorRef, Any)) = {
+      private def binding(receive: (ActorRef, Any)): Unit = {
         val (sender, msg) = receive
         msg match {
           case Udp.Bound(_) =>
@@ -42,7 +42,7 @@ class UdpFlowStage(localAddr: InetSocketAddress,
         }
       }
 
-      private def ready(socket: ActorRef)(receive: (ActorRef, Any)) = {
+      private def ready(socket: ActorRef)(receive: (ActorRef, Any)): Unit = {
         val (_, msg) = receive
         msg match {
           case Udp.Received(bytes, remoteAddr) =>

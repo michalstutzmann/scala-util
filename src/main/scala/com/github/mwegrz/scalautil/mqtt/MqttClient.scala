@@ -1,19 +1,13 @@
 package com.github.mwegrz.scalautil.mqtt
 
+import java.util.UUID
+
 import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import akka.stream.alpakka.mqtt.scaladsl.{ MqttFlow, MqttSink, MqttSource }
+import akka.stream.alpakka.mqtt.scaladsl.MqttFlow
 import akka.stream.alpakka.mqtt.{ MqttConnectionSettings, MqttMessage, MqttQoS, MqttSourceSettings }
-import akka.stream.scaladsl.{
-  BidiFlow,
-  Flow,
-  RestartFlow,
-  RestartSink,
-  RestartSource,
-  Sink,
-  Source
-}
+import akka.stream.scaladsl.{ BidiFlow, Flow, RestartFlow }
 import akka.util.ByteString
 import com.github.mwegrz.scalastructlog.KeyValueLogging
 import com.typesafe.config.Config
@@ -27,11 +21,6 @@ object MqttClient {
 }
 
 trait MqttClient {
-  def source[A](topics: Map[String, MqttQoS], bufferSize: Int)(
-      fromBinary: Array[Byte] => A): Source[(String, A), NotUsed]
-
-  def sink[A](qos: MqttQoS)(toBinary: A => Array[Byte]): Sink[(String, A), NotUsed]
-
   def flow[A, B](topics: Map[String, MqttQoS], bufferSize: Int, qos: MqttQoS)(
       toBinary: A => Array[Byte],
       fromBinary: Array[Byte] => B): Flow[(String, A), (String, B), NotUsed]
@@ -45,7 +34,7 @@ class DefaultMqttClient private[mqtt] (config: Config)(implicit actorSystem: Act
   private val broker = config.getString("broker")
   private val username = config.getString("username")
   private val password = config.getString("password")
-  private val clientId = config.getString("client-id")
+  private val clientId = if (config.hasPath("client-id")) config.getString("client-id") else ""
   private val cleanSession = config.getBoolean("clean-session")
   private val automaticReconnect = config.getBoolean("automatic-reconnect")
   private val keepAliveInterval = config.getDuration("keep-alive-interval")
@@ -54,41 +43,15 @@ class DefaultMqttClient private[mqtt] (config: Config)(implicit actorSystem: Act
   private val restartPolicyMaxBackoff = config.getDuration("restart-policy.max-backoff")
   private val restartPolicyRandomFactor = config.getDouble("restart-policy.random-factor")
 
-  private val connectionSettings =
+  private def connectionSettings =
     MqttConnectionSettings(
       broker = broker,
-      clientId = clientId,
+      clientId = if (clientId.isEmpty) UUID.randomUUID().toString else clientId,
       persistence = new MemoryPersistence
     ).withAuth(username, password)
       .withCleanSession(cleanSession)
       .withAutomaticReconnect(automaticReconnect)
       .withKeepAliveInterval(keepAliveInterval)
-
-  override def source[A](topics: Map[String, MqttQoS], bufferSize: Int)(
-      fromBinary: Array[Byte] => A): Source[(String, A), NotUsed] = {
-    val settings = MqttSourceSettings(connectionSettings, topics)
-    val mqttSource =
-      RestartSource.withBackoff(restartPolicyMinBackoff,
-                                restartPolicyMaxBackoff,
-                                restartPolicyRandomFactor) { () =>
-        val source = MqttSource(settings, bufferSize).idleTimeout(restartPolicyIdleTimeout)
-        log.warning("Source started/restarted")
-        source
-      }
-    mqttSource.map(m => (m.topic, fromBinary(m.payload.toArray)))
-  }
-
-  override def sink[A](qos: MqttQoS)(toBinary: A => Array[Byte]): Sink[(String, A), NotUsed] = {
-    val mqttSink =
-      RestartSink.withBackoff(restartPolicyMinBackoff,
-                              restartPolicyMaxBackoff,
-                              restartPolicyRandomFactor) { () =>
-        val sink = MqttSink(connectionSettings, qos)
-        log.warning("Sink started/restarted")
-        sink
-      }
-    mqttSink.contramap { case (t, e) => MqttMessage(t, ByteString(toBinary(e))) }
-  }
 
   override def flow[A, B](topics: Map[String, MqttQoS], bufferSize: Int, qos: MqttQoS)(
       toBinary: A => Array[Byte],
@@ -101,7 +64,7 @@ class DefaultMqttClient private[mqtt] (config: Config)(implicit actorSystem: Act
                               restartPolicyMaxBackoff,
                               restartPolicyRandomFactor) { () =>
         val flow = MqttFlow(settings, bufferSize, qos).idleTimeout(restartPolicyIdleTimeout)
-        log.warning("Flow started/restarted")
+        log.debug("Flow started/restarted")
         flow
       }
 

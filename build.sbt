@@ -15,7 +15,7 @@ lazy val root = (project in file("."))
       AkkaTestkit % Test,
       AkkaHttpCirce % Optional,
       AkkaHttpAvro4s % Optional,
-      AkkaStreamKafka % Optional,
+      AlpakkaKafka % Optional,
       AkkaStreamAlpakkaCassandra % Optional,
       AkkaStreamAlpakkaMqtt % Optional,
       AkkaStreamAlpakkaSse % Optional,

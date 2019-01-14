@@ -81,14 +81,9 @@ package object routes {
 
   def singleValue[Key, Value](name: String, id: Key)(
       implicit valueStore: KeyValueStore[Key, Value],
-      //keyPathMatcher: PathMatcher1[Key],
       unitToEntityMarshaller: ToEntityMarshaller[Unit],
       valueToEntityMarshaller: ToEntityMarshaller[Value],
-      //multiDocumentToEntityMarshaller: ToEntityMarshaller[MultiDocument[Value]],
       entityToSingleDocumentUnmarshaller: FromEntityUnmarshaller[SingleDocument[Value]],
-      //entityToValueUnmarshaller: FromEntityUnmarshaller[Value],
-      //fromStringToKeyUnmarshaller: Unmarshaller[String, Key],
-      //executionContext: ExecutionContext
   ): Route =
     pathEnd {
       post {

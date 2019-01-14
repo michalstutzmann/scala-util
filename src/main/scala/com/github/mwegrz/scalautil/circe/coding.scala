@@ -4,14 +4,12 @@ import java.util.Base64
 
 import akka.http.scaladsl.model.Uri
 import io.circe.{ Decoder, Encoder, KeyDecoder, KeyEncoder }
+import pl.iterators.kebs.macros.CaseClass1Rep
 import scodec.bits.ByteVector
 import shapeless.{ ::, Generic, HNil, Lazy }
 
 object coding {
-  implicit val UriEncoder: Encoder[Uri] = Encoder.encodeString.contramap(_.toString)
-  implicit val UriDecoder: Decoder[Uri] = Decoder.decodeString.map(Uri(_))
-
-  implicit def anyValValueClassEncoder[ValueClass <: AnyVal, Ref, Value](
+  /*implicit def anyValValueClassEncoder[ValueClass <: AnyVal, Ref, Value](
       implicit generic: Lazy[Generic.Aux[ValueClass, Ref]],
       evidence: Ref <:< (Value :: HNil),
       encoder: Encoder[Value]): Encoder[ValueClass] =
@@ -27,69 +25,22 @@ object coding {
       decoder(cursor).map { value ⇒
         generic.value.from(value :: HNil)
       }
-    }
+    }*/
 
-  /*implicit def anyValValueClassEncoder[ValueClass, Ref, Value <: AnyVal](
-      implicit generic: Lazy[Generic.Aux[ValueClass, Ref]],
-      evidence: Ref <:< (Value :: HNil),
-      encoder: Encoder[Value]): Encoder[ValueClass] =
-    Encoder.instance { value ⇒
-      encoder(generic.value.to(value).head)
-    }
+  implicit def valueClassEncoder[CC <: AnyVal, A](implicit rep: CaseClass1Rep[CC, A],
+                                                  delegate: Encoder[A]): Encoder[CC] =
+    delegate.contramap(rep.unapply)
 
-  implicit def anyValValueClassDecoder[ValueClass, Ref, Value <: AnyVal](
-      implicit generic: Lazy[Generic.Aux[ValueClass, Ref]],
-      evidence: (Value :: HNil) =:= Ref,
-      decoder: Decoder[Value]): Decoder[ValueClass] =
-    Decoder.instance { cursor ⇒
-      decoder(cursor).map { value ⇒
-        generic.value.from(value :: HNil)
-      }
-    }
-
-  implicit def stringValueClassEncoder[ValueClass, Ref](
-      implicit generic: Lazy[Generic.Aux[ValueClass, Ref]],
-      evidence: Ref <:< (String :: HNil),
-      encoder: Encoder[String]): Encoder[ValueClass] = Encoder.instance { value ⇒
-    encoder(generic.value.to(value).head)
-  }
-
-  implicit def stringValueClassDecoder[ValueClass, Ref](
-      implicit generic: Lazy[Generic.Aux[ValueClass, Ref]],
-      evidence: (String :: HNil) =:= Ref,
-      decoder: Decoder[String]): Decoder[ValueClass] = Decoder.instance { cursor ⇒
-    decoder(cursor).map { value ⇒
-      generic.value.from(value :: HNil)
-    }
-  }
-
-  implicit def bigDecimalValueClassEncoder[ValueClass, Ref](
-      implicit generic: Lazy[Generic.Aux[ValueClass, Ref]],
-      evidence: Ref <:< (BigDecimal :: HNil),
-      encoder: Encoder[BigDecimal]): Encoder[ValueClass] = Encoder.instance { value ⇒
-    encoder(generic.value.to(value).head)
-  }
-
-  implicit def bigDecimalValueClassDecoder[ValueClass, Ref](
-      implicit generic: Lazy[Generic.Aux[ValueClass, Ref]],
-      evidence: (BigDecimal :: HNil) =:= Ref,
-      decoder: Decoder[BigDecimal]): Decoder[ValueClass] = Decoder.instance { cursor ⇒
-    decoder(cursor).map { value ⇒
-      generic.value.from(value :: HNil)
-    }
-  }*/
+  implicit def valueClassFromValue[CC <: AnyVal, B](implicit rep: CaseClass1Rep[CC, B],
+                                                    delegate: Decoder[B]): Decoder[CC] =
+    delegate.map { rep.apply }
 
   implicit val ByteVectorEncoder: Encoder[ByteVector] = Encoder.encodeString.contramap(_.toHex)
   implicit val ByteVectorDecoder: Decoder[ByteVector] =
     Decoder.decodeString.map(ByteVector.fromHex(_).get)
 
-  /*implicit def byteVectorValueClassEncoder[ValueClass, Ref](
-      implicit generic: Lazy[Generic.Aux[ValueClass, Ref]],
-      evidence: Ref <:< (ByteVector :: HNil)): Encoder[ValueClass] = ???
-
-  implicit def byteVectorValueClassDecoder[ValueClass, Ref](
-      implicit g: Lazy[Generic.Aux[ValueClass, Ref]],
-      evidence: (ByteVector :: HNil) =:= Ref): Decoder[ValueClass] = ???*/
+  implicit val UriEncoder: Encoder[Uri] = Encoder.encodeString.contramap(_.toString)
+  implicit val UriDecoder: Decoder[Uri] = Decoder.decodeString.map(Uri(_))
 
   implicit def stringValueClassKeyEncoder[Key, Ref](
       implicit generic: Lazy[Generic.Aux[Key, Ref]],
