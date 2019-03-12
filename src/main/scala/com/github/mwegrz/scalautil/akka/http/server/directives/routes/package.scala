@@ -121,10 +121,14 @@ package object routes {
           Instant.ofEpochMilli(ByteVector.fromBase64(value).get.toLong()).plusNanos(1))
         val lastEventTimeOrFromTime = lastEventFromTime.orElse(fromTime)
         val liveValues = receiveLiveValues(keys)
-        val values = lastEventTimeOrFromTime.fold(receiveLiveValues(keys)) { value =>
+        val values = lastEventTimeOrFromTime.fold(liveValues) { value =>
           val historicalValues =
-            retrieveHistoricalValues(keys, value, untilTime.getOrElse(Instant.now()))
-          historicalValues.concat(liveValues.buffer(LiveValuesBufferSize, OverflowStrategy.dropNew))
+            retrieveHistoricalValues(keys, value)
+          val historicalAndLiveValues =
+            historicalValues.concat(
+              liveValues.buffer(LiveValuesBufferSize, OverflowStrategy.dropNew))
+          untilTime.fold(historicalAndLiveValues)(value =>
+            historicalAndLiveValues.takeWhile { case (time, _) => time.isBefore(value) })
         }
         val response = toServerSentEvents(values)
         complete(response)
@@ -152,12 +156,10 @@ package object routes {
     }
   }
 
-  private def retrieveHistoricalValues[Key, Value](keys: Set[Key],
-                                                   fromTime: Instant,
-                                                   untilTime: Instant)(
+  private def retrieveHistoricalValues[Key, Value](keys: Set[Key], fromTime: Instant)(
       implicit valueStore: TimeSeriesStore[Key, Value]): Source[(Instant, Value), NotUsed] =
     valueStore
-      .retrieveRange(keys, fromTime, untilTime)
+      .retrieveRange(keys, fromTime)
       .map { case (_, time, value) => (time, value) }
 
   private def receiveLiveValues[Key, Value](keys: Set[Key])(

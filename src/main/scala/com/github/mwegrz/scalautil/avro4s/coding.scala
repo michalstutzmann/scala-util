@@ -7,35 +7,21 @@ import com.sksamuel.avro4s._
 import io.circe.{ KeyDecoder, KeyEncoder }
 import org.apache.avro.Schema
 import pl.iterators.kebs.macros.CaseClass1Rep
-import scodec.bits.ByteVector
-import shapeless.{ ::, Generic, HNil, Lazy }
+import scodec.bits.{ BitVector, ByteVector }
 
 object coding {
-  /*implicit def anyValValueClassSchemaFor[ValueClass <: AnyVal, Ref, Value](
-      implicit generic: Lazy[Generic.Aux[ValueClass, Ref]],
-      evidence: Ref <:< (Value :: HNil),
-      schemaFor: SchemaFor[Value]): SchemaFor[ValueClass] =
-    SchemaFor.const(schemaFor.schema)
-
-  implicit def anyValValueClassEncoder[ValueClass <: AnyVal, Ref, Value](
-      implicit generic: Lazy[Generic.Aux[ValueClass, Ref]],
-      evidence: Ref <:< (Value :: HNil),
-      encoder: Encoder[Value]): Encoder[ValueClass] =
-    encoder.comap(generic.value.to(_).head)
-
-  implicit def anyValValueClassDecoder[ValueClass <: AnyVal, Ref, Value](
-      implicit generic: Lazy[Generic.Aux[ValueClass, Ref]],
-      evidence: (Value :: HNil) =:= Ref,
-      decoder: Decoder[Value]): Decoder[ValueClass] =
-    decoder.map { value =>
-      generic.value.from(value :: HNil)
-    }*/
-
   implicit val ByteVectorSchemaFor: SchemaFor[ByteVector] =
     SchemaFor.const(Schema.create(Schema.Type.BYTES))
   implicit val ByteVectorEncoder: Encoder[ByteVector] =
     Encoder.ByteVectorEncoder.comap(_.toArray.toVector)
   implicit val ByteVectorDecoder: Decoder[ByteVector] = Decoder.ByteVectorDecoder.map(ByteVector(_))
+
+  implicit val BitVectorSchemaFor: SchemaFor[BitVector] =
+    SchemaFor.const(Schema.create(Schema.Type.STRING))
+  implicit val BitVectorEncoder: Encoder[BitVector] =
+    Encoder.StringEncoder.comap(_.toBin)
+  implicit val BitVectorDecoder: Decoder[BitVector] =
+    Decoder.StringDecoder.map(value => BitVector.fromBin(value).get)
 
   implicit val DurationSchemaFor: SchemaFor[Duration] =
     SchemaFor.const(Schema.create(Schema.Type.STRING))

@@ -24,6 +24,8 @@ trait TimeSeriesStore[Key, Value] {
                     fromTime: Instant,
                     untilTime: Instant): Source[(Key, Instant, Value), NotUsed]
 
+  def retrieveRange(keys: Set[Key], fromTime: Instant): Source[(Key, Instant, Value), NotUsed]
+
   def retrieveLast(keys: Set[Key], count: Int): Source[(Key, Instant, Value), NotUsed]
 }
 
@@ -51,6 +53,19 @@ class InMemoryTimeSeriesStore[Key, Value](
       Source(
         events(key)
           .range(fromTime, untilTime)
+          .map { case (time, value) => (key, time, value) }
+          .toList)
+    }
+
+    keys.map(forKey).foldLeft(Source.empty[(Key, Instant, Value)])((a, b) => a.concat(b))
+  }
+
+  override def retrieveRange(keys: Set[Key],
+                             fromTime: Instant): Source[(Key, Instant, Value), NotUsed] = {
+    def forKey(key: Key): Source[(Key, Instant, Value), NotUsed] = {
+      Source(
+        events(key)
+          .rangeImpl(Some(fromTime), None)
           .map { case (time, value) => (key, time, value) }
           .toList)
     }
@@ -128,6 +143,31 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
         .createSource(
           query,
           List(ByteBuffer.wrap(keySerde.valueToBinary(key)), fromTime, toTime)
+        )
+        .map { row =>
+          (key,
+           row.get("time", classOf[Instant]),
+           valueSerde.binaryToValue(row.getBytes("value").array()))
+        }
+    }
+
+    keys.map(forKey).foldLeft(Source.empty[(Key, Instant, Value)]) { (a, b) =>
+      a.concat(b)
+    }
+  }
+
+  override def retrieveRange(keys: Set[Key],
+                             fromTime: Instant): Source[(Key, Instant, Value), NotUsed] = {
+    def forKey(key: Key): Source[(Key, Instant, Value), NotUsed] = {
+      val query = s"""SELECT time, value
+                     |FROM $keyspace.$table
+                     |WHERE key = ? AND time > ?
+                     |ORDER BY time ASC""".stripMargin
+
+      cassandraClient
+        .createSource(
+          query,
+          List(ByteBuffer.wrap(keySerde.valueToBinary(key)), fromTime)
         )
         .map { row =>
           (key,

@@ -9,6 +9,6 @@ trait Avro4sBigDecimalCoding[A] {
   def unapply(a: A): Option[BigDecimal]
 
   implicit val avro4sSchemaFor: SchemaFor[A] = SchemaFor.const(Schema.create(Schema.Type.STRING))
-  implicit val avro4sEncoder: Encoder[A] = Encoder.BigDecimalEncoder.comap(unapply(_).get)
-  implicit val avro4sDecoder: Decoder[A] = Decoder.bigDecimalDecoder.map(apply)
+  implicit val avro4sEncoder: Encoder[A] = Encoder.bigDecimalEncoder.comap(unapply(_).get)
+  implicit val avro4sDecoder: Decoder[A] = Decoder.BigDecimalDecoder.map(apply)
 }
