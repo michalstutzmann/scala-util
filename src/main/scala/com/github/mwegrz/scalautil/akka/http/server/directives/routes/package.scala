@@ -114,22 +114,50 @@ package object routes {
       valueToEntityMarshaller: ToEntityMarshaller[Value],
       executionContext: ExecutionContext,
       materializer: Materializer): Route = get {
-    parameters(Symbol("filter[from_time]").as[Instant].?,
-               Symbol("filter[until_time]").as[Instant].?) { (fromTime, untilTime) =>
+    parameters(
+      Symbol("filter[since]").as[Instant].?,
+      Symbol("filter[until]").as[Instant].?,
+      Symbol("filter[from_time]").as[Instant].?,
+      Symbol("filter[until_time]").as[Instant].?,
+      Symbol("filter[tail]").as[Int].?,
+      Symbol("filter[follow]").as[Boolean].?(false)
+    ) { (since, until, fromTime, untilTime, tail, follow) =>
       optionalHeaderValueByName("Last-Event-ID") { lastEventId =>
         val lastEventFromTime = lastEventId.map(value =>
           Instant.ofEpochMilli(ByteVector.fromBase64(value).get.toLong()).plusNanos(1))
-        val lastEventTimeOrFromTime = lastEventFromTime.orElse(fromTime)
+        val lastEventTimeOrFromTime = lastEventFromTime.orElse(fromTime.orElse(since))
         val liveValues = receiveLiveValues(keys)
-        val values = lastEventTimeOrFromTime.fold(liveValues) { value =>
-          val historicalValues =
-            retrieveHistoricalValues(keys, value)
-          val historicalAndLiveValues =
-            historicalValues.concat(
-              liveValues.buffer(LiveValuesBufferSize, OverflowStrategy.dropNew))
-          untilTime.fold(historicalAndLiveValues)(value =>
-            historicalAndLiveValues.takeWhile { case (time, _) => time.isBefore(value) })
+
+        val values = tail match {
+          case Some(value) =>
+            val historicalValues = retrieveHistoricalValues(keys, value)
+
+            if (follow) {
+              historicalValues.concat(
+                liveValues.buffer(LiveValuesBufferSize, OverflowStrategy.dropNew))
+            } else {
+              historicalValues
+            }
+
+          case None =>
+            lastEventTimeOrFromTime.fold(liveValues) { value =>
+              val historicalValues =
+                retrieveHistoricalValues(keys, value)
+
+              if (follow) {
+                val historicalAndLiveValues =
+                  historicalValues.concat(
+                    liveValues.buffer(LiveValuesBufferSize, OverflowStrategy.dropNew))
+                untilTime
+                  .orElse(until)
+                  .fold(historicalAndLiveValues)(value =>
+                    historicalAndLiveValues.takeWhile { case (time, _) => time.isBefore(value) })
+              } else {
+                historicalValues
+              }
+            }
         }
+
         val response = toServerSentEvents(values)
         complete(response)
       }
@@ -138,15 +166,15 @@ package object routes {
 
   def timeSeriesStoreSink[Key, Value](name: String, keys: Set[Key])(
       implicit
-      valueStore: TimeSeriesStore[Key, Value],
-      valueSink: Sink[Value, NotUsed],
+      //valueStore: TimeSeriesStore[Key, Value],
+      valueSink: Sink[(Key, Instant, Value), NotUsed],
       entityToSingleDocumentUnmarshaller: FromEntityUnmarshaller[SingleDocument[Value]],
       materializer: Materializer): Route = post {
     entity(as[SingleDocument[Value]]) {
       case SingleDocument(Resource(_, _, value)) =>
         keys foreach { key =>
-          Source.single((key, Instant.now(), value)).runWith(valueStore.add)
-          Source.single(value).runWith(valueSink)
+          //Source.single((key, Instant.now(), value)).runWith(valueStore.add)
+          Source.single(value).runWith(valueSink.contramap((key, Instant.now(), _)))
         }
         complete(
           StatusCodes.Created
@@ -160,6 +188,12 @@ package object routes {
       implicit valueStore: TimeSeriesStore[Key, Value]): Source[(Instant, Value), NotUsed] =
     valueStore
       .retrieveRange(keys, fromTime)
+      .map { case (_, time, value) => (time, value) }
+
+  private def retrieveHistoricalValues[Key, Value](keys: Set[Key], tail: Int)(
+      implicit valueStore: TimeSeriesStore[Key, Value]): Source[(Instant, Value), NotUsed] =
+    valueStore
+      .retrieveLast(keys, tail)
       .map { case (_, time, value) => (time, value) }
 
   private def receiveLiveValues[Key, Value](keys: Set[Key])(

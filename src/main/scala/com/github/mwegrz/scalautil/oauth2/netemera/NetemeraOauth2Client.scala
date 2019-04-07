@@ -3,10 +3,10 @@ package com.github.mwegrz.scalautil.oauth2.netemera
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.headers.BasicHttpCredentials
-import akka.http.scaladsl.model.{ HttpMethods, HttpRequest, Uri }
+import akka.http.scaladsl.model.{ FormData, HttpMethods, HttpRequest, Uri }
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
-import com.github.mwegrz.scalautil.oauth2.{ Oauth2Client, TokenRetrieved }
+import com.github.mwegrz.scalautil.oauth2.{ GrantType, Oauth2Client, TokenRetrieved }
 import com.typesafe.config.Config
 import de.heikoseeberger.akkahttpcirce.ErrorAccumulatingCirceSupport.unmarshaller
 import com.github.mwegrz.scalautil.ConfigOps
@@ -43,12 +43,14 @@ class NetemeraOauth2Client private (config: Config)(implicit actorSystem: ActorS
   private val http = Http(actorSystem)
 
   override def retrieveToken: Future[TokenRetrieved] = {
-    val uri = baseUri.copy(path = baseUri.path / "oauth2" / "token")
+    val uri = baseUri.copy(path = baseUri.path / "api" / "v2" / "oauth2" / "token")
 
     val request =
       HttpRequest(
         method = HttpMethods.POST,
-        uri = uri.withQuery(Uri.Query(("grant_type", "client_credentials"), ("audience", audience)))
+        uri = uri,
+        entity =
+          FormData("grant_type" -> GrantType.ClientCredentials.value, "audience" -> audience).toEntity
       ).addCredentials(credentials)
 
     http

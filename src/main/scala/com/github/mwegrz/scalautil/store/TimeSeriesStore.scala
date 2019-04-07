@@ -185,7 +185,8 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
     def forKey(key: Key): Source[(Key, Instant, Value), NotUsed] = {
       val query = s"""SELECT time, value
                      |FROM $keyspace.$table
-                     |WHERE key = ? LIMIT ?""".stripMargin
+                     |WHERE key = ?
+                     |LIMIT ?""".stripMargin
 
       cassandraClient
         .createSource(
@@ -197,6 +198,10 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
            row.get("time", classOf[Instant]),
            valueSerde.binaryToValue(row.getBytes("value").array()))
         }
+        .fold(List.empty[(Key, Instant, Value)]) {
+          case (rows, row) => row :: rows
+        }
+        .mapConcat(_.to[scala.collection.immutable.Iterable])
     }
 
     keys.map(forKey).foldLeft(Source.empty[(Key, Instant, Value)]) { (a, b) =>

@@ -17,7 +17,7 @@ lazy val root = (project in file("."))
       AkkaHttpAvro4s % Optional,
       AlpakkaKafka % Optional,
       AkkaStreamAlpakkaCassandra % Optional,
-      AkkaStreamAlpakkaMqtt % Optional,
+      AkkaStreamAlpakkaMqttStreaming % Optional,
       AkkaStreamAlpakkaSse % Optional,
       CirceCore % Optional,
       CirceGenericExtras % Optional,

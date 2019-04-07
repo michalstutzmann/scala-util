@@ -15,6 +15,7 @@ import com.github.mwegrz.scalastructlog.KeyValueLogging
 import com.typesafe.config.Config
 import com.github.mwegrz.scalautil.ConfigOps
 import com.github.mwegrz.scalautil.ByteStringOps
+import com.github.mwegrz.scalautil.akka.http.server.directives.CorsHandler
 
 import scala.concurrent.ExecutionContext
 
@@ -32,7 +33,9 @@ class HttpServer private (config: Config, httpApis: Set[HttpApi])(
     actorMaterializer: ActorMaterializer,
     executor: ExecutionContext)
     extends Shutdownable
-    with KeyValueLogging {
+    with KeyValueLogging
+    with CorsHandler {
+
   import HttpServer.generateRequestId
 
   private val basePath =
@@ -41,11 +44,11 @@ class HttpServer private (config: Config, httpApis: Set[HttpApi])(
   private val host = config.getString("host")
   private val port = config.getInt("port")
 
-  private val path: Route = {
-    val requestId = generateRequestId()
-    val time = Instant.now()
+  private val path: Route = corsHandler {
     extractClientIP { clientIp =>
       extractRequestContext { context =>
+        val requestId = generateRequestId()
+        val time = Instant.now()
         context.request match {
           case HttpRequest(HttpMethod(method, _, _, _),
                            uri,
