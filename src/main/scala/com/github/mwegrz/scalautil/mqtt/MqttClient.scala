@@ -25,7 +25,7 @@ object MqttClient {
     new DefaultMqttClient(config)
 
   object Qos {
-    case object AtLeastOne extends Qos {
+    case object AtLeastOnce extends Qos {
       override def toControlPacketFlags: ControlPacketFlags =
         ControlPacketFlags.QoSAtLeastOnceDelivery
     }

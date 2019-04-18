@@ -7,7 +7,7 @@ import akka.http.scaladsl.model.{ HttpMethods, HttpRequest, RequestEntity, Uri }
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
 import com.github.mwegrz.scalautil.ConfigOps
-import com.github.mwegrz.scalautil.oauth2.{ Oauth2Client, RetrieveToken, TokenRetrieved }
+import com.github.mwegrz.scalautil.oauth2.{ Oauth2Client, ObtainToken, TokenObtained }
 import com.typesafe.config.Config
 import de.heikoseeberger.akkahttpcirce.ErrorAccumulatingCirceSupport.{ marshaller, unmarshaller }
 import io.circe.generic.extras.Configuration
@@ -38,16 +38,16 @@ class Auth0Oauth2Client private (config: Config)(implicit actorSystem: ActorSyst
 
   private val http = Http(actorSystem)
 
-  override def retrieveToken: Future[TokenRetrieved] = {
+  override def obtainToken: Future[TokenObtained] = {
     val uri = baseUri.copy(path = baseUri.path / "oauth" / "token")
-    val requestBody = RetrieveToken(audience, "client_credentials", clientId, clientSecret)
+    val requestBody = ObtainToken(audience, "client_credentials", clientId, clientSecret)
 
     Marshal(requestBody).to[RequestEntity] flatMap { entity =>
       val request = HttpRequest(method = HttpMethods.POST, uri = uri, entity = entity)
       http
         .singleRequest(request)
         .flatMap { response =>
-          Unmarshal(response).to[TokenRetrieved]
+          Unmarshal(response).to[TokenObtained]
         }
     }
   }

@@ -117,15 +117,13 @@ package object routes {
     parameters(
       Symbol("filter[since]").as[Instant].?,
       Symbol("filter[until]").as[Instant].?,
-      Symbol("filter[from_time]").as[Instant].?,
-      Symbol("filter[until_time]").as[Instant].?,
       Symbol("filter[tail]").as[Int].?,
       Symbol("filter[follow]").as[Boolean].?(false)
-    ) { (since, until, fromTime, untilTime, tail, follow) =>
+    ) { (since, until, tail, follow) =>
       optionalHeaderValueByName("Last-Event-ID") { lastEventId =>
         val lastEventFromTime = lastEventId.map(value =>
           Instant.ofEpochMilli(ByteVector.fromBase64(value).get.toLong()).plusNanos(1))
-        val lastEventTimeOrFromTime = lastEventFromTime.orElse(fromTime.orElse(since))
+        val lastEventTimeOrFromTime = lastEventFromTime.orElse(since)
         val liveValues = receiveLiveValues(keys)
 
         val values = tail match {
@@ -148,8 +146,7 @@ package object routes {
                 val historicalAndLiveValues =
                   historicalValues.concat(
                     liveValues.buffer(LiveValuesBufferSize, OverflowStrategy.dropNew))
-                untilTime
-                  .orElse(until)
+                until
                   .fold(historicalAndLiveValues)(value =>
                     historicalAndLiveValues.takeWhile { case (time, _) => time.isBefore(value) })
               } else {

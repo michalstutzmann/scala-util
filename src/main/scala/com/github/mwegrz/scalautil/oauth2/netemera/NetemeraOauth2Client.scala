@@ -6,7 +6,7 @@ import akka.http.scaladsl.model.headers.BasicHttpCredentials
 import akka.http.scaladsl.model.{ FormData, HttpMethods, HttpRequest, Uri }
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
-import com.github.mwegrz.scalautil.oauth2.{ GrantType, Oauth2Client, TokenRetrieved }
+import com.github.mwegrz.scalautil.oauth2.{ GrantType, Oauth2Client, TokenObtained }
 import com.typesafe.config.Config
 import de.heikoseeberger.akkahttpcirce.ErrorAccumulatingCirceSupport.unmarshaller
 import com.github.mwegrz.scalautil.ConfigOps
@@ -42,7 +42,7 @@ class NetemeraOauth2Client private (config: Config)(implicit actorSystem: ActorS
 
   private val http = Http(actorSystem)
 
-  override def retrieveToken: Future[TokenRetrieved] = {
+  override def obtainToken: Future[TokenObtained] = {
     val uri = baseUri.copy(path = baseUri.path / "api" / "v2" / "oauth2" / "token")
 
     val request =
@@ -56,7 +56,7 @@ class NetemeraOauth2Client private (config: Config)(implicit actorSystem: ActorS
     http
       .singleRequest(request)
       .flatMap { a =>
-        Unmarshal(a).to[TokenRetrieved]
+        Unmarshal(a).to[TokenObtained]
       }
   }
 }
