@@ -1,4 +1,5 @@
 package com.github.mwegrz.scalautil.avro4s
+
 import java.io.{ EOFException, InputStream }
 
 import com.sksamuel.avro4s.{ AvroInputStream, Decoder }

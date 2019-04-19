@@ -5,6 +5,9 @@ import java.io.{ ByteArrayInputStream, ByteArrayOutputStream }
 import com.sksamuel.avro4s._
 import org.apache.avro.Schema
 import org.apache.avro.io.EncoderFactory
+import _root_.scodec.bits.ByteVector
+
+import scala.util.Try
 
 package object avro4s {
   implicit class AOps[A: SchemaFor: Encoder](underlaying: A) {
@@ -19,16 +22,24 @@ package object avro4s {
     }
   }
 
-  def parseAvro[A: SchemaFor: Decoder](bytes: Array[Byte],
-                                       writerSchema: Option[Schema] = None,
-                                       readerSchema: Option[Schema] = None): A = {
+  def fromAvro[A: SchemaFor: Decoder](bytes: Array[Byte],
+                                      writerSchema: Option[Schema] = None,
+                                      readerSchema: Option[Schema] = None): Try[A] = Try {
     val defaultSchema = implicitly[SchemaFor[A]].schema
+    val resolvedWriterSchema = writerSchema.getOrElse(defaultSchema)
+    val resolvedReaderSchema = readerSchema.getOrElse(defaultSchema)
+
     val in = new ByteArrayInputStream(bytes)
 
-    val input = new WrapperAvroInputStream[A](in,
-                                              writerSchema.getOrElse(defaultSchema),
-                                              readerSchema.getOrElse(defaultSchema))
+    val input = new WrapperAvroInputStream[A](in, resolvedWriterSchema, resolvedReaderSchema)
 
-    input.iterator.toSeq.head
+    if (input.iterator.hasNext) {
+      input.iterator.toSeq.head
+    } else {
+      throw new IllegalArgumentException(
+        s"Cannot decode: bytes: 0x${ByteVector(bytes).toHex}: " +
+          s"writer schema: ${resolvedWriterSchema.toString(false)} " +
+          s"reader schema: ${resolvedReaderSchema.toString(false)}")
+    }
   }
 }
