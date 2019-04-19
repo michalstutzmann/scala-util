@@ -1,6 +1,7 @@
 package com.github.mwegrz.scalautil.sse
 
 import akka.NotUsed
+import akka.actor.ActorSystem
 import akka.http.scaladsl.client.RequestBuilding.Get
 import akka.http.scaladsl.model.MediaTypes.`text/event-stream`
 import akka.http.scaladsl.model.headers.{ Accept, `Last-Event-ID` }
@@ -78,7 +79,8 @@ object NotRetryingEventSource {
             send: HttpRequest => Future[HttpResponse],
             initialLastEventId: Option[String] = None,
             retryDelay: FiniteDuration = Duration.Zero)(
-      implicit mat: Materializer
+      implicit mat: Materializer,
+      actorSystem: ActorSystem
   ): EventSource = {
     import EventStreamUnmarshalling._
     import mat.executionContext

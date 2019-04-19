@@ -30,7 +30,7 @@ abstract class AvroSerializer[Value: SchemaFor: Encoder: Decoder](
     val previousVersion = ByteBuffer.wrap(bytes.take(4)).getInt
     val writerSchema = versionToWriterSchema(previousVersion)
     val readerSchema = versionToWriterSchema(currentVersion)
-    fromAvro[Value](bytes.drop(4), Some(writerSchema), Some(readerSchema)).asInstanceOf[AnyRef]
+    fromAvro[Value](bytes.drop(4), Some(writerSchema), Some(readerSchema)).get.asInstanceOf[AnyRef]
   }
 
   override def valueToBinary(value: Value): Array[Byte] = toBinary(value.asInstanceOf[AnyRef])
