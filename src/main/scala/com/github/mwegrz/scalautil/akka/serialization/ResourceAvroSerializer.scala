@@ -7,7 +7,8 @@ import org.apache.avro.Schema
 import scala.reflect.ClassTag
 
 class ResourceAvroSerializer[A: SchemaFor: Encoder: Decoder: ClassTag](
-    extendedActorSystem: ExtendedActorSystem)
+    extendedActorSystem: ExtendedActorSystem,
+    override val currentVersion: Int)
     extends AvroSerializer[A](extendedActorSystem) {
   private val classTag = implicitly[ClassTag[A]]
   private val packageName = classTag.runtimeClass.getPackage.getName

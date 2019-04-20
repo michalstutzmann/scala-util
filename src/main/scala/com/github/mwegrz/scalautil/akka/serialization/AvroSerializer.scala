@@ -15,9 +15,7 @@ abstract class AvroSerializer[Value: SchemaFor: Encoder: Decoder](
     with Serde[Value] {
   override def system: ExtendedActorSystem = extendedActorSystem
 
-  protected def currentVersion: Int =
-    system.settings.config
-      .getInt(s"""akka.actor.serialization-avro-versions."${getClass.getName}"""")
+  protected def currentVersion: Int
 
   override final def includeManifest: Boolean = false
 

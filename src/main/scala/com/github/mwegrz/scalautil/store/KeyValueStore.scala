@@ -39,7 +39,7 @@ object ActorKeyValueStore {
 
   object Add {
     class AkkaSerializer(extendedActorSystem: ExtendedActorSystem)
-        extends ResourceAvroSerializer[Add](extendedActorSystem)
+        extends ResourceAvroSerializer[Add](extendedActorSystem, currentVersion = 1)
   }
 
   final case class Add(key: KeyBytes, value: ValueBytes)
@@ -52,7 +52,7 @@ object ActorKeyValueStore {
 
   object Delete {
     class AkkaSerializer(extendedActorSystem: ExtendedActorSystem)
-        extends ResourceAvroSerializer[Delete](extendedActorSystem)
+        extends ResourceAvroSerializer[Delete](extendedActorSystem, currentVersion = 1)
   }
 
   final case class Delete(key: KeyBytes)
@@ -62,7 +62,7 @@ object ActorKeyValueStore {
       State(SortedMap.empty[ByteVector, ValueBytes])
 
     class AkkaSerializer(extendedActorSystem: ExtendedActorSystem)
-        extends ResourceAvroSerializer[Delete](extendedActorSystem)
+        extends ResourceAvroSerializer[Delete](extendedActorSystem, currentVersion = 1)
   }
 
   final case class State(values: SortedMap[ByteVector, ValueBytes]) {
