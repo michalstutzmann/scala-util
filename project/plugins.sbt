@@ -1,3 +1,1 @@
-resolvers += Opts.resolver.sonatypeStaging
-
-addSbtPlugin("com.github.mwegrz" % "sbt-mwegrz" % "0.1.4")
+addSbtPlugin("com.github.mwegrz" % "sbt-mwegrz" % "0.1.5")
