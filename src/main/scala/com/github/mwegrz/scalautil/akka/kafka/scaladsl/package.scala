@@ -21,13 +21,15 @@ package object scaladsl {
   type KafkaCommitableFlow[K1, V1, K2, V2] =
     Flow[Message[K1, V1, Committable], CommittableMessage[K2, V2], NotUsed]
 
-  def byteMessageFlow[A, B](inTopic: String, outTopic: String)(
-      toBinary: A => (Array[Byte], Array[Byte]),
-      fromBinary: (Array[Byte], Array[Byte]) => B)(
+  def byteMessageFlow[A, B](
+      inTopic: String,
+      outTopic: String
+  )(toBinary: A => (Array[Byte], Array[Byte]), fromBinary: (Array[Byte], Array[Byte]) => B)(
       implicit producerSettings: ProducerSettings[Array[Byte], Array[Byte]],
       consumerSettings: ConsumerSettings[Array[Byte], Array[Byte]],
       actorSystem: ActorSystem,
-      actorMaterializer: ActorMaterializer): Flow[A, B, NotUsed] = {
+      actorMaterializer: ActorMaterializer
+  ): Flow[A, B, NotUsed] = {
     val kafkaFlow =
       KafkaCommitableFlow(producerSettings, consumerSettings, Subscriptions.topics(outTopic))
 
@@ -38,16 +40,19 @@ package object scaladsl {
     bidiFlow.joinMat(kafkaFlow)(Keep.right)
   }
 
-  def ask[A, B](requestTopic: String, responseTopic: String)(arg: A)(toBinary: A => Array[Byte],
-                                                                     fromBinary: Array[Byte] => B)(
+  def ask[A, B](requestTopic: String, responseTopic: String)(
+      arg: A
+  )(toBinary: A => Array[Byte], fromBinary: Array[Byte] => B)(
       implicit producerSettings: ProducerSettings[Array[Byte], Array[Byte]],
       consumerSettings: ConsumerSettings[Array[Byte], Array[Byte]],
       actorSystem: ActorSystem,
       actorMaterializer: ActorMaterializer,
-      timeout: FiniteDuration): Future[B] = {
+      timeout: FiniteDuration
+  ): Future[B] = {
     val flow = byteMessageFlow[(String, A), (String, B)](requestTopic, responseTopic)(
       toBinary = _ => (Array.empty[Byte], Array.empty[Byte]),
-      fromBinary = (_, _) => ("", null.asInstanceOf[B]))
+      fromBinary = (_, _) => ("", null.asInstanceOf[B])
+    )
     val reqId = UUID.randomUUID().toString
     Source
       .single((reqId, arg))

@@ -13,14 +13,16 @@ import shapeless.{ ::, Generic, HNil, Lazy }
 object unmarshalling {
   implicit def stringToStringValueClassUnmarshaller[ValueClass, Ref](
       implicit generic: Lazy[Generic.Aux[ValueClass, Ref]],
-      evidence: (String :: HNil) =:= Ref): Unmarshaller[String, ValueClass] =
+      evidence: (String :: HNil) =:= Ref
+  ): Unmarshaller[String, ValueClass] =
     Unmarshaller.strict { value =>
       generic.value.from(value :: HNil)
     }
 
   implicit def stringToNetemeraJwtClaimUnmarshaller(
       implicit jwtKey: JwtKey,
-      jwtAlgorithm: JwtAlgorithm): Unmarshaller[String, NetemeraJwtClaim] =
+      jwtAlgorithm: JwtAlgorithm
+  ): Unmarshaller[String, NetemeraJwtClaim] =
     Unmarshaller.strict(NetemeraJwtClaim.fromString(_).get)
 
   implicit val stringToUriUnmarshaller: Unmarshaller[String, Uri] =

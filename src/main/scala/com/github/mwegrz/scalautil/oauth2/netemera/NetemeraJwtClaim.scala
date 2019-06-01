@@ -14,8 +14,9 @@ object NetemeraJwtClaim {
   def apply(string: String)(implicit key: JwtKey, algorithm: JwtAlgorithm): Try[NetemeraJwtClaim] =
     fromString(string)
 
-  def fromString(string: String)(implicit key: JwtKey,
-                                 algorithm: JwtAlgorithm): Try[NetemeraJwtClaim] =
+  def fromString(
+      string: String
+  )(implicit key: JwtKey, algorithm: JwtAlgorithm): Try[NetemeraJwtClaim] =
     decode(string, key.value, algorithm).map(fromJwtClaim)
 
   def fromJwtClaim(jwtClaim: JwtClaim): NetemeraJwtClaim = {
@@ -25,7 +26,9 @@ object NetemeraJwtClaim {
     val iat = jwtClaim.issuedAt.get
     val exp = jwtClaim.expiration.get
     val jwtClaimContent = parse(jwtClaim.content).toTry.flatMap(_.as[JwtClaimContent].toTry).get
-    val scope = if (jwtClaimContent.scope.nonEmpty) { jwtClaimContent.scope.split(" ").toSet } else {
+    val scope = if (jwtClaimContent.scope.nonEmpty) {
+      jwtClaimContent.scope.split(" ").toSet
+    } else {
       Set.empty[String]
     }
     val organization = jwtClaimContent.organization

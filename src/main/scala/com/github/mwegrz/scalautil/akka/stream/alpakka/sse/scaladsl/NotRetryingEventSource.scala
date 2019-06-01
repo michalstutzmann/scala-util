@@ -75,10 +75,12 @@ object NotRetryingEventSource {
     * @param mat implicit `Materializer`, needed to obtain server-sent events
     * @return continuous source of server-sent events
     */
-  def apply(uri: Uri,
-            send: HttpRequest => Future[HttpResponse],
-            initialLastEventId: Option[String] = None,
-            retryDelay: FiniteDuration = Duration.Zero)(
+  def apply(
+      uri: Uri,
+      send: HttpRequest => Future[HttpResponse],
+      initialLastEventId: Option[String] = None,
+      retryDelay: FiniteDuration = Duration.Zero
+  )(
       implicit mat: Materializer,
       actorSystem: ActorSystem
   ): EventSource = {

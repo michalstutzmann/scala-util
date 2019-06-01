@@ -10,8 +10,8 @@ import com.sksamuel.avro4s.{ Decoder, Encoder, SchemaFor }
 import org.apache.avro.Schema
 
 abstract class AvroSerializer[Value: SchemaFor: Encoder: Decoder](
-    extendedActorSystem: ExtendedActorSystem)
-    extends BaseSerializer
+    extendedActorSystem: ExtendedActorSystem
+) extends BaseSerializer
     with Serde[Value] {
   override def system: ExtendedActorSystem = extendedActorSystem
 

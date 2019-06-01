@@ -22,7 +22,8 @@ final case class TwoDPosition(latitude: Latitude, longitude: Longitude) {
     val dest = calc.calculateGeodeticCurve(
       reference,
       new GlobalCoordinates(latitude.value, longitude.value),
-      new GlobalCoordinates(that.latitude.value, that.longitude.value))
+      new GlobalCoordinates(that.latitude.value, that.longitude.value)
+    )
     dest.getAzimuth
   }
 
@@ -32,7 +33,8 @@ final case class TwoDPosition(latitude: Latitude, longitude: Longitude) {
     val dest = calc.calculateGeodeticCurve(
       reference,
       new GlobalCoordinates(latitude.value, longitude.value),
-      new GlobalCoordinates(that.latitude.value, that.longitude.value))
+      new GlobalCoordinates(that.latitude.value, that.longitude.value)
+    )
     dest.getEllipsoidalDistance
   }
 
@@ -44,7 +46,8 @@ final case class TwoDPosition(latitude: Latitude, longitude: Longitude) {
       new GlobalCoordinates(latitude.value, longitude.value),
       bearing,
       distance,
-      Array(0.0))
+      Array(0.0)
+    )
     TwoDPosition(Latitude(dest.getLatitude), Longitude(dest.getLongitude))
   }
 

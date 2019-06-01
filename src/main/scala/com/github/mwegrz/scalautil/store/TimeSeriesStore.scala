@@ -20,9 +20,11 @@ trait TimeSeriesStore[Key, Value] {
 
   def retrieveRange(fromTime: Instant, untilTime: Instant): Source[(Key, Instant, Value), NotUsed]
 
-  def retrieveRange(keys: Set[Key],
-                    fromTime: Instant,
-                    untilTime: Instant): Source[(Key, Instant, Value), NotUsed]
+  def retrieveRange(
+      keys: Set[Key],
+      fromTime: Instant,
+      untilTime: Instant
+  ): Source[(Key, Instant, Value), NotUsed]
 
   def retrieveRange(keys: Set[Key], fromTime: Instant): Source[(Key, Instant, Value), NotUsed]
 
@@ -30,8 +32,8 @@ trait TimeSeriesStore[Key, Value] {
 }
 
 class InMemoryTimeSeriesStore[Key, Value](
-    initial: Map[Key, SortedMap[Instant, Value]] = Map.empty[Key, SortedMap[Instant, Value]])
-    extends TimeSeriesStore[Key, Value] {
+    initial: Map[Key, SortedMap[Instant, Value]] = Map.empty[Key, SortedMap[Instant, Value]]
+) extends TimeSeriesStore[Key, Value] {
   private var events = initial.withDefaultValue(SortedMap.empty[Instant, Value])
 
   override def add: Sink[(Key, Instant, Value), Future[Done]] =
@@ -39,35 +41,43 @@ class InMemoryTimeSeriesStore[Key, Value](
       case (key, time, value) => events = events.updated(key, events(key).updated(time, value))
     }
 
-  override def retrieveRange(fromTime: Instant,
-                             untilTime: Instant): Source[(Key, Instant, Value), NotUsed] =
+  override def retrieveRange(
+      fromTime: Instant,
+      untilTime: Instant
+  ): Source[(Key, Instant, Value), NotUsed] =
     Source(events.foldLeft(List.empty[(Key, Instant, Value)]) {
       case (b, (a, s)) =>
         b ++ s.range(fromTime, untilTime).map(c => (a, c._1, c._2))
     })
 
-  override def retrieveRange(keys: Set[Key],
-                             fromTime: Instant,
-                             untilTime: Instant): Source[(Key, Instant, Value), NotUsed] = {
+  override def retrieveRange(
+      keys: Set[Key],
+      fromTime: Instant,
+      untilTime: Instant
+  ): Source[(Key, Instant, Value), NotUsed] = {
     def forKey(key: Key): Source[(Key, Instant, Value), NotUsed] = {
       Source(
         events(key)
           .range(fromTime, untilTime)
           .map { case (time, value) => (key, time, value) }
-          .toList)
+          .toList
+      )
     }
 
     keys.map(forKey).foldLeft(Source.empty[(Key, Instant, Value)])((a, b) => a.concat(b))
   }
 
-  override def retrieveRange(keys: Set[Key],
-                             fromTime: Instant): Source[(Key, Instant, Value), NotUsed] = {
+  override def retrieveRange(
+      keys: Set[Key],
+      fromTime: Instant
+  ): Source[(Key, Instant, Value), NotUsed] = {
     def forKey(key: Key): Source[(Key, Instant, Value), NotUsed] = {
       Source(
         events(key)
           .rangeImpl(Some(fromTime), None)
           .map { case (time, value) => (key, time, value) }
-          .toList)
+          .toList
+      )
     }
 
     keys.map(forKey).foldLeft(Source.empty[(Key, Instant, Value)])((a, b) => a.concat(b))
@@ -86,8 +96,8 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
     implicit executionContext: ExecutionContext,
     actorMaterializer: ActorMaterializer,
     keySerde: Serde[Key],
-    valueSerde: Serde[Value])
-    extends TimeSeriesStore[Key, Value]
+    valueSerde: Serde[Value]
+) extends TimeSeriesStore[Key, Value]
     with KeyValueLogging {
   private val keyspace = config.getString("keyspace")
   private val table = config.getString("table")
@@ -112,8 +122,10 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
       }
   }
 
-  override def retrieveRange(fromTime: Instant,
-                             toTime: Instant): Source[(Key, Instant, Value), NotUsed] = {
+  override def retrieveRange(
+      fromTime: Instant,
+      toTime: Instant
+  ): Source[(Key, Instant, Value), NotUsed] = {
     val query = s"""SELECT key, time, value
                      |FROM $keyspace.$table
                      |WHERE time > ? AND time <= ? ALLOW FILTERING""".stripMargin
@@ -124,15 +136,19 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
         List(fromTime, toTime)
       )
       .map { row =>
-        (keySerde.binaryToValue(row.getBytes("key").array()),
-         row.get("time", classOf[Instant]),
-         valueSerde.binaryToValue(row.getBytes("value").array()))
+        (
+          keySerde.binaryToValue(row.getBytes("key").array()),
+          row.get("time", classOf[Instant]),
+          valueSerde.binaryToValue(row.getBytes("value").array())
+        )
       }
   }
 
-  override def retrieveRange(keys: Set[Key],
-                             fromTime: Instant,
-                             toTime: Instant): Source[(Key, Instant, Value), NotUsed] = {
+  override def retrieveRange(
+      keys: Set[Key],
+      fromTime: Instant,
+      toTime: Instant
+  ): Source[(Key, Instant, Value), NotUsed] = {
     def forKey(key: Key): Source[(Key, Instant, Value), NotUsed] = {
       val query = s"""SELECT time, value
                      |FROM $keyspace.$table
@@ -145,9 +161,11 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
           List(ByteBuffer.wrap(keySerde.valueToBinary(key)), fromTime, toTime)
         )
         .map { row =>
-          (key,
-           row.get("time", classOf[Instant]),
-           valueSerde.binaryToValue(row.getBytes("value").array()))
+          (
+            key,
+            row.get("time", classOf[Instant]),
+            valueSerde.binaryToValue(row.getBytes("value").array())
+          )
         }
     }
 
@@ -156,8 +174,10 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
     }
   }
 
-  override def retrieveRange(keys: Set[Key],
-                             fromTime: Instant): Source[(Key, Instant, Value), NotUsed] = {
+  override def retrieveRange(
+      keys: Set[Key],
+      fromTime: Instant
+  ): Source[(Key, Instant, Value), NotUsed] = {
     def forKey(key: Key): Source[(Key, Instant, Value), NotUsed] = {
       val query = s"""SELECT time, value
                      |FROM $keyspace.$table
@@ -170,9 +190,11 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
           List(ByteBuffer.wrap(keySerde.valueToBinary(key)), fromTime)
         )
         .map { row =>
-          (key,
-           row.get("time", classOf[Instant]),
-           valueSerde.binaryToValue(row.getBytes("value").array()))
+          (
+            key,
+            row.get("time", classOf[Instant]),
+            valueSerde.binaryToValue(row.getBytes("value").array())
+          )
         }
     }
 
@@ -194,9 +216,11 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
           List(ByteBuffer.wrap(keySerde.valueToBinary(key)), count.asInstanceOf[AnyRef])
         )
         .map { row =>
-          (key,
-           row.get("time", classOf[Instant]),
-           valueSerde.binaryToValue(row.getBytes("value").array()))
+          (
+            key,
+            row.get("time", classOf[Instant]),
+            valueSerde.binaryToValue(row.getBytes("value").array())
+          )
         }
         .fold(List.empty[(Key, Instant, Value)]) {
           case (rows, row) => row :: rows

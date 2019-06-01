@@ -12,10 +12,10 @@ import com.github.mwegrz.scalautil.akka.stream.UdpFlowStage
 import scala.concurrent.Future
 
 object UdpFlow {
-  def apply(localAddr: InetSocketAddress,
-            maxBufferSize: Int,
-            dropped: Sink[(ByteString, InetSocketAddress), Future[Done]])(
-      implicit actorSystem: ActorSystem,
-      actorMaterializer: ActorMaterializer): UdpFlow =
+  def apply(
+      localAddr: InetSocketAddress,
+      maxBufferSize: Int,
+      dropped: Sink[(ByteString, InetSocketAddress), Future[Done]]
+  )(implicit actorSystem: ActorSystem, actorMaterializer: ActorMaterializer): UdpFlow =
     Flow.fromGraph(new UdpFlowStage(localAddr, maxBufferSize, dropped))
 }

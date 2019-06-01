@@ -20,7 +20,8 @@ object CassandraClient extends KeyValueLogging {
 
   def withKeyspaceIfNotExists(config: Config)(
       implicit executionContext: ExecutionContext,
-      actorMaterializer: ActorMaterializer): Future[CassandraClient] = {
+      actorMaterializer: ActorMaterializer
+  ): Future[CassandraClient] = {
     val client = apply(config)
     val keyspace = config.getString("keyspace")
     val replicationStrategy = config.getString("replication-strategy")
@@ -33,13 +34,15 @@ object CassandraClient extends KeyValueLogging {
 
 trait CassandraClient extends Shutdownable {
   def createSink[A <: AnyRef](cql: String)(
-      statementBinder: (A, PreparedStatement) => BoundStatement): Sink[A, Future[Done]]
+      statementBinder: (A, PreparedStatement) => BoundStatement
+  ): Sink[A, Future[Done]]
   def createSource(cql: String, values: Seq[AnyRef]): Source[Row, NotUsed]
 
   def execute(cql: String)(implicit actorMaterializer: ActorMaterializer): Future[Done]
 
   def createKeyspaceIfNotExists(keyspace: String, `class`: String, replicationFactor: Int)(
-      implicit actorMaterializer: ActorMaterializer): Future[Done]
+      implicit actorMaterializer: ActorMaterializer
+  ): Future[Done]
 
   def registerCodec[A](codec: TypeCodec[A]): Unit
 }
@@ -57,15 +60,19 @@ class DefaultCassandraClient(config: Config)(implicit executionContext: Executio
       .addContactPoints(contactPoints: _*)
       .withPort(port)
       .withReconnectionPolicy(
-        new ExponentialReconnectionPolicy(reconnectionPolicyBaseDelay.toMillis,
-                                          reconnectionPolicyMaxDelay.toMillis))
+        new ExponentialReconnectionPolicy(
+          reconnectionPolicyBaseDelay.toMillis,
+          reconnectionPolicyMaxDelay.toMillis
+        )
+      )
       .build
   private implicit val session: Session = cluster.connect()
 
   log.debug("Initialized")
 
-  override def createSink[A <: AnyRef](cql: String)(
-      statementBinder: (A, PreparedStatement) => BoundStatement): Sink[A, Future[Done]] = {
+  override def createSink[A <: AnyRef](
+      cql: String
+  )(statementBinder: (A, PreparedStatement) => BoundStatement): Sink[A, Future[Done]] = {
     val preparedStatement = session.prepare(cql)
     CassandraSink[A](parallelism = 2, preparedStatement, statementBinder)
   }
@@ -76,9 +83,12 @@ class DefaultCassandraClient(config: Config)(implicit executionContext: Executio
   }
 
   override def createKeyspaceIfNotExists(keyspace: String, `class`: String, replicationFactor: Int)(
-      implicit actorMaterializer: ActorMaterializer): Future[Done] =
-    execute(s"""CREATE KEYSPACE IF NOT EXISTS $keyspace
-      WITH REPLICATION = { 'class' : '${`class`}', 'replication_factor' : $replicationFactor };""".stripMargin)
+      implicit actorMaterializer: ActorMaterializer
+  ): Future[Done] =
+    execute(
+      s"""CREATE KEYSPACE IF NOT EXISTS $keyspace
+      WITH REPLICATION = { 'class' : '${`class`}', 'replication_factor' : $replicationFactor };""".stripMargin
+    )
 
   override def registerCodec[A](codec: TypeCodec[A]): Unit =
     cluster.getConfiguration.getCodecRegistry.register(codec)

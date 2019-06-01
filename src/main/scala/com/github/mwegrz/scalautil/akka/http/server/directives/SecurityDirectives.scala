@@ -20,9 +20,11 @@ object SecurityDirectives {
 
   def keyValueStoreAuthenticator[K, V <: SaltAndHashedSecret](
       idToKey: String => K,
-      hashSecret: (String, String) => String)(
+      hashSecret: (String, String) => String
+  )(
       implicit store: KeyValueStore[K, V],
-      executionContext: ExecutionContext): AsyncAuthenticator[V] = {
+      executionContext: ExecutionContext
+  ): AsyncAuthenticator[V] = {
     case credentials @ Credentials.Provided(id) =>
       store.retrieve(idToKey(id)).map {
         case Some(client)

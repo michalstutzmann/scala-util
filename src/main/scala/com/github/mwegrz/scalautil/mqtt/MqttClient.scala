@@ -19,9 +19,11 @@ import scala.concurrent.{ ExecutionContext, Promise }
 import scala.util.Try
 
 object MqttClient {
-  def apply(config: Config)(implicit actorSystem: ActorSystem,
-                            actorMaterializer: ActorMaterializer,
-                            executionContext: ExecutionContext): MqttClient =
+  def apply(config: Config)(
+      implicit actorSystem: ActorSystem,
+      actorMaterializer: ActorMaterializer,
+      executionContext: ExecutionContext
+  ): MqttClient =
     new DefaultMqttClient(config)
 
   object Qos {
@@ -49,13 +51,15 @@ trait MqttClient {
 
   def createFlow[A, B](topics: Map[String, Qos], bufferSize: Int, qos: Qos)(
       toBinary: A => Array[Byte],
-      fromBinary: Array[Byte] => B): Flow[(String, A), (String, B), NotUsed]
+      fromBinary: Array[Byte] => B
+  ): Flow[(String, A), (String, B), NotUsed]
 }
 
-class DefaultMqttClient private[mqtt] (config: Config)(implicit actorSystem: ActorSystem,
-                                                       actorMaterializer: ActorMaterializer,
-                                                       executionContext: ExecutionContext)
-    extends MqttClient
+class DefaultMqttClient private[mqtt] (config: Config)(
+    implicit actorSystem: ActorSystem,
+    actorMaterializer: ActorMaterializer,
+    executionContext: ExecutionContext
+) extends MqttClient
     with KeyValueLogging {
   import MqttClient._
 
@@ -71,11 +75,12 @@ class DefaultMqttClient private[mqtt] (config: Config)(implicit actorSystem: Act
 
   override def createFlow[A, B](topics: Map[String, Qos], bufferSize: Int, qos: Qos)(
       toBinary: A => Array[Byte],
-      fromBinary: Array[Byte] => B): Flow[(String, A), (String, B), NotUsed] = {
+      fromBinary: Array[Byte] => B
+  ): Flow[(String, A), (String, B), NotUsed] = {
     val connection = Tcp().outgoingConnection(host, port)
     val session = ActorMqttClientSession(MqttSessionSettings())
     val clientSessionFlow
-      : Flow[Command[() => Unit], Either[MqttCodec.DecodeError, Event[() => Unit]], NotUsed] =
+        : Flow[Command[() => Unit], Either[MqttCodec.DecodeError, Event[() => Unit]], NotUsed] =
       Mqtt
         .clientSessionFlow(session)
         .join(connection)
@@ -90,21 +95,25 @@ class DefaultMqttClient private[mqtt] (config: Config)(implicit actorSystem: Act
       .mapAsyncUnordered(2) {
         case (topic, msg) =>
           val promise = Promise[None.type]()
-          session ! Command(Publish(qos.toControlPacketFlags, topic, ByteString(toBinary(msg))),
-                            () => promise.complete(Try(None)))
+          session ! Command(
+            Publish(qos.toControlPacketFlags, topic, ByteString(toBinary(msg))),
+            () => promise.complete(Try(None))
+          )
           promise.future
       }
       .mapConcat(_ => Nil)
-      .prepend(Source(
-        if (topics.nonEmpty) {
-          Iterable(
-            Command[() => Unit](connectCommand),
-            Command[() => Unit](Subscribe(topics.mapValues(_.toControlPacketFlags).toSeq)),
-          )
-        } else {
-          Iterable(Command[() => Unit](connectCommand))
-        }
-      ))
+      .prepend(
+        Source(
+          if (topics.nonEmpty) {
+            Iterable(
+              Command[() => Unit](connectCommand),
+              Command[() => Unit](Subscribe(topics.mapValues(_.toControlPacketFlags).toSeq))
+            )
+          } else {
+            Iterable(Command[() => Unit](connectCommand))
+          }
+        )
+      )
       .via(clientSessionFlow)
       .filter {
         case Right(Event(_: PubAck, Some(ack))) =>
@@ -117,10 +126,12 @@ class DefaultMqttClient private[mqtt] (config: Config)(implicit actorSystem: Act
           (p.topicName, fromBinary(p.payload.toArray))
       }
 
-    RestartFlow.withBackoff(minBackoff = restartPolicyMinBackoff,
-                            maxBackoff = restartPolicyMaxBackoff,
-                            randomFactor = restartPolicyRandomFactor,
-                            maxRestarts = restartPolicyMaxRestarts) { () =>
+    RestartFlow.withBackoff(
+      minBackoff = restartPolicyMinBackoff,
+      maxBackoff = restartPolicyMaxBackoff,
+      randomFactor = restartPolicyRandomFactor,
+      maxRestarts = restartPolicyMaxRestarts
+    ) { () =>
       flow
         .watchTermination() { (_, f) =>
           f.recover {

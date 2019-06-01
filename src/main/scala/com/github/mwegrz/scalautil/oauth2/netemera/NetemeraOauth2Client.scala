@@ -16,19 +16,22 @@ import io.circe.generic.extras.auto._
 import scala.concurrent.{ ExecutionContext, Future }
 
 object NetemeraOauth2Client {
-  def apply(config: Config)(implicit actorSystem: ActorSystem,
-                            actorMaterializer: ActorMaterializer,
-                            executionContext: ExecutionContext): NetemeraOauth2Client =
+  def apply(config: Config)(
+      implicit actorSystem: ActorSystem,
+      actorMaterializer: ActorMaterializer,
+      executionContext: ExecutionContext
+  ): NetemeraOauth2Client =
     new NetemeraOauth2Client(config.withReferenceDefaults("netemera-oauth2-client"))
 
   private implicit val circeConfiguration: Configuration =
     Configuration.default.withSnakeCaseMemberNames.withDefaults
 }
 
-class NetemeraOauth2Client private (config: Config)(implicit actorSystem: ActorSystem,
-                                                    actorMaterializer: ActorMaterializer,
-                                                    executionContext: ExecutionContext)
-    extends Oauth2Client {
+class NetemeraOauth2Client private (config: Config)(
+    implicit actorSystem: ActorSystem,
+    actorMaterializer: ActorMaterializer,
+    executionContext: ExecutionContext
+) extends Oauth2Client {
   import NetemeraOauth2Client._
 
   private val baseUri = Uri(config.getString("base-uri"))

@@ -30,7 +30,8 @@ package object scaladsl {
             .collect {
               case e: Good[B] => e
             }
-            .map(_.get))
+            .map(_.get)
+        )
         val badFilterShape = b.add(Flow[Or[B, C]].collect {
           case e: Bad[C] => e
         })
@@ -57,7 +58,8 @@ package object scaladsl {
             .collect {
               case e: Success[B] => e
             }
-            .map(_.get))
+            .map(_.get)
+        )
         val failureFilterShape = b.add(Flow[Try[B]].collect {
           case e: Failure[B] => e
         })

@@ -32,30 +32,41 @@ object coding {
   implicit val UriEncoder: Encoder[Uri] = Encoder.StringEncoder.comap(_.toString)
   implicit val UriDecoder: Decoder[Uri] = Decoder.StringDecoder.map(Uri(_))
 
-  implicit def valueClassSchemaFor[CC <: AnyVal, A](implicit rep: CaseClass1Rep[CC, A],
-                                                    subschema: SchemaFor[A]): SchemaFor[CC] =
+  implicit def valueClassSchemaFor[CC <: AnyVal, A](
+      implicit rep: CaseClass1Rep[CC, A],
+      subschema: SchemaFor[A]
+  ): SchemaFor[CC] =
     SchemaFor.const(subschema.schema)
 
-  implicit def valueClassEncoder[CC <: AnyVal, A](implicit rep: CaseClass1Rep[CC, A],
-                                                  delegate: Encoder[A]): Encoder[CC] =
+  implicit def valueClassEncoder[CC <: AnyVal, A](
+      implicit rep: CaseClass1Rep[CC, A],
+      delegate: Encoder[A]
+  ): Encoder[CC] =
     delegate.comap(rep.unapply)
 
-  implicit def valueClassFromValue[CC <: AnyVal, B](implicit rep: CaseClass1Rep[CC, B],
-                                                    delegate: Decoder[B]): Decoder[CC] =
+  implicit def valueClassFromValue[CC <: AnyVal, B](
+      implicit rep: CaseClass1Rep[CC, B],
+      delegate: Decoder[B]
+  ): Decoder[CC] =
     delegate.map { rep.apply }
 
   implicit def mapSchemaFor[Key, Value](
-      implicit valueSchemaFor: SchemaFor[Value]): SchemaFor[Map[Key, Value]] =
+      implicit valueSchemaFor: SchemaFor[Value]
+  ): SchemaFor[Map[Key, Value]] =
     SchemaFor.const(Schema.createMap(valueSchemaFor.schema))
 
-  implicit def mapEncoder[Key, Value](implicit keyEncoder: KeyEncoder[Key],
-                                      valueEncoder: Encoder[Value]): Encoder[Map[Key, Value]] =
+  implicit def mapEncoder[Key, Value](
+      implicit keyEncoder: KeyEncoder[Key],
+      valueEncoder: Encoder[Value]
+  ): Encoder[Map[Key, Value]] =
     Encoder
       .mapEncoder[Value]
       .comap(_.map { case (key, value) => (keyEncoder.apply(key), value) })
 
-  implicit def mapDecoder[Key, Value](implicit keyDecoder: KeyDecoder[Key],
-                                      valueDecoder: Decoder[Value]): Decoder[Map[Key, Value]] =
+  implicit def mapDecoder[Key, Value](
+      implicit keyDecoder: KeyDecoder[Key],
+      valueDecoder: Decoder[Value]
+  ): Decoder[Map[Key, Value]] =
     Decoder
       .mapDecoder[Value]
       .map(_.map { case (key, value) => (keyDecoder(key).get, value) })

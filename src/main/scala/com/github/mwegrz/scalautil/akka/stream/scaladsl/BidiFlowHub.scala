@@ -5,12 +5,14 @@ import akka.stream.{ ActorMaterializer, KillSwitches }
 import akka.stream.scaladsl.{ BroadcastHub, Flow, Keep, MergeHub, Sink }
 import com.github.mwegrz.app.Shutdownable
 
-class BidiFlowHub[A, B](aBufferSize: Int = 256,
-                        aPerProducerBufferSize: Int = 16,
-                        bBufferSize: Int = 256,
-                        bPerProducerBufferSize: Int = 16,
-                        drainA: Boolean = false,
-                        drainB: Boolean = false)(implicit actorMaterializer: ActorMaterializer)
+class BidiFlowHub[A, B](
+    aBufferSize: Int = 256,
+    aPerProducerBufferSize: Int = 16,
+    bBufferSize: Int = 256,
+    bPerProducerBufferSize: Int = 16,
+    drainA: Boolean = false,
+    drainB: Boolean = false
+)(implicit actorMaterializer: ActorMaterializer)
     extends Shutdownable {
 
   private val ((aSink, akillSwitch), aSource) =

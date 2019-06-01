@@ -56,8 +56,9 @@ class SqlDatabaseClient private (database: Database, maxPoolSize: Int) {
     database.run(a)
   }
 
-  def queryAsync[A](sql: String, params: Seq[Option[Any]] = Nil)(f: Row => A)(
-      implicit timeout: Timeout): Future[List[A]] = {
+  def queryAsync[A](sql: String, params: Seq[Option[Any]] = Nil)(
+      f: Row => A
+  )(implicit timeout: Timeout): Future[List[A]] = {
     val a = new SimpleJdbcAction[List[A]](ctx => {
       withPreparedStatement(ctx.connection, sql) { ps =>
         setParameters(ps, params)
@@ -93,8 +94,9 @@ class SqlDatabaseClient private (database: Database, maxPoolSize: Int) {
       override def statements = Nil
       override def createBuilder = Vector.newBuilder[A]
       override def createInvoker(statements: Iterable[String]) = new Invoker[A] {
-        override def iteratorTo(maxRows: Int)(
-            implicit session: JdbcBackend#SessionDef): CloseableIterator[A] = {
+        override def iteratorTo(
+            maxRows: Int
+        )(implicit session: JdbcBackend#SessionDef): CloseableIterator[A] = {
           val ps = session.conn.prepareStatement(sql.queryParts.mkString)
           val pp = new PositionedParameters(ps)
           sql.unitPConv(Unit, pp)
@@ -117,14 +119,16 @@ class SqlDatabaseClient private (database: Database, maxPoolSize: Int) {
     * @param f   The mapping from [[java.sql.ResultSet]] to the desired `A` resulting row type.
     * @return    Reactive Streams publisher.
     */
-  def queryStream[A](sql: String, params: Seq[Option[Any]] = Nil)(f: Row => A)(
-      implicit timeout: Timeout): Publisher[A] = {
+  def queryStream[A](sql: String, params: Seq[Option[Any]] = Nil)(
+      f: Row => A
+  )(implicit timeout: Timeout): Publisher[A] = {
     val a = new StreamingInvokerAction[Vector[A], A, Effect] {
       override def statements = Nil
       override def createBuilder = Vector.newBuilder[A]
       override def createInvoker(statements: Iterable[String]) = new Invoker[A] {
-        override def iteratorTo(maxRows: Int)(
-            implicit session: JdbcBackend#SessionDef): CloseableIterator[A] = {
+        override def iteratorTo(
+            maxRows: Int
+        )(implicit session: JdbcBackend#SessionDef): CloseableIterator[A] = {
           val ps = session.conn.prepareStatement(sql)
           setParameters(ps, params)
           //ps.setQueryTimeout(timeout.toSeconds)
@@ -149,7 +153,8 @@ class SqlDatabaseClient private (database: Database, maxPoolSize: Int) {
   }
 
   def updateAsync(sql: String, params: Seq[Option[Any]] = Nil)(
-      implicit timeout: Timeout): Future[Int] = {
+      implicit timeout: Timeout
+  ): Future[Int] = {
     val a = new SimpleJdbcAction[Int](c => {
       withPreparedStatement(c.connection, sql) { ps =>
         setParameters(ps, params)
@@ -174,7 +179,8 @@ class SqlDatabaseClient private (database: Database, maxPoolSize: Int) {
   }
 
   def updateBatch(sql: String, params: Seq[Seq[Option[Any]]] = Nil)(
-      implicit timeout: Timeout): Future[Array[Int]] = {
+      implicit timeout: Timeout
+  ): Future[Array[Int]] = {
     val a = new SimpleJdbcAction[Array[Int]](c => {
       withPreparedStatement(c.connection, sql) { ps =>
         params foreach { elem =>
@@ -213,8 +219,9 @@ class SqlDatabaseClient private (database: Database, maxPoolSize: Int) {
       override def statements = Nil
       override def createBuilder = Vector.newBuilder[A]
       override def createInvoker(statements: Iterable[String]) = new Invoker[A] {
-        override def iteratorTo(maxRows: Int)(
-            implicit session: JdbcBackend#SessionDef): CloseableIterator[A] = {
+        override def iteratorTo(
+            maxRows: Int
+        )(implicit session: JdbcBackend#SessionDef): CloseableIterator[A] = {
           new ResultSetIterator[A](qf(session.metaData), maxRows = 0, autoClose = true)(f)
         }
       }
@@ -270,10 +277,12 @@ object SqlDatabaseClient {
     * @param driverClassName overrides sql-database.driver-class-name setting
     * @return configured and initialized [[SqlDatabaseClient]]
     */
-  def apply(url: String,
-            username: Option[String],
-            password: Option[String],
-            driverClassName: Option[String]): SqlDatabaseClient =
+  def apply(
+      url: String,
+      username: Option[String],
+      password: Option[String],
+      driverClassName: Option[String]
+  ): SqlDatabaseClient =
     forConfig(ConfigFactory.parseString(s"""url = "$url"
        |username = "${username.getOrElse("")}"
        |password = "${password.getOrElse("")}"
@@ -304,8 +313,11 @@ object SqlDatabaseClient {
     val minIdle = maxPoolSize
     val updatedConf = ConfigFactory
       .parseMap(
-        Map("async-executor.thread-pool-size" -> new Integer(threadPoolSize),
-            "max-pool-size" -> new Integer(maxPoolSize)).asJava)
+        Map(
+          "async-executor.thread-pool-size" -> new Integer(threadPoolSize),
+          "max-pool-size" -> new Integer(maxPoolSize)
+        ).asJava
+      )
       .withFallback(config)
 
     val queueSize = config.getString("async-executor.queue-size") match {
@@ -324,9 +336,11 @@ object SqlDatabaseClient {
 
           override val maxConnections: Option[Int] = None
         },
-        AsyncExecutor(name = config.getString("async-executor.name"),
-                      numThreads = threadPoolSize,
-                      queueSize = queueSize)
+        AsyncExecutor(
+          name = config.getString("async-executor.name"),
+          numThreads = threadPoolSize,
+          queueSize = queueSize
+        )
       ),
       maxPoolSize
     )
@@ -479,8 +493,8 @@ object SqlDatabaseClient {
   private[sqldatabase] val driver = new JdbcDriver {}
 
   private[sqldatabase] class ResultSetIterator[+A](rs: ResultSet, maxRows: Int, autoClose: Boolean)(
-      f: Row => A)
-      extends ReadAheadIterator[A]
+      f: Row => A
+  ) extends ReadAheadIterator[A]
       with CloseableIterator[A] {
 
     import Implicits.ResultSetOps
@@ -527,7 +541,8 @@ object SqlDatabaseClient {
   }
 
   private[sqldatabase] def withTimeout[A](ps: PreparedStatement, timeout: Timeout)(
-      f: PreparedStatement => A)(implicit ec: ExecutionContext): A = {
+      f: PreparedStatement => A
+  )(implicit ec: ExecutionContext): A = {
     val timedOut = new CountDownLatch(1)
     val cancellerDone = new CountDownLatch(1)
     val canceller = new Runnable {
@@ -563,7 +578,8 @@ object SqlDatabaseClient {
   }
 
   private[sqldatabase] def withPreparedStatement[A](conn: java.sql.Connection, sql: String)(
-      f: PreparedStatement => A): A =
+      f: PreparedStatement => A
+  ): A =
     arm.using(conn.prepareStatement(sql)) { ps =>
       //ps.setQueryTimeout(timeout.toSeconds)
       f(ps)
@@ -611,7 +627,8 @@ object SqlDatabaseClient {
       ds.setTransactionIsolation(config.getString("transaction-isolation"))
     ds.setValidationTimeout(config.getDuration("validation-timeout", TimeUnit.MILLISECONDS))
     ds.setLeakDetectionThreshold(
-      config.getDuration("leak-detection-threshold", TimeUnit.MILLISECONDS))
+      config.getDuration("leak-detection-threshold", TimeUnit.MILLISECONDS)
+    )
 
     val props: Properties = new Properties()
     config.getConfig("properties").entrySet().asScala.foreach { a =>

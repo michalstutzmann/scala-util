@@ -16,19 +16,22 @@ import io.circe.generic.extras.auto._
 import scala.concurrent.{ ExecutionContext, Future }
 
 object Auth0Oauth2Client {
-  def apply(config: Config)(implicit actorSystem: ActorSystem,
-                            actorMaterializer: ActorMaterializer,
-                            executionContext: ExecutionContext): Auth0Oauth2Client =
+  def apply(config: Config)(
+      implicit actorSystem: ActorSystem,
+      actorMaterializer: ActorMaterializer,
+      executionContext: ExecutionContext
+  ): Auth0Oauth2Client =
     new Auth0Oauth2Client(config.withReferenceDefaults("auth0-oauth2-client"))
 
   private implicit val circeConfiguration: Configuration =
     Configuration.default.withSnakeCaseMemberNames.withDefaults
 }
 
-class Auth0Oauth2Client private (config: Config)(implicit actorSystem: ActorSystem,
-                                                 actorMaterializer: ActorMaterializer,
-                                                 executionContext: ExecutionContext)
-    extends Oauth2Client {
+class Auth0Oauth2Client private (config: Config)(
+    implicit actorSystem: ActorSystem,
+    actorMaterializer: ActorMaterializer,
+    executionContext: ExecutionContext
+) extends Oauth2Client {
   import Auth0Oauth2Client._
 
   private val baseUri = Uri(config.getString("base-uri"))

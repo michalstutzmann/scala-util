@@ -167,8 +167,8 @@ class ActorKeyValueStore[Key: Ordering, Value](persistenceId: String)(
     implicit executionContext: ExecutionContext,
     actorRefFactory: ActorRefFactory,
     keySerde: Serde[Key],
-    valueSerde: Serde[Value])
-    extends KeyValueStore[Key, Value]
+    valueSerde: Serde[Value]
+) extends KeyValueStore[Key, Value]
     with Shutdownable {
 
   import ActorKeyValueStore._

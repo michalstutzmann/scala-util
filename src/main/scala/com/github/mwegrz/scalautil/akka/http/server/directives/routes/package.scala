@@ -30,7 +30,8 @@ package object routes {
       entityToSingleDocumentUnmarshaller: FromEntityUnmarshaller[SingleDocument[Value]],
       entityToValueUnmarshaller: FromEntityUnmarshaller[Value],
       fromStringToKeyUnmarshaller: Unmarshaller[String, Key],
-      executionContext: ExecutionContext): Route =
+      executionContext: ExecutionContext
+  ): Route =
     pathEnd {
       get {
         parameters(Symbol("page[cursor]").as[Key].?, Symbol("page[limit]").as[Int]) {
@@ -83,7 +84,7 @@ package object routes {
       implicit valueStore: KeyValueStore[Key, Value],
       unitToEntityMarshaller: ToEntityMarshaller[Unit],
       valueToEntityMarshaller: ToEntityMarshaller[Value],
-      entityToSingleDocumentUnmarshaller: FromEntityUnmarshaller[SingleDocument[Value]],
+      entityToSingleDocumentUnmarshaller: FromEntityUnmarshaller[SingleDocument[Value]]
   ): Route =
     pathEnd {
       post {
@@ -113,7 +114,8 @@ package object routes {
       instantFromStringUnmarshaller: Unmarshaller[String, Instant],
       valueToEntityMarshaller: ToEntityMarshaller[Value],
       executionContext: ExecutionContext,
-      materializer: Materializer): Route = get {
+      materializer: Materializer
+  ): Route = get {
     parameters(
       Symbol("filter[since]").as[Instant].?,
       Symbol("filter[until]").as[Instant].?,
@@ -121,8 +123,9 @@ package object routes {
       Symbol("filter[follow]").as[Boolean].?(false)
     ) { (since, until, tail, follow) =>
       optionalHeaderValueByName("Last-Event-ID") { lastEventId =>
-        val lastEventFromTime = lastEventId.map(value =>
-          Instant.ofEpochMilli(ByteVector.fromBase64(value).get.toLong()).plusNanos(1))
+        val lastEventFromTime = lastEventId.map(
+          value => Instant.ofEpochMilli(ByteVector.fromBase64(value).get.toLong()).plusNanos(1)
+        )
         val lastEventTimeOrFromTime = lastEventFromTime.orElse(since)
         val liveValues = receiveLiveValues(keys)
 
@@ -132,7 +135,8 @@ package object routes {
 
             if (follow) {
               historicalValues.concat(
-                liveValues.buffer(LiveValuesBufferSize, OverflowStrategy.dropNew))
+                liveValues.buffer(LiveValuesBufferSize, OverflowStrategy.dropNew)
+              )
             } else {
               historicalValues
             }
@@ -145,10 +149,13 @@ package object routes {
               if (follow) {
                 val historicalAndLiveValues =
                   historicalValues.concat(
-                    liveValues.buffer(LiveValuesBufferSize, OverflowStrategy.dropNew))
+                    liveValues.buffer(LiveValuesBufferSize, OverflowStrategy.dropNew)
+                  )
                 until
-                  .fold(historicalAndLiveValues)(value =>
-                    historicalAndLiveValues.takeWhile { case (time, _) => time.isBefore(value) })
+                  .fold(historicalAndLiveValues)(
+                    value =>
+                      historicalAndLiveValues.takeWhile { case (time, _) => time.isBefore(value) }
+                  )
               } else {
                 historicalValues
               }
@@ -166,7 +173,8 @@ package object routes {
       //valueStore: TimeSeriesStore[Key, Value],
       valueSink: Sink[(Key, Instant, Value), NotUsed],
       entityToSingleDocumentUnmarshaller: FromEntityUnmarshaller[SingleDocument[Value]],
-      materializer: Materializer): Route = post {
+      materializer: Materializer
+  ): Route = post {
     entity(as[SingleDocument[Value]]) {
       case SingleDocument(Resource(_, _, value)) =>
         keys foreach { key =>
@@ -175,27 +183,32 @@ package object routes {
         }
         complete(
           StatusCodes.Created
-            .copy(intValue = StatusCodes.Created.intValue)(reason = "",
-                                                           defaultMessage = "",
-                                                           allowsEntity = true))
+            .copy(intValue = StatusCodes.Created.intValue)(
+              reason = "",
+              defaultMessage = "",
+              allowsEntity = true
+            )
+        )
     }
   }
 
   private def retrieveHistoricalValues[Key, Value](keys: Set[Key], fromTime: Instant)(
-      implicit valueStore: TimeSeriesStore[Key, Value]): Source[(Instant, Value), NotUsed] =
+      implicit valueStore: TimeSeriesStore[Key, Value]
+  ): Source[(Instant, Value), NotUsed] =
     valueStore
       .retrieveRange(keys, fromTime)
       .map { case (_, time, value) => (time, value) }
 
   private def retrieveHistoricalValues[Key, Value](keys: Set[Key], tail: Int)(
-      implicit valueStore: TimeSeriesStore[Key, Value]): Source[(Instant, Value), NotUsed] =
+      implicit valueStore: TimeSeriesStore[Key, Value]
+  ): Source[(Instant, Value), NotUsed] =
     valueStore
       .retrieveLast(keys, tail)
       .map { case (_, time, value) => (time, value) }
 
   private def receiveLiveValues[Key, Value](keys: Set[Key])(
-      implicit valueSource: Source[(Key, Instant, Value), NotUsed])
-    : Source[(Instant, Value), NotUsed] =
+      implicit valueSource: Source[(Key, Instant, Value), NotUsed]
+  ): Source[(Instant, Value), NotUsed] =
     valueSource
       .filter { case (key, _, _) => keys.contains(key) }
       .map {
@@ -205,7 +218,8 @@ package object routes {
   private def toServerSentEvents[Key, Value](source: Source[(Instant, Value), NotUsed])(
       implicit valueToEntityMarshaller: ToEntityMarshaller[Value],
       executionContext: ExecutionContext,
-      materializer: Materializer): Source[ServerSentEvent, NotUsed] =
+      materializer: Materializer
+  ): Source[ServerSentEvent, NotUsed] =
     source
       .mapAsync(2) {
         case (time, value) =>

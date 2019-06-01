@@ -10,7 +10,8 @@ import org.apache.avro.util.Utf8
 class WrapperAvroOutputStream[T](
     os: OutputStream,
     schema: Schema,
-    serializer: org.apache.avro.io.Encoder)(implicit encoder: Encoder[T])
+    serializer: org.apache.avro.io.Encoder
+)(implicit encoder: Encoder[T])
     extends AvroOutputStream[T] {
 
   override def close(): Unit = {

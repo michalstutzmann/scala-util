@@ -41,9 +41,11 @@ package object crypto {
 
     def aes128(key: Array[Byte], data: Array[Byte]): Array[Byte] = {
       val cipher = Cipher.getInstance("AES_128/CBC/NoPadding")
-      cipher.init(Cipher.ENCRYPT_MODE,
-                  new SecretKeySpec(key, "AES"),
-                  new IvParameterSpec(new Array[Byte](16)))
+      cipher.init(
+        Cipher.ENCRYPT_MODE,
+        new SecretKeySpec(key, "AES"),
+        new IvParameterSpec(new Array[Byte](16))
+      )
       cipher.doFinal(data)
     }
 
@@ -130,41 +132,53 @@ package object crypto {
     Array.empty[Byte]
   }
 
-  def aes128EcbEncrypt(key: ByteVector,
-                       data: ByteVector,
-                       padding: Padding = Padding.`NoPadding`): ByteVector = {
+  def aes128EcbEncrypt(
+      key: ByteVector,
+      data: ByteVector,
+      padding: Padding = Padding.`NoPadding`
+  ): ByteVector = {
     val cipher = Cipher.getInstance(s"AES/ECB/$padding", Provider)
     cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(key.toArray, "AES"))
     ByteVector.view(cipher.doFinal(data.toArray, 0, data.length.toInt))
   }
 
-  def aes128EcbDecrypt(key: ByteVector,
-                       data: ByteVector,
-                       padding: Padding = Padding.`NoPadding`): ByteVector = {
+  def aes128EcbDecrypt(
+      key: ByteVector,
+      data: ByteVector,
+      padding: Padding = Padding.`NoPadding`
+  ): ByteVector = {
     val cipher = Cipher.getInstance(s"AES/ECB/$padding", Provider)
     cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(key.toArray, "AES"))
     ByteVector.view(cipher.doFinal(data.toArray, 0, data.length.toInt))
   }
 
-  def aes128CbcEncrypt(key: ByteVector,
-                       data: ByteVector,
-                       padding: Padding = Padding.`NoPadding`,
-                       iv: InitializationVector = InitializationVector.Zero): ByteVector = {
+  def aes128CbcEncrypt(
+      key: ByteVector,
+      data: ByteVector,
+      padding: Padding = Padding.`NoPadding`,
+      iv: InitializationVector = InitializationVector.Zero
+  ): ByteVector = {
     val cipher = Cipher.getInstance(s"AES/CBC/$padding", Provider)
-    cipher.init(Cipher.ENCRYPT_MODE,
-                new SecretKeySpec(key.toArray, "AES"),
-                new IvParameterSpec(iv.toArray))
+    cipher.init(
+      Cipher.ENCRYPT_MODE,
+      new SecretKeySpec(key.toArray, "AES"),
+      new IvParameterSpec(iv.toArray)
+    )
     ByteVector.view(cipher.doFinal(data.toArray, 0, data.length.toInt))
   }
 
-  def aes128CbcDecrypt(key: ByteVector,
-                       data: ByteVector,
-                       padding: Padding = Padding.`NoPadding`,
-                       iv: InitializationVector = InitializationVector.Zero): ByteVector = {
+  def aes128CbcDecrypt(
+      key: ByteVector,
+      data: ByteVector,
+      padding: Padding = Padding.`NoPadding`,
+      iv: InitializationVector = InitializationVector.Zero
+  ): ByteVector = {
     val cipher = Cipher.getInstance(s"AES/CBC/$padding", Provider)
-    cipher.init(Cipher.DECRYPT_MODE,
-                new SecretKeySpec(key.toArray, "AES"),
-                new IvParameterSpec(iv.toArray))
+    cipher.init(
+      Cipher.DECRYPT_MODE,
+      new SecretKeySpec(key.toArray, "AES"),
+      new IvParameterSpec(iv.toArray)
+    )
     ByteVector.view(cipher.doFinal(data.toArray, 0, data.length.toInt))
   }
 

@@ -9,12 +9,16 @@ import scodec.bits.{ BitVector, ByteVector }
 import shapeless.{ ::, Generic, HNil, Lazy }
 
 object coding {
-  implicit def valueClassEncoder[CC <: AnyVal, A](implicit rep: CaseClass1Rep[CC, A],
-                                                  delegate: Encoder[A]): Encoder[CC] =
+  implicit def valueClassEncoder[CC <: AnyVal, A](
+      implicit rep: CaseClass1Rep[CC, A],
+      delegate: Encoder[A]
+  ): Encoder[CC] =
     delegate.contramap(rep.unapply)
 
-  implicit def valueClassFromValue[CC <: AnyVal, B](implicit rep: CaseClass1Rep[CC, B],
-                                                    delegate: Decoder[B]): Decoder[CC] =
+  implicit def valueClassFromValue[CC <: AnyVal, B](
+      implicit rep: CaseClass1Rep[CC, B],
+      delegate: Decoder[B]
+  ): Decoder[CC] =
     delegate.map { rep.apply }
 
   implicit val ByteVectorEncoder: Encoder[ByteVector] = Encoder.encodeString.contramap(_.toHex)
@@ -30,11 +34,13 @@ object coding {
 
   implicit def stringValueClassKeyEncoder[Key, Ref](
       implicit generic: Lazy[Generic.Aux[Key, Ref]],
-      evidence: Ref <:< (String :: HNil)): KeyEncoder[Key] = key => generic.value.to(key).head
+      evidence: Ref <:< (String :: HNil)
+  ): KeyEncoder[Key] = key => generic.value.to(key).head
 
   implicit def stringValueClassKeyDecoder[Key, Ref](
       implicit generic: Lazy[Generic.Aux[Key, Ref]],
-      evidence: (String :: HNil) =:= Ref): KeyDecoder[Key] =
+      evidence: (String :: HNil) =:= Ref
+  ): KeyDecoder[Key] =
     string => Some(generic.value.from(string :: HNil))
 
   implicit def byteArrayKeyEncoder: KeyEncoder[Array[Byte]] = Base64.getEncoder.encodeToString

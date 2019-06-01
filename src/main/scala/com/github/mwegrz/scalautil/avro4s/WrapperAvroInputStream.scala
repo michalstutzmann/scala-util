@@ -11,8 +11,8 @@ import org.apache.avro.util.Utf8
 import scala.util.Try
 
 class WrapperAvroInputStream[T](in: InputStream, writerSchema: Schema, readerSchema: Schema)(
-    implicit decoder: Decoder[T])
-    extends AvroInputStream[T] {
+    implicit decoder: Decoder[T]
+) extends AvroInputStream[T] {
 
   private val datumReader = readerSchema.getType match {
     case Schema.Type.STRING =>

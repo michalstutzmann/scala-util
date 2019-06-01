@@ -12,11 +12,11 @@ import akka.util.ByteString
 import scala.collection.mutable
 import scala.concurrent.Future
 
-class UdpFlowStage(localAddr: InetSocketAddress,
-                   maxBufferSize: Int,
-                   dropped: Sink[(ByteString, InetSocketAddress), Future[Done]])(
-    implicit actorSystem: ActorSystem,
-    actorMaterializer: ActorMaterializer)
+class UdpFlowStage(
+    localAddr: InetSocketAddress,
+    maxBufferSize: Int,
+    dropped: Sink[(ByteString, InetSocketAddress), Future[Done]]
+)(implicit actorSystem: ActorSystem, actorMaterializer: ActorMaterializer)
     extends GraphStage[FlowShape[(ByteString, InetSocketAddress), (ByteString, InetSocketAddress)]] {
   private val name = getClass.getName
   private val in = Inlet[(ByteString, InetSocketAddress)](s"$name.in")

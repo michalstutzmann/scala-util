@@ -7,7 +7,8 @@ object marshalling {
   implicit def valueClassMarshaller[ValueClass, Ref, Value, A](
       implicit generic: Lazy[Generic.Aux[ValueClass, Ref]],
       evidence: Ref <:< (Value :: HNil),
-      marshaller: Marshaller[Value, A]): Marshaller[ValueClass, A] =
+      marshaller: Marshaller[Value, A]
+  ): Marshaller[ValueClass, A] =
     marshaller.compose { value =>
       generic.value.to(value).head
     }

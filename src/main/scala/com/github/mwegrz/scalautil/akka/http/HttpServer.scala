@@ -20,9 +20,11 @@ import com.github.mwegrz.scalautil.akka.http.server.directives.CorsHandler
 import scala.concurrent.ExecutionContext
 
 object HttpServer {
-  def apply(config: Config, httpApis: Set[HttpApi])(implicit actorSystem: ActorSystem,
-                                                    actorMaterializer: ActorMaterializer,
-                                                    executor: ExecutionContext): HttpServer =
+  def apply(config: Config, httpApis: Set[HttpApi])(
+      implicit actorSystem: ActorSystem,
+      actorMaterializer: ActorMaterializer,
+      executor: ExecutionContext
+  ): HttpServer =
     new HttpServer(config.withReferenceDefaults("http-server"), httpApis)
 
   private def generateRequestId(): String = UUID.randomUUID().toString
@@ -31,8 +33,8 @@ object HttpServer {
 class HttpServer private (config: Config, httpApis: Set[HttpApi])(
     implicit actorSystem: ActorSystem,
     actorMaterializer: ActorMaterializer,
-    executor: ExecutionContext)
-    extends Shutdownable
+    executor: ExecutionContext
+) extends Shutdownable
     with KeyValueLogging
     with CorsHandler {
 
@@ -50,37 +52,45 @@ class HttpServer private (config: Config, httpApis: Set[HttpApi])(
         val requestId = generateRequestId()
         val time = Instant.now()
         context.request match {
-          case HttpRequest(HttpMethod(method, _, _, _),
-                           uri,
-                           headers,
-                           HttpEntity.Strict(contentType, data),
-                           HttpProtocol(protocol)) =>
+          case HttpRequest(
+              HttpMethod(method, _, _, _),
+              uri,
+              headers,
+              HttpEntity.Strict(contentType, data),
+              HttpProtocol(protocol)
+              ) =>
             log.info(
               "Received request",
-              ("id" -> requestId,
-               "client-ip" -> clientIp.value,
-               "method" -> method,
-               "uri" -> uri,
-               "protocol" -> protocol,
-               "headers" -> headers.mkString(","),
-               "content-type" -> contentType,
-               "data" -> data.toByteVector.toBase64)
+              (
+                "id" -> requestId,
+                "client-ip" -> clientIp.value,
+                "method" -> method,
+                "uri" -> uri,
+                "protocol" -> protocol,
+                "headers" -> headers.mkString(","),
+                "content-type" -> contentType,
+                "data" -> data.toByteVector.toBase64
+              )
             )
-          case HttpRequest(HttpMethod(method, _, _, _),
-                           uri,
-                           headers,
-                           HttpEntity.Default(contentType, contentLength, _),
-                           HttpProtocol(protocol)) =>
+          case HttpRequest(
+              HttpMethod(method, _, _, _),
+              uri,
+              headers,
+              HttpEntity.Default(contentType, contentLength, _),
+              HttpProtocol(protocol)
+              ) =>
             log.info(
               "Received request",
-              ("id" -> requestId,
-               "client-ip" -> clientIp.value,
-               "method" -> method,
-               "uri" -> uri,
-               "protocol" -> protocol,
-               "headers" -> headers.mkString(","),
-               "content-type" -> contentType,
-               "content-length" -> contentLength)
+              (
+                "id" -> requestId,
+                "client-ip" -> clientIp.value,
+                "method" -> method,
+                "uri" -> uri,
+                "protocol" -> protocol,
+                "headers" -> headers.mkString(","),
+                "content-type" -> contentType,
+                "content-length" -> contentLength
+              )
             )
         }
         httpApis
@@ -105,8 +115,9 @@ class HttpServer private (config: Config, httpApis: Set[HttpApi])(
 
   bindingFuture
     .map(_.localAddress)
-    .map(localAddress =>
-      log.info(s"Bound to ${localAddress.getHostString}:${localAddress.getPort}"))
+    .map(
+      localAddress => log.info(s"Bound to ${localAddress.getHostString}:${localAddress.getPort}")
+    )
 
   override def shutdown(): Unit = bindingFuture.flatMap(_.unbind()).map(_ => log.debug("Shut down"))
 }
