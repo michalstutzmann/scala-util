@@ -598,7 +598,7 @@ object SqlDatabaseClient {
     ds.setMaximumPoolSize(maxPoolSize)
     ds.setMinimumIdle(minIdle)
     ds.setPoolName(config.getString("pool-name"))
-    ds.setInitializationFailFast(config.getBoolean("initialization-fail-fast"))
+    //ds.setInitializationFailFast(config.getBoolean("initialization-fail-fast"))
     ds.setIsolateInternalQueries(config.getBoolean("isolate-internal-queries"))
     ds.setAllowPoolSuspension(config.getBoolean("allow-pool-suspension"))
     ds.setReadOnly(config.getBoolean("read-only"))

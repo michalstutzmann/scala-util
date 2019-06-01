@@ -1,1 +1,1 @@
-addSbtPlugin("com.github.mwegrz" % "sbt-mwegrz" % "0.1.5")
+addSbtPlugin("com.github.mwegrz" % "sbt-mwegrz" % "0.1.6")

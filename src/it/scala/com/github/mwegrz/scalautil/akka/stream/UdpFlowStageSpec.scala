@@ -1,11 +1,11 @@
-package com.github.mwegrz.scalautil.akka.streams
+package com.github.mwegrz.scalautil.akka.stream
 
 import java.net._
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{ Keep, Sink, Source }
 import akka.util.ByteString
-import com.github.mwegrz.scalautil.akka.streams.scaladsl.UdpFlow
+import com.github.mwegrz.scalautil.akka.stream.scaladsl.UdpFlow
 import com.github.mwegrz.scalautil.scalatest.TestSpec
 import org.scalatest.concurrent.Eventually
 import scala.concurrent.duration._

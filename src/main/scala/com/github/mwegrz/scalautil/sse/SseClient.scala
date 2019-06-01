@@ -7,7 +7,9 @@ import akka.http.scaladsl.model.headers.{ Authorization, HttpCredentials }
 import akka.http.scaladsl.model.{ HttpRequest, Uri }
 import akka.http.scaladsl.settings.ConnectionPoolSettings
 import akka.stream.ActorMaterializer
+import akka.stream.alpakka.sse.scaladsl.EventSource
 import akka.stream.scaladsl.Source
+import com.github.mwegrz.scalautil.akka.stream.alpakka.sse.scaladsl.NotRetryingEventSource
 
 import scala.concurrent.{ ExecutionContext, Future }
 
@@ -21,7 +23,8 @@ object SseClient {
 trait SseClient {
   def createSource(uri: Uri,
                    initialLastEventId: Option[String],
-                   authorize: => Future[HttpCredentials]): Source[SseEvent, NotUsed]
+                   authorize: => Future[HttpCredentials],
+                   reconnect: Boolean): Source[SseEvent, NotUsed]
 }
 
 class DefaultSseClient(implicit actorSystem: ActorSystem,
@@ -32,7 +35,8 @@ class DefaultSseClient(implicit actorSystem: ActorSystem,
 
   override def createSource(uri: Uri,
                             initialLastEventId: Option[String],
-                            authorize: => Future[HttpCredentials]): Source[SseEvent, NotUsed] = {
+                            authorize: => Future[HttpCredentials],
+                            reconnect: Boolean): Source[SseEvent, NotUsed] = {
     def send(request: HttpRequest) =
       authorize.flatMap { accessToken =>
         Http()
@@ -41,6 +45,10 @@ class DefaultSseClient(implicit actorSystem: ActorSystem,
             settings = connectionPoolSettings)
       }
 
-    NotRetryingEventSource(uri, send, initialLastEventId)
+    if (reconnect) {
+      EventSource(uri, send, initialLastEventId)
+    } else {
+      NotRetryingEventSource(uri, send, initialLastEventId)
+    }
   }
 }

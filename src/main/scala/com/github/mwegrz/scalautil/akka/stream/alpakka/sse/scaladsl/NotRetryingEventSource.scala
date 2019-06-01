@@ -1,4 +1,4 @@
-package com.github.mwegrz.scalautil.sse
+package com.github.mwegrz.scalautil.akka.stream.alpakka.sse.scaladsl
 
 import akka.NotUsed
 import akka.actor.ActorSystem

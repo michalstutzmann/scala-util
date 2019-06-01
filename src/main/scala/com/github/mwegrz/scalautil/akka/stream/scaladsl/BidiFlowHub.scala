@@ -1,4 +1,4 @@
-package com.github.mwegrz.scalautil.akka.streams.scaladsl
+package com.github.mwegrz.scalautil.akka.stream.scaladsl
 
 import akka.NotUsed
 import akka.stream.{ ActorMaterializer, KillSwitches }

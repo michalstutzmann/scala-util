@@ -1,4 +1,4 @@
-package com.github.mwegrz.scalautil.akka.streams
+package com.github.mwegrz.scalautil.akka.stream
 
 import java.net.InetSocketAddress
 import akka.stream.FlowShape
