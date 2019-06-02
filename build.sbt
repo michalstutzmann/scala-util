@@ -13,6 +13,7 @@ lazy val root = (project in file("."))
       AkkaPersistence % Optional,
       AkkaSlf4j % Optional,
       AkkaTestkit % Test,
+      AkkaHttpCors % Optional,
       AkkaHttpCirce % Optional,
       AkkaHttpAvro4s % Optional,
       AlpakkaKafka % Optional,
