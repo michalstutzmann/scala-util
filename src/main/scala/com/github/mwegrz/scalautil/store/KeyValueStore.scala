@@ -33,57 +33,50 @@ object ActorKeyValueStore {
   private implicit val keyBytesOrdering: Ordering[ByteVector] =
     Ordering.by((_: ByteVector).toIterable)
 
-  private type KeyBytes = Array[Byte]
-
-  private type ValueBytes = Array[Byte]
-
   object Add {
     class AkkaSerializer(extendedActorSystem: ExtendedActorSystem)
         extends ResourceAvroSerializer[Add](extendedActorSystem, currentVersion = 1)
   }
 
-  final case class Add(key: KeyBytes, value: ValueBytes)
+  final case class Add(key: ByteVector, value: ByteVector)
 
-  final case class Retrieve(key: KeyBytes)
+  final case class Retrieve(key: ByteVector)
 
   case object RetrieveAll
 
-  case class RetrievePage(key: Option[KeyBytes], count: Int)
+  case class RetrievePage(key: Option[ByteVector], count: Int)
 
   object Delete {
     class AkkaSerializer(extendedActorSystem: ExtendedActorSystem)
         extends ResourceAvroSerializer[Delete](extendedActorSystem, currentVersion = 1)
   }
 
-  final case class Delete(key: KeyBytes)
+  final case class Delete(key: ByteVector)
 
   object State {
     def zero: State =
-      State(SortedMap.empty[ByteVector, ValueBytes])
+      State(SortedMap.empty[ByteVector, ByteVector])
 
     class AkkaSerializer(extendedActorSystem: ExtendedActorSystem)
         extends ResourceAvroSerializer[Delete](extendedActorSystem, currentVersion = 1)
   }
 
-  final case class State(values: SortedMap[ByteVector, ValueBytes]) {
-    def add(key: KeyBytes, value: ValueBytes): State =
-      copy(values = values + ((ByteVector(key), value)))
+  final case class State(values: SortedMap[ByteVector, ByteVector]) {
+    def add(key: ByteVector, value: ByteVector): State =
+      copy(values = values + ((key, value)))
 
-    def retrieveAll: Map[KeyBytes, ValueBytes] = values.map {
-      case (key, value) => (key.toArray, value)
-    }
+    def retrieveAll: SortedMap[ByteVector, ByteVector] = values
 
-    def retrieve(key: KeyBytes): Option[ValueBytes] = values.get(ByteVector(key))
+    def retrieve(key: ByteVector): Option[ByteVector] = values.get(key)
 
-    def retrievePage(key: Option[KeyBytes], count: Int): Map[KeyBytes, ValueBytes] =
+    def retrievePage(key: Option[ByteVector], count: Int): Map[ByteVector, ByteVector] =
       key
         .fold(values) { k =>
-          values.from(ByteVector(k))
+          values.from(k)
         }
         .take(count)
-        .map { case (key, value) => (key.toArray, value) }
 
-    def delete(key: KeyBytes): State = copy(values = values - ByteVector(key))
+    def delete(key: ByteVector): State = copy(values = values - key)
   }
 
   private object EventSourcedActor {
@@ -100,13 +93,13 @@ object ActorKeyValueStore {
 
       case RecoveryCompleted => ()
 
-      case Delete(key: KeyBytes) => state = state.delete(key)
+      case Delete(key: ByteVector) => state = state.delete(key)
 
-      case Add(key: KeyBytes, value: ValueBytes) => state = state.add(key, value)
+      case Add(key: ByteVector, value: ByteVector) => state = state.add(key, value)
     }
 
     override val receiveCommand: Receive = {
-      case event @ Add(key: KeyBytes, value: ValueBytes) =>
+      case event @ Add(key: ByteVector, value: ByteVector) =>
         persist(event) { _ =>
           state = state.add(key, value)
           saveSnapshotIfNeeded()
@@ -115,12 +108,12 @@ object ActorKeyValueStore {
 
       case RetrieveAll => sender() ! state.retrieveAll
 
-      case RetrievePage(key: Option[KeyBytes], count: Int) =>
+      case RetrievePage(key: Option[ByteVector], count: Int) =>
         sender() ! state.retrievePage(key, count)
 
-      case Retrieve(key: KeyBytes) => sender() ! state.retrieve(key)
+      case Retrieve(key: ByteVector) => sender() ! state.retrieve(key)
 
-      case event @ Delete(key: KeyBytes) =>
+      case event @ Delete(key: ByteVector) =>
         persist(event) { _ =>
           state = state.delete(key)
           saveSnapshotIfNeeded()
@@ -188,31 +181,34 @@ class ActorKeyValueStore[Key: Ordering, Value](persistenceId: String)(
       .mapMaterializedValue(_ => NotUsed)
 
   override def add(key: Key, value: Value): Future[Unit] =
-    (actor ? Add(keySerde.valueToBinary(key), valueSerde.valueToBinary(value))).mapTo[Unit]
+    (actor ? Add(
+      ByteVector(keySerde.valueToBinary(key)),
+      ByteVector(valueSerde.valueToBinary(value))
+    )).mapTo[Unit]
 
   override def retrieve(key: Key): Future[Option[Value]] =
-    (actor ? Retrieve(keySerde.valueToBinary(key)))
-      .mapTo[Option[Array[Byte]]]
-      .map(_.map(valueSerde.binaryToValue))
+    (actor ? Retrieve(ByteVector(keySerde.valueToBinary(key))))
+      .mapTo[Option[ByteVector]]
+      .map(_.map(value => valueSerde.binaryToValue(value.toArray)))
 
   override def retrieveAll: Future[SortedMap[Key, Value]] =
     (actor ? RetrieveAll)
-      .mapTo[SortedMap[Array[Byte], Array[Byte]]]
+      .mapTo[SortedMap[ByteVector, ByteVector]]
       .map(_.map {
         case (binaryKey, binaryValue) =>
-          (keySerde.binaryToValue(binaryKey), valueSerde.binaryToValue(binaryValue))
+          (keySerde.binaryToValue(binaryKey.toArray), valueSerde.binaryToValue(binaryValue.toArray))
       })
 
   override def retrievePage(cursor: Option[Key], count: Int): Future[SortedMap[Key, Value]] =
-    (actor ? RetrievePage(cursor.map(keySerde.valueToBinary), count))
-      .mapTo[SortedMap[Array[Byte], Array[Byte]]]
+    (actor ? RetrievePage(cursor.map(keySerde.valueToBinary).map(ByteVector(_)), count))
+      .mapTo[SortedMap[ByteVector, ByteVector]]
       .map(_.map {
         case (binaryKey, binaryValue) =>
-          (keySerde.binaryToValue(binaryKey), valueSerde.binaryToValue(binaryValue))
+          (keySerde.binaryToValue(binaryKey.toArray), valueSerde.binaryToValue(binaryValue.toArray))
       })
 
   override def delete(key: Key): Future[Unit] =
-    (actor ? Delete(keySerde.valueToBinary(key))).mapTo[Unit]
+    (actor ? Delete(ByteVector(keySerde.valueToBinary(key)))).mapTo[Unit]
 
   override def shutdown(): Unit = actorRefFactory.stop(actor)
 }

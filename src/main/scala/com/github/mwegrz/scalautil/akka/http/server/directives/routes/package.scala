@@ -107,7 +107,7 @@ package object routes {
         }
     }
 
-  def timeSeriesStoreSource[Key, Value](name: String, keys: Set[Key])(
+  def timeSeriesSource[Key, Value](name: String, keys: Set[Key])(
       implicit
       valueStore: TimeSeriesStore[Key, Value],
       valueSource: Source[(Key, Instant, Value), NotUsed],
@@ -168,7 +168,7 @@ package object routes {
     }
   }
 
-  def timeSeriesStoreSink[Key, Value](name: String, keys: Set[Key])(
+  def timeSeriesSink[Key, Value](name: String, keys: Set[Key])(
       implicit
       //valueStore: TimeSeriesStore[Key, Value],
       valueSink: Sink[(Key, Instant, Value), NotUsed],
