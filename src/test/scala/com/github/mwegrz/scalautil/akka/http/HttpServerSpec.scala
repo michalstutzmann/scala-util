@@ -9,12 +9,7 @@ import org.scalatest.concurrent.Eventually
 import akka.http.scaladsl.server.Directives._
 import com.typesafe.config.ConfigFactory
 
-class HttpServerSpec
-    extends TestSpec
-    with Matchers
-    with ScalatestRouteTest
-    with Eventually
-    with BeforeAndAfterAll {
+class HttpServerSpec extends TestSpec with Matchers with ScalatestRouteTest with Eventually with BeforeAndAfterAll {
   private val httpApiA: HttpApi = (requestId: String, time: Instant) => path("a") { complete("a") }
   private val httpApiB: HttpApi = (requestId: String, time: Instant) => path("b") { complete("b") }
 
