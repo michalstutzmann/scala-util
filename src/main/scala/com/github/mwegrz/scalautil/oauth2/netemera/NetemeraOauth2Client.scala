@@ -52,8 +52,7 @@ class NetemeraOauth2Client private (config: Config)(
       HttpRequest(
         method = HttpMethods.POST,
         uri = uri,
-        entity =
-          FormData("grant_type" -> GrantType.ClientCredentials.value, "audience" -> audience).toEntity
+        entity = FormData("grant_type" -> GrantType.ClientCredentials.value, "audience" -> audience).toEntity
       ).addCredentials(credentials)
 
     http

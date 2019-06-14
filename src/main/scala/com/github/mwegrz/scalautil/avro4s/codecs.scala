@@ -6,12 +6,11 @@ import akka.http.scaladsl.model.Uri
 import com.sksamuel.avro4s._
 import io.circe.{ KeyDecoder, KeyEncoder }
 import org.apache.avro.Schema
-import pl.iterators.kebs.macros.CaseClass1Rep
 import scodec.bits.{ BitVector, ByteVector }
-import com.github.mwegrz.scalautil.circe
+import com.github.mwegrz.scalautil.{ CaseClass1Rep, circe }
 import shapeless.{ ::, Generic, HNil, Lazy }
 
-object coding {
+object codecs {
   implicit val ByteVectorSchemaFor: SchemaFor[ByteVector] =
     SchemaFor.const(Schema.create(Schema.Type.BYTES))
   implicit val ByteVectorEncoder: Encoder[ByteVector] =
@@ -76,11 +75,10 @@ object coding {
   implicit def stringValueClassKeyEncoder[Key, Ref](
       implicit generic: Lazy[Generic.Aux[Key, Ref]],
       evidence: Ref <:< (String :: HNil)
-  ): KeyEncoder[Key] = circe.coding.stringValueClassKeyEncoder
+  ): KeyEncoder[Key] = circe.codecs.stringValueClassKeyEncoder
 
   implicit def stringValueClassKeyDecoder[Key, Ref](
       implicit generic: Lazy[Generic.Aux[Key, Ref]],
       evidence: (String :: HNil) =:= Ref
-  ): KeyDecoder[Key] = circe.coding.stringValueClassKeyDecoder
-
+  ): KeyDecoder[Key] = circe.codecs.stringValueClassKeyDecoder
 }

@@ -79,8 +79,7 @@ class DefaultMqttClient private[mqtt] (config: Config)(
   ): Flow[(String, A), (String, B), NotUsed] = {
     val connection = Tcp().outgoingConnection(host, port)
     val session = ActorMqttClientSession(MqttSessionSettings())
-    val clientSessionFlow
-        : Flow[Command[() => Unit], Either[MqttCodec.DecodeError, Event[() => Unit]], NotUsed] =
+    val clientSessionFlow: Flow[Command[() => Unit], Either[MqttCodec.DecodeError, Event[() => Unit]], NotUsed] =
       Mqtt
         .clientSessionFlow(session)
         .join(connection)

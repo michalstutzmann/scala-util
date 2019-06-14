@@ -27,8 +27,7 @@ object SecurityDirectives {
   ): AsyncAuthenticator[V] = {
     case credentials @ Credentials.Provided(id) =>
       store.retrieve(idToKey(id)).map {
-        case Some(client)
-            if credentials.verify(client.hashedSecret, secret => hashSecret(secret, client.salt)) =>
+        case Some(client) if credentials.verify(client.hashedSecret, secret => hashSecret(secret, client.salt)) =>
           Some(client)
         case _ => None
       }

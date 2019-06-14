@@ -34,20 +34,19 @@ package object routes {
   ): Route =
     pathEnd {
       get {
-        parameters(Symbol("page[cursor]").as[Key].?, Symbol("page[limit]").as[Int]) {
-          (cursor, limit) =>
-            val envelope = valueStore
-              .retrievePage(cursor, limit + 1)
-              .map { elems =>
-                val data =
-                  elems
-                    .take(limit)
-                    .toList
-                    .map { case (key, value) => Resource(name, Some(key.toString), value) }
-                //val nextCursor = a.keys.lastOption.map(b => ByteVector.encodeAscii(b.toString).right.get.toBase64)
-                MultiDocument(data)
-              }
-            complete(envelope)
+        parameters(Symbol("page[cursor]").as[Key].?, Symbol("page[limit]").as[Int]) { (cursor, limit) =>
+          val envelope = valueStore
+            .retrievePage(cursor, limit + 1)
+            .map { elems =>
+              val data =
+                elems
+                  .take(limit)
+                  .toList
+                  .map { case (key, value) => Resource(name, Some(key.toString), value) }
+              //val nextCursor = a.keys.lastOption.map(b => ByteVector.encodeAscii(b.toString).right.get.toBase64)
+              MultiDocument(data)
+            }
+          complete(envelope)
         } ~ pass {
           val envelope = valueStore.retrieveAll
             .map { values =>
@@ -153,8 +152,7 @@ package object routes {
                   )
                 until
                   .fold(historicalAndLiveValues)(
-                    value =>
-                      historicalAndLiveValues.takeWhile { case (time, _) => time.isBefore(value) }
+                    value => historicalAndLiveValues.takeWhile { case (time, _) => time.isBefore(value) }
                   )
               } else {
                 historicalValues

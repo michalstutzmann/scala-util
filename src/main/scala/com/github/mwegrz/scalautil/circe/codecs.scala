@@ -3,12 +3,12 @@ package com.github.mwegrz.scalautil.circe
 import java.util.Base64
 
 import akka.http.scaladsl.model.Uri
+import com.github.mwegrz.scalautil.CaseClass1Rep
 import io.circe.{ Decoder, Encoder, KeyDecoder, KeyEncoder }
-import pl.iterators.kebs.macros.CaseClass1Rep
 import scodec.bits.{ BitVector, ByteVector }
 import shapeless.{ ::, Generic, HNil, Lazy }
 
-object coding {
+object codecs {
   implicit def valueClassEncoder[CC <: AnyVal, A](
       implicit rep: CaseClass1Rep[CC, A],
       delegate: Encoder[A]

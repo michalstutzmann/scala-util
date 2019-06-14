@@ -9,8 +9,8 @@ import com.github.mwegrz.app.Shutdownable
 import com.github.mwegrz.scalautil.akka.serialization.ResourceAvroSerializer
 import com.github.mwegrz.scalautil.serialization.Serde
 import com.sksamuel.avro4s._
-import com.github.mwegrz.scalautil.circe.coding.{ byteArrayKeyDecoder, byteArrayKeyEncoder }
-import com.github.mwegrz.scalautil.avro4s.coding._
+import com.github.mwegrz.scalautil.circe.codecs.{ byteArrayKeyDecoder, byteArrayKeyEncoder }
+import com.github.mwegrz.scalautil.avro4s.codecs._
 import scodec.bits.ByteVector
 
 import scala.collection.immutable.SortedMap
@@ -128,8 +128,7 @@ object ActorKeyValueStore {
 
 }
 
-class InMemoryKeyValueStore[Key: Ordering, Value](initialValues: Map[Key, Value])
-    extends KeyValueStore[Key, Value] {
+class InMemoryKeyValueStore[Key: Ordering, Value](initialValues: Map[Key, Value]) extends KeyValueStore[Key, Value] {
   private var valuesByKey = SortedMap(initialValues.toSeq: _*)
 
   override def add(key: Key, value: Value): Future[Unit] = Future.successful {

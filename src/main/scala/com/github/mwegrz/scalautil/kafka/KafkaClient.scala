@@ -164,8 +164,7 @@ class DefaultKafkaClient private[kafka] (config: Config)(
           )
       }
 
-    val uplink
-        : Flow[CommittableMessage[Array[Byte], Array[Byte]], (B, CommittableOffset), NotUsed] =
+    val uplink: Flow[CommittableMessage[Array[Byte], Array[Byte]], (B, CommittableOffset), NotUsed] =
       Flow[CommittableMessage[Array[Byte], Array[Byte]]].map { m =>
         val b = fromBinary(m.record.key(), m.record.value())
         (b, m.committableOffset)
