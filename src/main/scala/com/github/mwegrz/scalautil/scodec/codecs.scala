@@ -19,6 +19,34 @@ object codecs {
       codec.decode(bits.dropRight(n * 8L)).map { _.copy(remainder = bits.takeRight(n * 8L)) }
     })
 
+  def unboundedList[A](elementBitLength: Int, codec: Codec[A]): Codec[List[A]] =
+    boundedList(None, elementBitLength, codec)
+
+  def boundedList[A](bitLength: Int, elementBitLength: Int, codec: Codec[A]): Codec[List[A]] =
+    boundedList(Some(bitLength), elementBitLength, codec)
+
+  private def boundedList[A](bitLength: Option[Int], elementBitLength: Int, codec: Codec[A]): Codec[List[A]] =
+    new Codec[List[A]] {
+      override val sizeBound: SizeBound = bitLength.fold(SizeBound.unknown)(value => SizeBound.exact(value))
+
+      override def encode(value: List[A]): Attempt[BitVector] = {
+        val encode = Try(value.map(codec.encode).map(_.require))
+        Attempt.fromTry(encode).map(_.foldLeft(BitVector.empty)((a, b) => a ++ b))
+      }
+
+      override def decode(bits: BitVector): Attempt[DecodeResult[List[A]]] = {
+        val decode = Try(
+          bits
+            .grouped(elementBitLength)
+            .map(codec.decode)
+            .map(_.require)
+            .toList
+        )
+
+        Attempt.fromTry(decode).map(value => DecodeResult(value.map(_.value), value.last.remainder))
+      }
+    }
+
   Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider())
 
   def aesCtrEncrypted[A](iv: ByteVector, key: ByteVector, codec: Codec[A]): Codec[A] =

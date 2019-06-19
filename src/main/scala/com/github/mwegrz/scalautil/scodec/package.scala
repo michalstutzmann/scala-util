@@ -1,6 +1,6 @@
 package com.github.mwegrz.scalautil
 
-import _root_.scodec.bits.{ ByteOrdering, ByteVector }
+import _root_.scodec.bits.{ BitVector, ByteOrdering, ByteVector }
 import _root_.scodec.bits.ByteOrdering.{ BigEndian, LittleEndian }
 import _root_.scodec.{ Attempt, Codec }
 
@@ -13,7 +13,11 @@ package object scodec {
         .widen[B](a => a.asInstanceOf[B], value => Attempt.successful(value.asInstanceOf[A]))
   }
 
-  implicit class RichByteVector(byteVector: ByteVector) {
+  implicit class BitVectorOps(bitVector: BitVector) {
+    def grouped(size: Int): Iterator[BitVector] = bitVector.toIndexedSeq.grouped(size).map(BitVector.bits)
+  }
+
+  implicit class ByteVectorOps(byteVector: ByteVector) {
     def toHex(ordering: ByteOrdering): String = {
       val orderedBytes = ordering match {
         case BigEndian    => byteVector

@@ -4,7 +4,7 @@ import akka.NotUsed
 import akka.http.scaladsl.marshalling.{ Marshal, ToEntityMarshaller }
 import akka.http.scaladsl.model.{ MessageEntity, StatusCodes }
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.{ PathMatcher1, Route }
+import akka.http.scaladsl.server.{ Directive, Directive0, PathMatcher1, Route, ValidationRejection }
 import akka.http.scaladsl.unmarshalling.{ FromEntityUnmarshaller, Unmarshaller }
 import akka.stream.{ Materializer, OverflowStrategy }
 import akka.stream.scaladsl.{ Sink, Source }
@@ -13,7 +13,9 @@ import akka.http.scaladsl.marshalling.sse.EventStreamMarshalling._
 import java.time.Instant
 
 import akka.http.scaladsl.model.sse.ServerSentEvent
+import akka.http.scaladsl.server.directives.RouteDirectives.reject
 import com.github.mwegrz.scalautil.store.{ KeyValueStore, TimeSeriesStore }
+import org.scalactic.{ Bad, Good }
 
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext
@@ -22,7 +24,7 @@ package object routes {
   private val LiveValuesBufferSize = 1000
 
   def keyValueStore[Key, Value](name: String)(
-      implicit valueStore: KeyValueStore[Key, Value],
+      implicit store: KeyValueStore[Key, Value],
       keyPathMatcher: PathMatcher1[Key],
       unitToEntityMarshaller: ToEntityMarshaller[Unit],
       valueToEntityMarshaller: ToEntityMarshaller[Value],
@@ -30,12 +32,13 @@ package object routes {
       entityToSingleDocumentUnmarshaller: FromEntityUnmarshaller[SingleDocument[Value]],
       entityToValueUnmarshaller: FromEntityUnmarshaller[Value],
       fromStringToKeyUnmarshaller: Unmarshaller[String, Key],
+      validator: Validator[Value],
       executionContext: ExecutionContext
   ): Route =
     pathEnd {
       get {
         parameters(Symbol("page[cursor]").as[Key].?, Symbol("page[limit]").as[Int]) { (cursor, limit) =>
-          val envelope = valueStore
+          val envelope = store
             .retrievePage(cursor, limit + 1)
             .map { elems =>
               val data =
@@ -48,7 +51,7 @@ package object routes {
             }
           complete(envelope)
         } ~ pass {
-          val envelope = valueStore.retrieveAll
+          val envelope = store.retrieveAll
             .map { values =>
               val data = values.toList
               MultiDocument(data.map {
@@ -62,52 +65,62 @@ package object routes {
       post {
         entity(as[SingleDocument[Value]]) {
           case SingleDocument(Resource(_, _, entity)) =>
-            complete(valueStore.add(id, entity))
+            validate(entity)(validator) {
+              complete(store.add(id, entity))
+            }
         }
       } ~
         patch {
           entity(as[SingleDocument[Value]]) {
             case SingleDocument(Resource(_, _, entity)) =>
-              complete(valueStore.add(id, entity))
+              validate(entity)(validator) {
+                complete(store.add(id, entity))
+              }
           }
         } ~
         get {
-          complete(valueStore.retrieve(id))
+          complete(store.retrieve(id))
         } ~
         delete {
-          complete(valueStore.delete(id))
+          complete(store.delete(id))
         }
     }
 
   def singleValue[Key, Value](name: String, id: Key)(
-      implicit valueStore: KeyValueStore[Key, Value],
+      implicit store: KeyValueStore[Key, Value],
       unitToEntityMarshaller: ToEntityMarshaller[Unit],
       valueToEntityMarshaller: ToEntityMarshaller[Value],
-      entityToSingleDocumentUnmarshaller: FromEntityUnmarshaller[SingleDocument[Value]]
+      entityToSingleDocumentUnmarshaller: FromEntityUnmarshaller[SingleDocument[Value]],
+      validator: Validator[Value]
   ): Route =
     pathEnd {
       post {
         entity(as[SingleDocument[Value]]) {
           case SingleDocument(Resource(_, _, entity)) =>
-            complete(valueStore.add(id, entity))
+            validate(entity)(validator) {
+              complete(store.add(id, entity))
+            }
         }
       } ~
         patch {
           entity(as[SingleDocument[Value]]) {
             case SingleDocument(Resource(_, _, entity)) =>
-              complete(valueStore.add(id, entity))
+              validate(entity)(validator) {
+                complete(store.add(id, entity))
+              }
           }
         } ~
         get {
-          complete(valueStore.retrieve(id))
+          complete(store.retrieve(id))
         } ~
         delete {
-          complete(valueStore.delete(id))
+          complete(store.delete(id))
         }
     }
 
   def timeSeriesSource[Key, Value](name: String, keys: Set[Key])(
       implicit
+      //keyStore: KeyValueStore[Key, _],
       valueStore: TimeSeriesStore[Key, Value],
       valueSource: Source[(Key, Instant, Value), NotUsed],
       instantFromStringUnmarshaller: Unmarshaller[String, Instant],
@@ -171,24 +184,35 @@ package object routes {
       //valueStore: TimeSeriesStore[Key, Value],
       valueSink: Sink[(Key, Instant, Value), NotUsed],
       entityToSingleDocumentUnmarshaller: FromEntityUnmarshaller[SingleDocument[Value]],
-      materializer: Materializer
+      materializer: Materializer,
+      validator: Validator[Value]
   ): Route = post {
     entity(as[SingleDocument[Value]]) {
       case SingleDocument(Resource(_, _, value)) =>
-        keys foreach { key =>
-          //Source.single((key, Instant.now(), value)).runWith(valueStore.add)
-          Source.single(value).runWith(valueSink.contramap((key, Instant.now(), _)))
+        validate(value)(validator) {
+          keys foreach { key =>
+            //Source.single((key, Instant.now(), value)).runWith(valueStore.add)
+            Source.single(value).runWith(valueSink.contramap((key, Instant.now(), _)))
+          }
+          complete(
+            StatusCodes.Created
+              .copy(intValue = StatusCodes.Created.intValue)(
+                reason = "",
+                defaultMessage = "",
+                allowsEntity = true
+              )
+          )
         }
-        complete(
-          StatusCodes.Created
-            .copy(intValue = StatusCodes.Created.intValue)(
-              reason = "",
-              defaultMessage = "",
-              allowsEntity = true
-            )
-        )
     }
   }
+
+  private def validate[Value](value: Value)(implicit validator: Validator[Value]): Directive0 =
+    Directive { inner =>
+      validator.validate(value) match {
+        case Good(_)      => inner(())
+        case Bad(message) => reject(ValidationRejection(message))
+      }
+    }
 
   private def retrieveHistoricalValues[Key, Value](keys: Set[Key], fromTime: Instant)(
       implicit valueStore: TimeSeriesStore[Key, Value]

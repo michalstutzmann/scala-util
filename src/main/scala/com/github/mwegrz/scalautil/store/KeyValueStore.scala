@@ -9,7 +9,6 @@ import com.github.mwegrz.app.Shutdownable
 import com.github.mwegrz.scalautil.akka.serialization.ResourceAvroSerializer
 import com.github.mwegrz.scalautil.serialization.Serde
 import com.sksamuel.avro4s._
-import com.github.mwegrz.scalautil.circe.codecs.{ byteArrayKeyDecoder, byteArrayKeyEncoder }
 import com.github.mwegrz.scalautil.avro4s.codecs._
 import scodec.bits.ByteVector
 
