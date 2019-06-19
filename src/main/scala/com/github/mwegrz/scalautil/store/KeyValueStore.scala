@@ -102,7 +102,7 @@ object ActorKeyValueStore {
         persist(event) { _ =>
           state = state.add(key, value)
           saveSnapshotIfNeeded()
-          sender() ! ()
+          sender() ! (())
         }
 
       case RetrieveAll => sender() ! state.retrieveAll
@@ -116,7 +116,7 @@ object ActorKeyValueStore {
         persist(event) { _ =>
           state = state.delete(key)
           saveSnapshotIfNeeded()
-          sender() ! ()
+          sender() ! (())
         }
     }
 

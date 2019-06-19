@@ -51,7 +51,7 @@ class UdpFlowStage(
             else if (buffer.size <= maxBufferSize)
               buffer.enqueue((bytes, remoteAddr))
             else {
-              if (!droppedDone.isCompleted) drop ! (bytes, remoteAddr)
+              if (!droppedDone.isCompleted) drop ! ((bytes, remoteAddr))
             }
           case Udp.Unbind  => socket ! Udp.Unbind
           case Udp.Unbound => completeStage()
