@@ -37,7 +37,7 @@ package object routes {
   ): Route =
     pathEnd {
       get {
-        parameters(Symbol("page[cursor]").as[Key].?, Symbol("page[limit]").as[Int]) { (cursor, limit) =>
+        parameters((Symbol("page[cursor]").as[Key].?, Symbol("page[limit]").as[Int])) { (cursor, limit) =>
           val envelope = store
             .retrievePage(cursor, limit + 1)
             .map { elems =>
@@ -129,10 +129,12 @@ package object routes {
       materializer: Materializer
   ): Route = get {
     parameters(
-      Symbol("filter[since]").as[Instant].?,
-      Symbol("filter[until]").as[Instant].?,
-      Symbol("filter[tail]").as[Int].?,
-      Symbol("filter[follow]").as[Boolean].?(false)
+      (
+        Symbol("filter[since]").as[Instant].?,
+        Symbol("filter[until]").as[Instant].?,
+        Symbol("filter[tail]").as[Int].?,
+        Symbol("filter[follow]").as[Boolean].?(false)
+      )
     ) { (since, until, tail, follow) =>
       optionalHeaderValueByName("Last-Event-ID") { lastEventId =>
         val lastEventFromTime = lastEventId.map(
