@@ -12,10 +12,18 @@ import scala.util.{ Failure, Success, Try }
 package object scaladsl {
   type UdpFlow = Flow[(ByteString, InetSocketAddress), (ByteString, InetSocketAddress), NotUsed]
 
+  implicit class SourceOps[A, C](source: Source[A, C]) {
+    def collectAsync[T](parallelism: Int)(pf: PartialFunction[A, Future[T]]): Source[T, C] =
+      source.filter(pf.isDefinedAt).mapAsync(parallelism)(pf)
+  }
+
   implicit class FlowOps[A, B, C](flow: Flow[A, B, C]) {
     def toSource: Source[B, C] = Source.maybe.viaMat(flow)(Keep.right)
 
     def toSink: Sink[A, C] = flow.toMat(Sink.ignore)(Keep.left)
+
+    //def collectAsync[T](parallelism: Int)(pf: PartialFunction[B, Future[T]]): Flow[A, T, C] =
+    //flow.filter(pf.isDefinedAt).mapAsync(parallelism)(pf)
   }
 
   implicit class OrFlowOps[A, B, C, D](flow: Flow[A, Or[B, C], D]) {

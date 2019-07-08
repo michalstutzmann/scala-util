@@ -16,7 +16,9 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.{ Await, ExecutionContext, Future }
 
 trait TimeSeriesStore[Key, Value] {
-  def add: Sink[(Key, Instant, Value), Future[Done]]
+  def addOrReplace: Sink[(Key, Instant, Value), Future[Done]]
+
+  def addIfNotExists: Sink[(Key, Instant, Value), Future[Done]]
 
   def retrieveRange(fromTime: Instant, untilTime: Instant): Source[(Key, Instant, Value), NotUsed]
 
@@ -36,9 +38,22 @@ class InMemoryTimeSeriesStore[Key, Value](
 ) extends TimeSeriesStore[Key, Value] {
   private var events = initial.withDefaultValue(SortedMap.empty[Instant, Value])
 
-  override def add: Sink[(Key, Instant, Value), Future[Done]] =
+  override def addOrReplace: Sink[(Key, Instant, Value), Future[Done]] =
     Sink.foreach {
-      case (key, time, value) => events = events.updated(key, events(key).updated(time, value))
+      case (key, time, value) =>
+        events = events.updated(key, events(key).updated(time, value))
+    }
+
+  override def addIfNotExists: Sink[(Key, Instant, Value), Future[Done]] =
+    Sink.foreach {
+      case (key, time, value) =>
+        events = {
+          if (!events.contains(key) || events(key).contains(time)) {
+            events.updated(key, events(key).updated(time, value))
+          } else {
+            events
+          }
+        }
     }
 
   override def retrieveRange(
@@ -105,14 +120,35 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
 
   Await.ready(createTableIfNotExists(), Duration.Inf)
 
-  override def add: Sink[(Key, Instant, Value), Future[Done]] = {
+  override def addOrReplace: Sink[(Key, Instant, Value), Future[Done]] = {
     cassandraClient
-      .createSink[(Key, Instant, Value)](s"""INSERT
+      .createSink[(Key, Instant, Value)](
+        s"""INSERT
                         |INTO $keyspace.$table(
                         |  key,
                         |  time,
                         |  value
-                        |) VALUES (?, ?, ?) USING TTL ${rowTtl.getSeconds}""".stripMargin) {
+                        |) VALUES (?, ?, ?) USING TTL ${rowTtl.getSeconds}""".stripMargin
+      ) {
+        case ((key, time, value), s) =>
+          s.bind(
+            ByteBuffer.wrap(keySerde.valueToBinary(key)),
+            time,
+            ByteBuffer.wrap(valueSerde.valueToBinary(value))
+          )
+      }
+  }
+
+  override def addIfNotExists: Sink[(Key, Instant, Value), Future[Done]] = {
+    cassandraClient
+      .createSink[(Key, Instant, Value)](
+        s"""INSERT
+         |INTO $keyspace.$table(
+         |  key,
+         |  time,
+         |  value
+         |) VALUES (?, ?, ?) IF NOT EXISTS USING TTL ${rowTtl.getSeconds}""".stripMargin
+      ) {
         case ((key, time, value), s) =>
           s.bind(
             ByteBuffer.wrap(keySerde.valueToBinary(key)),

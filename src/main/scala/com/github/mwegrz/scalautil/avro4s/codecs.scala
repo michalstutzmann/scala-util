@@ -1,6 +1,6 @@
 package com.github.mwegrz.scalautil.avro4s
 
-import java.time.Duration
+import java.time.{ Duration, ZoneId }
 
 import akka.http.scaladsl.model.Uri
 import com.sksamuel.avro4s._
@@ -12,26 +12,35 @@ import shapeless.{ ::, Generic, HNil, Lazy }
 
 object codecs {
   implicit val ByteVectorSchemaFor: SchemaFor[ByteVector] =
-    SchemaFor.const(Schema.create(Schema.Type.BYTES))
+    SchemaFor.ByteArraySchemaFor.map(identity)
   implicit val ByteVectorEncoder: Encoder[ByteVector] =
     Encoder.ByteVectorEncoder.comap(_.toArray.toVector)
   implicit val ByteVectorDecoder: Decoder[ByteVector] = Decoder.ByteVectorDecoder.map(ByteVector(_))
 
   implicit val BitVectorSchemaFor: SchemaFor[BitVector] =
-    SchemaFor.const(Schema.create(Schema.Type.STRING))
+    SchemaFor.StringSchemaFor.map(identity)
   implicit val BitVectorEncoder: Encoder[BitVector] =
     Encoder.StringEncoder.comap(_.toBin)
   implicit val BitVectorDecoder: Decoder[BitVector] =
     Decoder.StringDecoder.map(value => BitVector.fromBin(value).get)
 
   implicit val DurationSchemaFor: SchemaFor[Duration] =
-    SchemaFor.const(Schema.create(Schema.Type.STRING))
+    SchemaFor.StringSchemaFor.map(identity)
   implicit val DurationEncoder: Encoder[Duration] = Encoder.StringEncoder.comap(_.toString)
   implicit val DurationDecoder: Decoder[Duration] = Decoder.StringDecoder.map(Duration.parse)
 
-  implicit val UriSchemaFor: SchemaFor[Uri] = SchemaFor.const(Schema.create(Schema.Type.STRING))
+  implicit val UriSchemaFor: SchemaFor[Uri] = SchemaFor.StringSchemaFor.map(identity)
   implicit val UriEncoder: Encoder[Uri] = Encoder.StringEncoder.comap(_.toString)
   implicit val UriDecoder: Decoder[Uri] = Decoder.StringDecoder.map(Uri(_))
+
+  implicit val ZoneIdSchemaFor: SchemaFor[ZoneId] = SchemaFor.StringSchemaFor.map(identity)
+  implicit val ZoneIdEncoder: Encoder[ZoneId] = Encoder.StringEncoder.comap(_.getId)
+  implicit val ZoneIdDecoder: Decoder[ZoneId] = Decoder.StringDecoder.map(ZoneId.of)
+
+  implicit def indexedSeqSchemaFor[A: SchemaFor]: SchemaFor[IndexedSeq[A]] =
+    SchemaFor.seqSchemaFor[A].map(identity)
+  implicit def indexedSeqEncoder[A: Encoder]: Encoder[IndexedSeq[A]] = Encoder.seqEncoder[A].comap(_.toIndexedSeq)
+  implicit def indexedSeqDecoder[A: Decoder]: Decoder[IndexedSeq[A]] = Decoder.seqDecoder[A].map(_.toIndexedSeq)
 
   implicit def valueClassSchemaFor[CC <: AnyVal, A](
       implicit rep: CaseClass1Rep[CC, A],

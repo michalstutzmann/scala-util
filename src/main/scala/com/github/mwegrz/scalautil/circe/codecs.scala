@@ -1,5 +1,6 @@
 package com.github.mwegrz.scalautil.circe
 
+import java.time.ZoneId
 import java.util.Base64
 
 import akka.http.scaladsl.model.Uri
@@ -23,11 +24,18 @@ object codecs {
 
   implicit val ByteVectorEncoder: Encoder[ByteVector] = Encoder.encodeString.contramap(_.toHex)
   implicit val ByteVectorDecoder: Decoder[ByteVector] =
-    Decoder.decodeString.map(ByteVector.fromHex(_).get)
+    Decoder.decodeString.map(
+      value => ByteVector.fromHex(value).getOrElse(throw new IllegalArgumentException(s"Invalid hex value: $value"))
+    )
 
   implicit val BitVectorEncoder: Encoder[BitVector] = Encoder.encodeString.contramap(_.toBin)
   implicit val BitVectorDecoder: Decoder[BitVector] =
-    Decoder.decodeString.map(BitVector.fromBin(_).get)
+    Decoder.decodeString.map(
+      value => BitVector.fromBin(value).getOrElse(throw new IllegalArgumentException(s"Invalid bin value: $value"))
+    )
+
+  implicit val ZoneIdEncoder: Encoder[ZoneId] = Encoder.encodeString.contramap(_.getId)
+  implicit val ZoneIdDecoder: Decoder[ZoneId] = Decoder.decodeString.map(ZoneId.of)
 
   implicit val UriEncoder: Encoder[Uri] = Encoder.encodeString.contramap(_.toString)
   implicit val UriDecoder: Decoder[Uri] = Decoder.decodeString.map(Uri(_))

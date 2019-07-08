@@ -13,16 +13,16 @@ object TwoDPosition {
   }
 }
 
-final case class TwoDPosition(latitude: Latitude, longitude: Longitude) {
-  def toByteVector: ByteVector = latitude.toByteVector ++ longitude.toByteVector
+final case class TwoDPosition(lat: Latitude, long: Longitude) {
+  def toByteVector: ByteVector = lat.toByteVector ++ long.toByteVector
 
   def bearingAt(that: TwoDPosition): Double = {
     val calc = new GeodeticCalculator()
     val reference = Ellipsoid.WGS84
     val dest = calc.calculateGeodeticCurve(
       reference,
-      new GlobalCoordinates(latitude.value, longitude.value),
-      new GlobalCoordinates(that.latitude.value, that.longitude.value)
+      new GlobalCoordinates(lat.value, long.value),
+      new GlobalCoordinates(that.lat.value, that.long.value)
     )
     dest.getAzimuth
   }
@@ -32,8 +32,8 @@ final case class TwoDPosition(latitude: Latitude, longitude: Longitude) {
     val reference = Ellipsoid.WGS84
     val dest = calc.calculateGeodeticCurve(
       reference,
-      new GlobalCoordinates(latitude.value, longitude.value),
-      new GlobalCoordinates(that.latitude.value, that.longitude.value)
+      new GlobalCoordinates(lat.value, long.value),
+      new GlobalCoordinates(that.lat.value, that.long.value)
     )
     dest.getEllipsoidalDistance
   }
@@ -43,7 +43,7 @@ final case class TwoDPosition(latitude: Latitude, longitude: Longitude) {
     val reference = Ellipsoid.WGS84
     val dest = calc.calculateEndingGlobalCoordinates(
       reference,
-      new GlobalCoordinates(latitude.value, longitude.value),
+      new GlobalCoordinates(lat.value, long.value),
       bearing,
       distance,
       Array(0.0)

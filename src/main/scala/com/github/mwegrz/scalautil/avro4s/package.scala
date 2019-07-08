@@ -6,16 +6,17 @@ import com.sksamuel.avro4s._
 import org.apache.avro.Schema
 import org.apache.avro.io.EncoderFactory
 import _root_.scodec.bits.ByteVector
+import com.github.mwegrz.scalautil.time.StopWatch
 
 import scala.util.Try
 
 package object avro4s {
-  implicit class AOps[A: SchemaFor: Encoder](underlaying: A) {
-    def toAvro: Array[Byte] = {
+  implicit class AOps[A: Encoder](underlaying: A) {
+    def toAvro(schema: Schema): Array[Byte] = {
       val baos = new ByteArrayOutputStream()
       val os = new WrapperAvroOutputStream[A](
         baos,
-        implicitly[SchemaFor[A]].schema,
+        schema,
         EncoderFactory.get().binaryEncoder(baos, null)
       )
       os.write(underlaying)
@@ -24,14 +25,13 @@ package object avro4s {
     }
   }
 
-  def fromAvro[A: SchemaFor: Decoder](
+  def fromAvro[A: Decoder](
       bytes: Array[Byte],
       writerSchema: Option[Schema] = None,
-      readerSchema: Option[Schema] = None
+      readerSchema: Schema
   ): Try[A] = Try {
-    val defaultSchema = implicitly[SchemaFor[A]].schema
-    val resolvedWriterSchema = writerSchema.getOrElse(defaultSchema)
-    val resolvedReaderSchema = readerSchema.getOrElse(defaultSchema)
+    val resolvedWriterSchema = writerSchema.getOrElse(readerSchema)
+    val resolvedReaderSchema = readerSchema
 
     val in = new ByteArrayInputStream(bytes)
 

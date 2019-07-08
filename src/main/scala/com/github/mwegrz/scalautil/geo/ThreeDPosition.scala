@@ -11,7 +11,7 @@ object ThreeDPosition {
   }
 }
 
-final case class ThreeDPosition(latitude: Latitude, longitude: Longitude, altitude: Altitude) {
+final case class ThreeDPosition(lat: Latitude, long: Longitude, alt: Altitude) {
   def toByteVector: ByteVector =
-    latitude.toByteVector ++ longitude.toByteVector ++ altitude.toByteVector
+    lat.toByteVector ++ long.toByteVector ++ alt.toByteVector
 }

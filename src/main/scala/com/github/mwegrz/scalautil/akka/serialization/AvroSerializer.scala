@@ -19,16 +19,18 @@ abstract class AvroSerializer[Value: SchemaFor: Encoder: Decoder](
 
   override final def includeManifest: Boolean = false
 
-  protected def versionToWriterSchema: PartialFunction[Int, Schema]
+  protected def versionToWriterSchema: Map[Int, Schema]
 
-  override def toBinary(o: AnyRef): Array[Byte] =
-    ByteBuffer.allocate(4).putInt(currentVersion).array() ++ o.asInstanceOf[Value].toAvro
+  override def toBinary(o: AnyRef): Array[Byte] = {
+    val schema = versionToWriterSchema(currentVersion)
+    ByteBuffer.allocate(4).putInt(currentVersion).array() ++ o.asInstanceOf[Value].toAvro(schema)
+  }
 
   override def fromBinary(bytes: Array[Byte], manifest: Option[Class[_]] = None): AnyRef = {
     val previousVersion = ByteBuffer.wrap(bytes.take(4)).getInt
     val writerSchema = versionToWriterSchema(previousVersion)
     val readerSchema = versionToWriterSchema(currentVersion)
-    fromAvro[Value](bytes.drop(4), Some(writerSchema), Some(readerSchema)).get.asInstanceOf[AnyRef]
+    fromAvro[Value](bytes.drop(4), Some(writerSchema), readerSchema).get.asInstanceOf[AnyRef]
   }
 
   override def valueToBinary(value: Value): Array[Byte] = toBinary(value.asInstanceOf[AnyRef])

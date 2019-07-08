@@ -19,9 +19,10 @@ class ResourceAvroSerializer[A: SchemaFor: Encoder: Decoder: ClassTag](
     case version => s"$path/$name-$version.avsc"
   }
 
-  override protected val versionToWriterSchema: PartialFunction[Int, Schema] = {
-    case version =>
-      val resource = versionToWriterSchemaResource(version)
+  override protected val versionToWriterSchema: Map[Int, Schema] = Map(
+    currentVersion -> {
+      val resource = versionToWriterSchemaResource(currentVersion)
       new Schema.Parser().parse(getClass.getClassLoader.getResourceAsStream(resource))
-  }
+    }
+  )
 }
