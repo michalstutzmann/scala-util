@@ -135,10 +135,10 @@ class DefaultMqttClient private[mqtt] (config: Config)(
         .watchTermination() { (_, f) =>
           f.recover {
               case t: Throwable =>
-                log.error("Flow encountered an error and has been restarted", t)
+                log.error("Flow encountered a failure and has been restarted", t)
             }
             .foreach { _ =>
-              log.warning("Flow terminated and has been restarted")
+              log.warning("Flow completed and has been restarted")
             }
         }
     }

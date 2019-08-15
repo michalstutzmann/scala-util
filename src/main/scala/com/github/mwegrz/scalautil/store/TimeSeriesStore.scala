@@ -124,11 +124,11 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
     cassandraClient
       .createSink[(Key, Instant, Value)](
         s"""INSERT
-                        |INTO $keyspace.$table(
-                        |  key,
-                        |  time,
-                        |  value
-                        |) VALUES (?, ?, ?) USING TTL ${rowTtl.getSeconds}""".stripMargin
+           |INTO $keyspace.$table(
+           |  key,
+           |  time,
+           |  value
+           |) VALUES (?, ?, ?) USING TTL ${rowTtl.getSeconds}""".stripMargin
       ) {
         case ((key, time, value), s) =>
           s.bind(
@@ -143,11 +143,11 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
     cassandraClient
       .createSink[(Key, Instant, Value)](
         s"""INSERT
-         |INTO $keyspace.$table(
-         |  key,
-         |  time,
-         |  value
-         |) VALUES (?, ?, ?) IF NOT EXISTS USING TTL ${rowTtl.getSeconds}""".stripMargin
+           |INTO $keyspace.$table(
+           |  key,
+           |  time,
+           |  value
+           |) VALUES (?, ?, ?) IF NOT EXISTS USING TTL ${rowTtl.getSeconds}""".stripMargin
       ) {
         case ((key, time, value), s) =>
           s.bind(
@@ -163,8 +163,8 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
       toTime: Instant
   ): Source[(Key, Instant, Value), NotUsed] = {
     val query = s"""SELECT key, time, value
-                     |FROM $keyspace.$table
-                     |WHERE time > ? AND time <= ? ALLOW FILTERING""".stripMargin
+                   |FROM $keyspace.$table
+                   |WHERE time > ? AND time <= ? ALLOW FILTERING""".stripMargin
 
     cassandraClient
       .createSource(
@@ -272,11 +272,11 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
   private def createTableIfNotExists(): Future[Done] = {
     log.debug("Creating table if not exists", ("keyspace" -> keyspace, "table" -> table))
     cassandraClient.execute(s"""CREATE TABLE IF NOT EXISTS $keyspace.$table (
-                                 |  key blob,
-                                 |  time timestamp,
-                                 |  value blob,
-                                 |  PRIMARY KEY (key, time)
-                                 |) WITH CLUSTERING ORDER BY (time DESC)""".stripMargin)
+                               |  key blob,
+                               |  time timestamp,
+                               |  value blob,
+                               |  PRIMARY KEY (key, time)
+                               |) WITH CLUSTERING ORDER BY (time DESC)""".stripMargin)
   }
 
   log.debug("Initialized")

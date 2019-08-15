@@ -56,7 +56,7 @@ class HttpServer private (config: Config, httpApis: Set[HttpApi])(
       case HttpEntity.Default(contentType, contentLength, _) => (contentType, contentLength, None)
     }
 
-    log.info(
+    log.debug(
       "Received request",
       (
         "request-id" -> requestId,
@@ -71,7 +71,7 @@ class HttpServer private (config: Config, httpApis: Set[HttpApi])(
     {
       case Success(Complete(response)) =>
         val timeElapsed = System.currentTimeMillis() - startTime
-        log.info(
+        log.debug(
           "Completed request",
           (
             "request-id" -> requestId,
@@ -90,7 +90,7 @@ class HttpServer private (config: Config, httpApis: Set[HttpApi])(
 
       case Success(Rejected(rejections)) =>
         val timeElapsed = System.currentTimeMillis() - startTime
-        log.info(
+        log.debug(
           "Rejected request",
           (
             "request-id" -> requestId,
@@ -109,7 +109,7 @@ class HttpServer private (config: Config, httpApis: Set[HttpApi])(
         )
       case Failure(exception) =>
         val timeElapsed = System.currentTimeMillis() - startTime
-        log.info(
+        log.debug(
           "Failed processing request",
           (
             "request-id" -> requestId,
@@ -160,7 +160,7 @@ class HttpServer private (config: Config, httpApis: Set[HttpApi])(
   bindingFuture
     .map(_.localAddress)
     .map(
-      localAddress => log.info(s"Bound to ${localAddress.getHostString}:${localAddress.getPort}")
+      localAddress => log.debug(s"Bound to ${localAddress.getHostString}:${localAddress.getPort}")
     )
 
   override def shutdown(): Unit = bindingFuture.flatMap(_.unbind()).map(_ => log.debug("Shut down"))

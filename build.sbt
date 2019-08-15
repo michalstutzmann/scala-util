@@ -37,7 +37,8 @@ lazy val root = (project in file("."))
       CommonsPool % Optional,
       CommonsVfs2 % Optional,
       ScalaTest % Optional,
-      ScalaCheck % Optional
+      ScalaCheck % Optional,
+      "com.lightbend.akka" %% "akka-stream-alpakka-udp" % "1.1.0"
     ),
     homepage := Some(url("http://github.com/mwegrz/scala-util")),
     scmInfo := Some(

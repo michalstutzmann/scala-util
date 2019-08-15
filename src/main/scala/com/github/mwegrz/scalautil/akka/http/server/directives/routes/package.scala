@@ -12,6 +12,7 @@ import scodec.bits.ByteVector
 import akka.http.scaladsl.marshalling.sse.EventStreamMarshalling._
 import java.time.Instant
 
+import akka.http.scaladsl.common.{ EntityStreamingSupport, JsonEntityStreamingSupport }
 import akka.http.scaladsl.model.sse.ServerSentEvent
 import akka.http.scaladsl.server.directives.RouteDirectives.reject
 import com.github.mwegrz.scalautil.store.{ KeyValueStore, TimeSeriesStore }
@@ -136,31 +137,32 @@ package object routes {
         Symbol("filter[follow]").as[Boolean].?(false)
       )
     ) { (since, until, tail, follow) =>
-      optionalHeaderValueByName("Last-Event-ID") { lastEventId =>
-        val lastEventFromTime = lastEventId.map(
-          value => Instant.ofEpochMilli(ByteVector.fromBase64(value).get.toLong()).plusNanos(1)
-        )
-        val lastEventTimeOrFromTime = lastEventFromTime.orElse(since)
-        val liveValues = receiveLiveValues(keys)
+      if (follow) {
+        optionalHeaderValueByName("Last-Event-ID") { lastEventId =>
+          val lastEventFromTime = lastEventId.map(
+            value => Instant.ofEpochMilli(ByteVector.fromBase64(value).get.toLong()).plusNanos(1)
+          )
+          val lastEventTimeOrFromTime = lastEventFromTime.orElse(since)
+          val liveValues = receiveLiveValues(keys)
 
-        val values = tail match {
-          case Some(value) =>
-            val historicalValues = retrieveHistoricalValues(keys, value)
+          val values = tail match {
+            case Some(value) =>
+              val historicalValues = retrieveHistoricalValues(keys, value)
 
-            if (follow) {
+              //if (follow) {
               historicalValues.concat(
                 liveValues.buffer(LiveValuesBufferSize, OverflowStrategy.dropNew)
               )
-            } else {
-              historicalValues
-            }
+            //} else {
+            //historicalValues
+            //}
 
-          case None =>
-            lastEventTimeOrFromTime.fold(liveValues) { value =>
-              val historicalValues =
-                retrieveHistoricalValues(keys, value)
+            case None =>
+              lastEventTimeOrFromTime.fold(liveValues) { value =>
+                val historicalValues =
+                  retrieveHistoricalValues(keys, value)
 
-              if (follow) {
+                //if (follow) {
                 val historicalAndLiveValues =
                   historicalValues.concat(
                     liveValues.buffer(LiveValuesBufferSize, OverflowStrategy.dropNew)
@@ -169,14 +171,25 @@ package object routes {
                   .fold(historicalAndLiveValues)(
                     value => historicalAndLiveValues.takeWhile { case (time, _) => time.isBefore(value) }
                   )
-              } else {
-                historicalValues
+              //} else {
+              //historicalValues
+              //}
               }
-            }
-        }
+          }
 
-        val response = toServerSentEvents(values)
-        complete(response)
+          val response = toServerSentEvents(values)
+          complete(response)
+        }
+      } else {
+        implicit val jsonStreamingSupport: JsonEntityStreamingSupport = EntityStreamingSupport.json()
+        tail match {
+          case Some(value) =>
+            val values = valueStore.retrieveLast(keys, value).map(_._3)
+            complete(values)
+          case None =>
+            val values = valueStore.retrieveRange(keys, since.get, until.get).map(_._3)
+            complete(values)
+        }
       }
     }
   }
