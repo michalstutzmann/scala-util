@@ -16,7 +16,16 @@ import scala.collection.immutable.SortedMap
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.concurrent.duration._
 
+object KeyValueStore {
+  final case class KeyExistsException[Key](key: Key) extends IllegalArgumentException
+  final case class InvalidValueException[Value](value: Value) extends IllegalArgumentException
+}
+
 trait KeyValueStore[Key, Value] {
+  def add(value: Value): Future[Option[(Key, Value)]]
+
+  def update(key: Key, value: Value): Future[Option[Value]]
+
   def add(key: Key, value: Value): Future[Unit]
 
   def retrieve(key: Key): Future[Option[Value]]
@@ -130,6 +139,10 @@ object ActorKeyValueStore {
 class InMemoryKeyValueStore[Key: Ordering, Value](initialValues: Map[Key, Value]) extends KeyValueStore[Key, Value] {
   private var valuesByKey = SortedMap(initialValues.toSeq: _*)
 
+  override def add(value: Value): Future[Option[(Key, Value)]] = ???
+
+  override def update(key: Key, value: Value): Future[Option[Value]] = ???
+
   override def add(key: Key, value: Value): Future[Unit] = Future.successful {
     valuesByKey = valuesByKey.updated(key, value)
   }
@@ -177,6 +190,10 @@ class ActorKeyValueStore[Key: Ordering, Value](persistenceId: String)(
           add(key, value)
       }
       .mapMaterializedValue(_ => NotUsed)
+
+  override def add(value: Value): Future[Option[(Key, Value)]] = ???
+
+  override def update(key: Key, value: Value): Future[Option[Value]] = ???
 
   override def add(key: Key, value: Value): Future[Unit] =
     (actor ? Add(

@@ -1,18 +1,16 @@
 package com.github.mwegrz.scalautil.akka.http.server.directives
 
 import akka.NotUsed
-import akka.http.scaladsl.marshalling.{ Marshal, ToEntityMarshaller }
 import akka.http.scaladsl.model.{ MessageEntity, StatusCodes }
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{ Directive, Directive0, PathMatcher1, Route, ValidationRejection }
+import akka.http.scaladsl.marshalling.{ Marshal, ToEntityMarshaller }
 import akka.http.scaladsl.unmarshalling.{ FromEntityUnmarshaller, Unmarshaller }
 import akka.stream.{ Materializer, OverflowStrategy }
-import akka.stream.scaladsl.{ Sink, Source }
+import akka.stream.scaladsl.{ Keep, Sink, Source }
 import scodec.bits.ByteVector
 import akka.http.scaladsl.marshalling.sse.EventStreamMarshalling._
 import java.time.Instant
-
-import akka.http.scaladsl.common.{ EntityStreamingSupport, JsonEntityStreamingSupport }
 import akka.http.scaladsl.model.sse.ServerSentEvent
 import akka.http.scaladsl.server.directives.RouteDirectives.reject
 import com.github.mwegrz.scalautil.store.{ KeyValueStore, TimeSeriesStore }
@@ -20,15 +18,18 @@ import org.scalactic.{ Bad, Good }
 
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext
+import scala.util.{ Failure, Success }
 
 package object routes {
-  private val LiveValuesBufferSize = 1000
+  private[routes] val LiveValuesBufferSize = 1000
 
   def keyValueStore[Key, Value](name: String)(
       implicit store: KeyValueStore[Key, Value],
       keyPathMatcher: PathMatcher1[Key],
       unitToEntityMarshaller: ToEntityMarshaller[Unit],
       valueToEntityMarshaller: ToEntityMarshaller[Value],
+      errorDocumentToEntityMarshaller: ToEntityMarshaller[ErrorDocument],
+      singleDocumentToEntityMarshaller: ToEntityMarshaller[SingleDocument[Value]],
       multiDocumentToEntityMarshaller: ToEntityMarshaller[MultiDocument[Value]],
       entityToSingleDocumentUnmarshaller: FromEntityUnmarshaller[SingleDocument[Value]],
       entityToValueUnmarshaller: FromEntityUnmarshaller[Value],
@@ -61,29 +62,63 @@ package object routes {
             }
           complete(envelope)
         }
-      }
+      } ~
+        post {
+          entity(as[SingleDocument[Value]]) {
+            case envelope @ SingleDocument(Some(resource @ Resource(_, _, entity))) =>
+              validate(entity)(validator) {
+                onComplete(store.add(entity)) {
+                  case Success(Some((key, value))) =>
+                    complete(
+                      StatusCodes.Created -> envelope
+                        .copy(data = Some(resource.copy(id = Some(key.toString), attributes = value)))
+                    )
+                  case Success(None) =>
+                    complete(StatusCodes.Created -> envelope)
+                  case Failure(KeyValueStore.KeyExistsException(_))    => complete(StatusCodes.Conflict)
+                  case Failure(KeyValueStore.InvalidValueException(_)) => complete(StatusCodes.BadRequest)
+                }
+              }
+          }
+        }
     } ~ path(keyPathMatcher) { id =>
       post {
         entity(as[SingleDocument[Value]]) {
-          case SingleDocument(Resource(_, _, entity)) =>
+          case envelope @ SingleDocument(Some(resource @ Resource(_, _, entity))) =>
             validate(entity)(validator) {
-              complete(store.add(id, entity))
+              onComplete(store.add(id, entity)) {
+                case Success(value)                                  => complete(StatusCodes.Created -> value)
+                case Failure(KeyValueStore.KeyExistsException(_))    => complete(StatusCodes.Conflict)
+                case Failure(KeyValueStore.InvalidValueException(_)) => complete(StatusCodes.BadRequest)
+              }
             }
         }
       } ~
         patch {
           entity(as[SingleDocument[Value]]) {
-            case SingleDocument(Resource(_, _, entity)) =>
+            case document @ SingleDocument(Some(resource @ Resource(_, _, entity))) =>
               validate(entity)(validator) {
-                complete(store.add(id, entity))
+                onComplete(store.update(id, entity)) {
+                  case Success(Some(value)) =>
+                    val updatedResource = resource.copy(attributes = value)
+                    complete(document.copy(data = Some(updatedResource)))
+                  case Success(None) =>
+                    complete(SingleDocument(Option.empty[Resource[Value]]))
+                  case Failure(KeyValueStore.KeyExistsException(_))    => complete(StatusCodes.Conflict)
+                  case Failure(KeyValueStore.InvalidValueException(_)) => complete(StatusCodes.BadRequest)
+                }
               }
           }
         } ~
         get {
-          complete(store.retrieve(id))
+          onSuccess(store.retrieve(id)) { value =>
+            rejectEmptyResponse {
+              complete(value.map(b => SingleDocument[Value](Some(Resource(name, Some(id.toString), b)))))
+            }
+          }
         } ~
         delete {
-          complete(store.delete(id))
+          complete(StatusCodes.NoContent -> store.delete(id))
         }
     }
 
@@ -91,41 +126,60 @@ package object routes {
       implicit store: KeyValueStore[Key, Value],
       unitToEntityMarshaller: ToEntityMarshaller[Unit],
       valueToEntityMarshaller: ToEntityMarshaller[Value],
+      errorDocumentToEntityMarshaller: ToEntityMarshaller[ErrorDocument],
+      singleDocumentToEntityMarshaller: ToEntityMarshaller[SingleDocument[Value]],
       entityToSingleDocumentUnmarshaller: FromEntityUnmarshaller[SingleDocument[Value]],
-      validator: Validator[Value]
+      validator: Validator[Value],
+      executionContext: ExecutionContext
   ): Route =
     pathEnd {
       post {
         entity(as[SingleDocument[Value]]) {
-          case SingleDocument(Resource(_, _, entity)) =>
+          case envelope @ SingleDocument(Some(resource @ Resource(_, _, entity))) =>
             validate(entity)(validator) {
-              complete(store.add(id, entity))
+              onComplete(store.add(id, entity)) {
+                case Success(value)                                  => complete(StatusCodes.Created -> value)
+                case Failure(KeyValueStore.KeyExistsException(_))    => complete(StatusCodes.Conflict)
+                case Failure(KeyValueStore.InvalidValueException(_)) => complete(StatusCodes.BadRequest)
+              }
             }
         }
       } ~
         patch {
           entity(as[SingleDocument[Value]]) {
-            case SingleDocument(Resource(_, _, entity)) =>
+            case document @ SingleDocument(Some(resource @ Resource(_, _, entity))) =>
               validate(entity)(validator) {
-                complete(store.add(id, entity))
+                onComplete(store.update(id, entity)) {
+                  case Success(Some(value)) =>
+                    val updatedResource = resource.copy(attributes = value)
+                    complete(document.copy(data = Some(updatedResource)))
+                  case Success(None) =>
+                    complete(SingleDocument(Option.empty[Resource[Value]]))
+                  case Failure(KeyValueStore.KeyExistsException(_))    => complete(StatusCodes.Conflict)
+                  case Failure(KeyValueStore.InvalidValueException(_)) => complete(StatusCodes.BadRequest)
+                }
               }
           }
         } ~
         get {
-          complete(store.retrieve(id))
+          onSuccess(store.retrieve(id)) { value =>
+            rejectEmptyResponse {
+              complete(value.map(b => SingleDocument[Value](Some(Resource(name, Some(id.toString), b)))))
+            }
+          }
         } ~
         delete {
-          complete(store.delete(id))
+          complete(StatusCodes.NoContent -> store.delete(id))
         }
     }
 
-  def timeSeriesSource[Key, Value](name: String, keys: Set[Key])(
+  /*def timeSeriesSource[Key, Value](name: String, keys: Set[Key])(
       implicit
-      //keyStore: KeyValueStore[Key, _],
       valueStore: TimeSeriesStore[Key, Value],
       valueSource: Source[(Key, Instant, Value), NotUsed],
       instantFromStringUnmarshaller: Unmarshaller[String, Instant],
       valueToEntityMarshaller: ToEntityMarshaller[Value],
+      multiDocumentToEntityMarshaller: ToEntityMarshaller[MultiDocument[Value]],
       executionContext: ExecutionContext,
       materializer: Materializer
   ): Route = get {
@@ -133,95 +187,96 @@ package object routes {
       (
         Symbol("filter[since]").as[Instant].?,
         Symbol("filter[until]").as[Instant].?,
-        Symbol("filter[tail]").as[Int].?,
-        Symbol("filter[follow]").as[Boolean].?(false)
+        Symbol("filter[tail]").as[Int].?
       )
-    ) { (since, until, tail, follow) =>
-      if (follow) {
-        optionalHeaderValueByName("Last-Event-ID") { lastEventId =>
-          val lastEventFromTime = lastEventId.map(
-            value => Instant.ofEpochMilli(ByteVector.fromBase64(value).get.toLong()).plusNanos(1)
-          )
-          val lastEventTimeOrFromTime = lastEventFromTime.orElse(since)
-          val liveValues = receiveLiveValues(keys)
+    ) { (since, until, tail) =>
+      optionalHeaderValueByName("Accept") {
+        case Some("text/event-stream") =>
+          optionalHeaderValueByName("Last-Event-ID") { lastEventId =>
+            val lastEventFromTime = lastEventId.map(
+              value => Instant.ofEpochMilli(ByteVector.fromBase64(value).get.toLong()).plusNanos(1)
+            )
+            val lastEventTimeOrFromTime = lastEventFromTime.orElse(since)
+            val liveValues = receiveLiveValues(keys)
 
-          val values = tail match {
-            case Some(value) =>
-              val historicalValues = retrieveHistoricalValues(keys, value)
+            val values = tail match {
+              case Some(value) =>
+                val historicalValues = retrieveHistoricalValues(keys, value)
 
-              //if (follow) {
-              historicalValues.concat(
-                liveValues.buffer(LiveValuesBufferSize, OverflowStrategy.dropNew)
-              )
-            //} else {
-            //historicalValues
-            //}
+                historicalValues.concat(
+                  liveValues.buffer(LiveValuesBufferSize, OverflowStrategy.dropNew)
+                )
+              case None =>
+                lastEventTimeOrFromTime.fold(liveValues) { value =>
+                  val historicalValues =
+                    retrieveHistoricalValues(keys, value)
 
-            case None =>
-              lastEventTimeOrFromTime.fold(liveValues) { value =>
-                val historicalValues =
-                  retrieveHistoricalValues(keys, value)
-
-                //if (follow) {
-                val historicalAndLiveValues =
-                  historicalValues.concat(
-                    liveValues.buffer(LiveValuesBufferSize, OverflowStrategy.dropNew)
-                  )
-                until
-                  .fold(historicalAndLiveValues)(
-                    value => historicalAndLiveValues.takeWhile { case (time, _) => time.isBefore(value) }
-                  )
-              //} else {
-              //historicalValues
-              //}
-              }
+                  val historicalAndLiveValues =
+                    historicalValues.concat(
+                      liveValues.buffer(LiveValuesBufferSize, OverflowStrategy.dropNew)
+                    )
+                  until
+                    .fold(historicalAndLiveValues)(
+                      value => historicalAndLiveValues.takeWhile { case (time, _) => time.isBefore(value) }
+                    )
+                }
+            }
+            val response = toServerSentEvents(values)
+            complete(response)
           }
-
-          val response = toServerSentEvents(values)
-          complete(response)
-        }
-      } else {
-        implicit val jsonStreamingSupport: JsonEntityStreamingSupport = EntityStreamingSupport.json()
-        tail match {
-          case Some(value) =>
-            val values = valueStore.retrieveLast(keys, value).map(_._3)
-            complete(values)
-          case None =>
-            val values = valueStore.retrieveRange(keys, since.get, until.get).map(_._3)
-            complete(values)
-        }
+        case _ =>
+          tail match {
+            case Some(value) =>
+              val values = valueStore
+                .retrieveLast(keys, value)
+                .map(_._3)
+                .map(Resource(name, None, _))
+                .toMat(Sink.seq)(Keep.right)
+                .run()
+                .map(_.toList)
+                .map(MultiDocument(_))
+              complete(values)
+            case None =>
+              val values = valueStore
+                .retrieveRange(keys, since.get, until.get)
+                .map(_._3)
+                .map(Resource(name, None, _))
+                .toMat(Sink.seq)(Keep.right)
+                .run()
+                .map(_.toList)
+                .map(MultiDocument(_))
+              complete(values)
+          }
       }
     }
   }
 
   def timeSeriesSink[Key, Value](name: String, keys: Set[Key])(
       implicit
-      //valueStore: TimeSeriesStore[Key, Value],
+      valueStore: TimeSeriesStore[Key, Value],
       valueSink: Sink[(Key, Instant, Value), NotUsed],
+      singleDocumentToEntityMarshaller: ToEntityMarshaller[SingleDocument[Value]],
       entityToSingleDocumentUnmarshaller: FromEntityUnmarshaller[SingleDocument[Value]],
       materializer: Materializer,
       validator: Validator[Value]
   ): Route = post {
     entity(as[SingleDocument[Value]]) {
-      case SingleDocument(Resource(_, _, value)) =>
+      case SingleDocument(Some(resource @ Resource(_, _, value))) =>
         validate(value)(validator) {
+          val time = Instant.now()
           keys foreach { key =>
-            //Source.single((key, Instant.now(), value)).runWith(valueStore.add)
-            Source.single(value).runWith(valueSink.contramap((key, Instant.now(), _)))
+            Source.single((key, Instant.now(), value)).runWith(valueStore.addIfNotExists)
+            Source.single(value).runWith(valueSink.contramap((key, time, _)))
           }
+          val id = createId(time)
           complete(
-            StatusCodes.Created
-              .copy(intValue = StatusCodes.Created.intValue)(
-                reason = "",
-                defaultMessage = "",
-                allowsEntity = true
-              )
+            StatusCodes.Created -> SingleDocument(Some(resource.copy(`type` = name, id = Some(id))))
           )
         }
     }
-  }
+  }*/
 
-  private def validate[Value](value: Value)(implicit validator: Validator[Value]): Directive0 =
+  private[routes] def validate[Value](value: Value)(implicit validator: Validator[Value]): Directive0 =
     Directive { inner =>
       validator.validate(value) match {
         case Good(_)      => inner(())
@@ -229,21 +284,21 @@ package object routes {
       }
     }
 
-  private def retrieveHistoricalValues[Key, Value](keys: Set[Key], fromTime: Instant)(
+  private[routes] def retrieveHistoricalValues[Key, Value](keys: Set[Key], fromTime: Instant)(
       implicit valueStore: TimeSeriesStore[Key, Value]
   ): Source[(Instant, Value), NotUsed] =
     valueStore
       .retrieveRange(keys, fromTime)
       .map { case (_, time, value) => (time, value) }
 
-  private def retrieveHistoricalValues[Key, Value](keys: Set[Key], tail: Int)(
+  private[routes] def retrieveHistoricalValues[Key, Value](keys: Set[Key], tail: Int)(
       implicit valueStore: TimeSeriesStore[Key, Value]
   ): Source[(Instant, Value), NotUsed] =
     valueStore
       .retrieveLast(keys, tail)
       .map { case (_, time, value) => (time, value) }
 
-  private def receiveLiveValues[Key, Value](keys: Set[Key])(
+  private[routes] def receiveLiveValues[Key, Value](keys: Set[Key])(
       implicit valueSource: Source[(Key, Instant, Value), NotUsed]
   ): Source[(Instant, Value), NotUsed] =
     valueSource
@@ -252,7 +307,7 @@ package object routes {
         case (_, time, value) => (time, value)
       }
 
-  private def toServerSentEvents[Key, Value](source: Source[(Instant, Value), NotUsed])(
+  private[routes] def toServerSentEvents[Key, Value](source: Source[(Instant, Value), NotUsed])(
       implicit valueToEntityMarshaller: ToEntityMarshaller[Value],
       executionContext: ExecutionContext,
       materializer: Materializer
@@ -262,9 +317,11 @@ package object routes {
         case (time, value) =>
           Marshal(value).to[MessageEntity].value.get.get.toStrict(Int.MaxValue.seconds) map { e =>
             val data = e.data
-            val id = ByteVector.fromLong(time.toEpochMilli).toBase64
+            val id = createId(time)
             ServerSentEvent(data = data.utf8String, id = Some(id))
           }
       }
       .keepAlive(15.second, () => ServerSentEvent.heartbeat)
+
+  private[routes] def createId(time: Instant): String = ByteVector.fromLong(time.toEpochMilli).toBase64
 }

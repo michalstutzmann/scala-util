@@ -24,7 +24,7 @@ object NetemeraJwtClaim {
     val sub = jwtClaim.subject.get
     val aud = jwtClaim.audience.get
     val iat = jwtClaim.issuedAt.get
-    val exp = jwtClaim.expiration.get
+    val exp = jwtClaim.expiration
     val jwtClaimContent = parse(jwtClaim.content).toTry.flatMap(_.as[JwtClaimContent].toTry).get
     val scope = if (jwtClaimContent.scope.nonEmpty) {
       jwtClaimContent.scope.split(" ").toSet
@@ -41,19 +41,22 @@ final case class NetemeraJwtClaim(
     sub: String,
     aud: Set[String],
     iat: Long,
-    exp: Long,
+    exp: Option[Long],
     scope: Set[String],
     organization: String
 ) {
-  def toJwtClaim: JwtClaim =
-    JwtClaim()
+  def toJwtClaim: JwtClaim = {
+    val jwt = JwtClaim()
       .by(iss)
       .about(sub)
       .to(aud)
       .issuedAt(iat)
-      .expiresAt(exp) +
-      NetemeraJwtClaim
-        .JwtClaimContent(scope = scope.mkString(" "), organization = organization)
-        .asJson
-        .noSpaces
+
+    val jwtExpiresAt = exp.fold(jwt)(value => jwt.expiresAt(value))
+
+    jwtExpiresAt + NetemeraJwtClaim
+      .JwtClaimContent(scope = scope.mkString(" "), organization = organization)
+      .asJson
+      .noSpaces
+  }
 }
