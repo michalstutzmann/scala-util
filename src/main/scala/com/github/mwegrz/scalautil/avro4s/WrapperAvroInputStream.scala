@@ -2,7 +2,7 @@ package com.github.mwegrz.scalautil.avro4s
 
 import java.io.{ EOFException, InputStream }
 
-import com.sksamuel.avro4s.{ AvroInputStream, Decoder }
+import com.sksamuel.avro4s.{ AvroInputStream, Decoder, FieldMapper }
 import org.apache.avro.Schema
 import org.apache.avro.generic.{ GenericData, GenericDatumReader, GenericRecord }
 import org.apache.avro.io.DecoderFactory
@@ -10,7 +10,12 @@ import org.apache.avro.util.Utf8
 
 import scala.util.Try
 
-class WrapperAvroInputStream[T](in: InputStream, writerSchema: Schema, readerSchema: Schema)(
+class WrapperAvroInputStream[T](
+    in: InputStream,
+    writerSchema: Schema,
+    readerSchema: Schema,
+    fieldMapper: FieldMapper
+)(
     implicit decoder: Decoder[T]
 ) extends AvroInputStream[T] {
 
@@ -37,7 +42,7 @@ class WrapperAvroInputStream[T](in: InputStream, writerSchema: Schema, readerSch
     */
   override def iterator: Iterator[T] = new Iterator[T] {
     override def hasNext: Boolean = _iter.hasNext
-    override def next(): T = decoder.decode(_iter.next, readerSchema)
+    override def next(): T = decoder.decode(_iter.next, readerSchema, fieldMapper)
   }
 
   /**
@@ -46,7 +51,7 @@ class WrapperAvroInputStream[T](in: InputStream, writerSchema: Schema, readerSch
     */
   override def tryIterator: Iterator[Try[T]] = new Iterator[Try[T]] {
     override def hasNext: Boolean = _iter.hasNext
-    override def next(): Try[T] = Try(decoder.decode(_iter.next, readerSchema))
+    override def next(): Try[T] = Try(decoder.decode(_iter.next, readerSchema, fieldMapper))
   }
 
   override def close(): Unit = in.close()

@@ -6,7 +6,7 @@ import scala.language.reflectiveCalls
   * Direct ports of the try-with-resources pattern: [[http://docs.oracle.com/javase/specs/jls/se7/html/jls-14.html#jls-14.20.3.1]].
   */
 object arm {
-  def using[A <: { def close() }, R](res: A)(f: A => R): R = {
+  def using[A <: { def close(): Unit }, R](res: A)(f: A => R): R = {
     var pt: Throwable = null
     try {
       f(res)
@@ -29,7 +29,7 @@ object arm {
     }
   }
 
-  def using[A <: { def close() }, B <: { def close() }, R](res1: A, res2: B)(f: (A, B) => R): R = {
+  def using[A <: { def close(): Unit }, B <: { def close(): Unit }, R](res1: A, res2: B)(f: (A, B) => R): R = {
     var pt: Throwable = null
     try {
       f(res1, res2)

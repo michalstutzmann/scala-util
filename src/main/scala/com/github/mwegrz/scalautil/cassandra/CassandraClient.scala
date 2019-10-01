@@ -33,7 +33,7 @@ object CassandraClient extends KeyValueLogging {
 }
 
 trait CassandraClient extends Shutdownable {
-  def createSink[A <: AnyRef](cql: String)(
+  def createSink[A](cql: String)(
       statementBinder: (A, PreparedStatement) => BoundStatement
   ): Sink[A, Future[Done]]
   def createSource(cql: String, values: Seq[AnyRef]): Source[Row, NotUsed]
@@ -70,7 +70,7 @@ class DefaultCassandraClient(config: Config)(implicit executionContext: Executio
 
   log.debug("Initialized")
 
-  override def createSink[A <: AnyRef](
+  override def createSink[A](
       cql: String
   )(statementBinder: (A, PreparedStatement) => BoundStatement): Sink[A, Future[Done]] = {
     val preparedStatement = session.prepare(cql)
@@ -94,7 +94,7 @@ class DefaultCassandraClient(config: Config)(implicit executionContext: Executio
     cluster.getConfiguration.getCodecRegistry.register(codec)
 
   def execute(cql: String)(implicit actorMaterializer: ActorMaterializer): Future[Done] =
-    Source.single(Unit).runWith(createSink(cql)((a, b) => new BoundStatement(b)))
+    Source.single(()).runWith(createSink[Unit](cql)((a, b) => new BoundStatement(b)))
 
   override def shutdown(): Unit = {
     session.close()

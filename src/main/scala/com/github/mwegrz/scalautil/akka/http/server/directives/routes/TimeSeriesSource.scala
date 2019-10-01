@@ -88,7 +88,7 @@ class TimeSeriesSource[Key, Value](name: String)(
               complete(values)
             case None =>
               val values = valueStore
-                .retrieveRange(keys, since.get, until.get)
+                .retrieveRange(keys, since.getOrElse(Instant.EPOCH), until.getOrElse(Instant.now))
                 .map(_._3)
                 .map(Resource(name, None, _))
                 .toMat(Sink.seq)(Keep.right)

@@ -47,7 +47,7 @@ class SqlDatabaseClient private (database: Database, maxPoolSize: Int) {
     val a = new SimpleJdbcAction[List[A]](ctx => {
       withPreparedStatement(ctx.connection, sql.queryParts.mkString) { ps =>
         val pp = new PositionedParameters(ps)
-        sql.unitPConv(Unit, pp)
+        sql.unitPConv((), pp)
         val rs = withTimeout(ps, timeout)(_.executeQuery())
         new ResultSetIterator(rs, maxRows = 0, autoClose = true)(f).toList
       }
@@ -99,7 +99,7 @@ class SqlDatabaseClient private (database: Database, maxPoolSize: Int) {
         )(implicit session: JdbcBackend#SessionDef): CloseableIterator[A] = {
           val ps = session.conn.prepareStatement(sql.queryParts.mkString)
           val pp = new PositionedParameters(ps)
-          sql.unitPConv(Unit, pp)
+          sql.unitPConv((), pp)
           //ps.setQueryTimeout(timeout.toSeconds)
           val rs = withTimeout(ps, timeout)(_.executeQuery())
           new ResultSetIterator[A](rs, maxRows, autoClose = true)(f)
@@ -144,7 +144,7 @@ class SqlDatabaseClient private (database: Database, maxPoolSize: Int) {
     val a = new SimpleJdbcAction[Int](c => {
       withPreparedStatement(c.connection, sql.queryParts.mkString) { ps =>
         val pp = new PositionedParameters(ps)
-        sql.unitPConv(Unit, pp)
+        sql.unitPConv((), pp)
         withTimeout(ps, timeout)(_.executeUpdate())
       }
     })
@@ -169,7 +169,7 @@ class SqlDatabaseClient private (database: Database, maxPoolSize: Int) {
       new SimpleJdbcAction[Int](c => {
         withPreparedStatement(c.connection, sql.queryParts.mkString) { ps =>
           val pp = new PositionedParameters(ps)
-          sql.unitPConv(Unit, pp)
+          sql.unitPConv((), pp)
           withTimeout(ps, timeout)(_.executeUpdate())
         }
       })
@@ -525,7 +525,7 @@ object SqlDatabaseClient {
       }
     }
 
-    final def close() {
+    final def close(): Unit = {
       if (!closed) {
         rs.close()
         closed = true

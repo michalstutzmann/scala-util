@@ -1,11 +1,13 @@
 package com.github.mwegrz.scalautil.akka.stream
 
 import java.net.InetSocketAddress
-import akka.stream.FlowShape
+
+import akka.stream.{ FlowShape, Graph, KillSwitch, KillSwitches }
 import akka.{ Done, NotUsed }
 import akka.stream.scaladsl.{ Broadcast, Flow, GraphDSL, Keep, Sink, Source }
 import akka.util.ByteString
 import org.scalactic.{ Bad, Good, Or }
+
 import scala.concurrent.Future
 import scala.util.{ Failure, Success, Try }
 
@@ -19,6 +21,15 @@ package object scaladsl {
 
   implicit class FlowOps[A, B, C](flow: Flow[A, B, C]) {
     def toSource: Source[B, C] = Source.maybe.viaMat(flow)(Keep.right)
+
+    def toKillableSource: Source[B, (KillSwitch, C)] = Source.maybe.viaMat(flow)(Keep.both).mapMaterializedValue {
+      case (promise, c) =>
+        (new KillSwitch {
+          override def shutdown(): Unit = promise.trySuccess(None)
+
+          override def abort(ex: Throwable): Unit = promise.tryFailure(ex)
+        }, c)
+    }
 
     def toSink: Sink[A, C] = flow.toMat(Sink.ignore)(Keep.left)
 

@@ -193,7 +193,8 @@ class ActorKeyValueStore[Key: Ordering, Value](persistenceId: String)(
 
   override def add(value: Value): Future[Option[(Key, Value)]] = ???
 
-  override def update(key: Key, value: Value): Future[Option[Value]] = ???
+  override def update(key: Key, value: Value): Future[Option[Value]] =
+    delete(key).flatMap(_ => add(key, value)).map(_ => Some(value))
 
   override def add(key: Key, value: Value): Future[Unit] =
     (actor ? Add(

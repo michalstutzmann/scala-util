@@ -33,7 +33,7 @@ trait TimeSeriesStore[Key, Value] {
   def retrieveLast(keys: Set[Key], count: Int): Source[(Key, Instant, Value), NotUsed]
 }
 
-class InMemoryTimeSeriesStore[Key, Value](
+/*class InMemoryTimeSeriesStore[Key, Value](
     initial: Map[Key, SortedMap[Instant, Value]] = Map.empty[Key, SortedMap[Instant, Value]]
 ) extends TimeSeriesStore[Key, Value] {
   private var events = initial.withDefaultValue(SortedMap.empty[Instant, Value])
@@ -105,7 +105,7 @@ class InMemoryTimeSeriesStore[Key, Value](
 
     keys.map(forKey).foldLeft(Source.empty[(Key, Instant, Value)])((a, b) => a.concat(b))
   }
-}
+}*/
 
 class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, config: Config)(
     implicit executionContext: ExecutionContext,
@@ -261,7 +261,7 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
         .fold(List.empty[(Key, Instant, Value)]) {
           case (rows, row) => row :: rows
         }
-        .mapConcat(_.to[scala.collection.immutable.Iterable])
+        .mapConcat(identity)
     }
 
     keys.map(forKey).foldLeft(Source.empty[(Key, Instant, Value)]) { (a, b) =>

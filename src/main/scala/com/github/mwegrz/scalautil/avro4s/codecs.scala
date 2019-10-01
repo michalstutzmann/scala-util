@@ -44,9 +44,10 @@ object codecs {
 
   implicit def valueClassSchemaFor[CC <: AnyVal, A](
       implicit rep: CaseClass1Rep[CC, A],
-      subschema: SchemaFor[A]
+      subschema: SchemaFor[A],
+      fieldMapper: FieldMapper = DefaultFieldMapper
   ): SchemaFor[CC] =
-    SchemaFor.const(subschema.schema)
+    SchemaFor.const(subschema.schema(fieldMapper))
 
   implicit def valueClassEncoder[CC <: AnyVal, A](
       implicit rep: CaseClass1Rep[CC, A],
@@ -61,9 +62,10 @@ object codecs {
     delegate.map { rep.apply }
 
   implicit def mapSchemaFor[Key, Value](
-      implicit valueSchemaFor: SchemaFor[Value]
+      implicit valueSchemaFor: SchemaFor[Value],
+      fieldMapper: FieldMapper = DefaultFieldMapper
   ): SchemaFor[Map[Key, Value]] =
-    SchemaFor.const(Schema.createMap(valueSchemaFor.schema))
+    SchemaFor.const(Schema.createMap(valueSchemaFor.schema(fieldMapper)))
 
   implicit def mapEncoder[Key, Value](
       implicit keyEncoder: KeyEncoder[Key],

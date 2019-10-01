@@ -62,6 +62,7 @@ class DefaultMqttClient private[mqtt] (config: Config)(
 ) extends MqttClient
     with KeyValueLogging {
   import MqttClient._
+  private val availableProcessors = Runtime.getRuntime.availableProcessors
 
   private val host = config.getString("host")
   private val port = config.getInt("port")
@@ -72,6 +73,7 @@ class DefaultMqttClient private[mqtt] (config: Config)(
   private val restartPolicyMaxBackoff = config.getDuration("restart-policy.max-backoff")
   private val restartPolicyRandomFactor = config.getDouble("restart-policy.random-factor")
   private val restartPolicyMaxRestarts = config.getInt("restart-policy.max-restarts")
+  private val parallelism = if (config.hasPath("parallelism")) config.getInt("parallelism") else availableProcessors
 
   override def createFlow[A, B](topics: Map[String, Qos], bufferSize: Int, qos: Qos)(
       toBinary: A => Array[Byte],
@@ -79,19 +81,20 @@ class DefaultMqttClient private[mqtt] (config: Config)(
   ): Flow[(String, A), (String, B), NotUsed] = {
     val connection = Tcp().outgoingConnection(host, port)
     val session = ActorMqttClientSession(MqttSessionSettings())
+    val uuid = UUID.randomUUID()
     val clientSessionFlow: Flow[Command[() => Unit], Either[MqttCodec.DecodeError, Event[() => Unit]], NotUsed] =
       Mqtt
-        .clientSessionFlow(session)
+        .clientSessionFlow(session, ByteString(uuid.toString))
         .join(connection)
     val connectCommand = Connect(
-      if (clientId.isEmpty) UUID.randomUUID().toString else clientId,
+      if (clientId.isEmpty) uuid.toString else clientId,
       ConnectFlags.CleanSession,
       username,
       password
     )
 
     val flow = Flow[(String, A)]
-      .mapAsyncUnordered(2) {
+      .mapAsync(parallelism) {
         case (topic, msg) =>
           val promise = Promise[None.type]()
           session ! Command(
@@ -106,7 +109,7 @@ class DefaultMqttClient private[mqtt] (config: Config)(
           if (topics.nonEmpty) {
             Iterable(
               Command[() => Unit](connectCommand),
-              Command[() => Unit](Subscribe(topics.mapValues(_.toControlPacketFlags).toSeq))
+              Command[() => Unit](Subscribe(topics.map { case (name, qos) => (name, qos.toControlPacketFlags) }.toSeq))
             )
           } else {
             Iterable(Command[() => Unit](connectCommand))
@@ -125,7 +128,7 @@ class DefaultMqttClient private[mqtt] (config: Config)(
           (p.topicName, fromBinary(p.payload.toArray))
       }
 
-    RestartFlow.withBackoff(
+    RestartFlow.onFailuresWithBackoff(
       minBackoff = restartPolicyMinBackoff,
       maxBackoff = restartPolicyMaxBackoff,
       randomFactor = restartPolicyRandomFactor,
@@ -135,10 +138,12 @@ class DefaultMqttClient private[mqtt] (config: Config)(
         .watchTermination() { (_, f) =>
           f.recover {
               case t: Throwable =>
-                log.error("Flow encountered a failure and has been restarted", t)
+                session.shutdown()
+                throw log.error("Flow encountered a failure and has been restarted", t)
             }
-            .foreach { _ =>
-              log.warning("Flow completed and has been restarted")
+            .map { _ =>
+              session.shutdown()
+              log.debug("Flow completed")
             }
         }
     }
