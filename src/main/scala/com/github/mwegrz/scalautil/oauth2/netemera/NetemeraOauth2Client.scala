@@ -46,7 +46,7 @@ class NetemeraOauth2Client private (config: Config)(
   private val http = Http(actorSystem)
 
   override def obtainToken: Future[TokenObtained] = {
-    val uri = baseUri.copy(path = baseUri.path / "oauth2" / "token")
+    val uri = baseUri.copy(path = baseUri.path / "token")
 
     val request =
       HttpRequest(

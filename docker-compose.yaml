@@ -5,3 +5,9 @@ services:
     image: eclipse-mosquitto
     ports:
       - "1883:1883"
+  vernemq:
+    image: erlio/docker-vernemq:latest
+    ports:
+      - "1883:1883"
+    environment:
+      DOCKER_VERNEMQ_ALLOW_ANONYMOUS: "on"

@@ -1,21 +1,9 @@
 package com.github.mwegrz.scalautil.geo
 
-import scodec.bits.ByteVector
-
+import com.github.mwegrz.scalautil.quantities.{ Latitude, Longitude }
 import org.gavaghan.geodesy.{ Ellipsoid, GeodeticCalculator, GlobalCoordinates }
 
-object TwoDPosition {
-  def fromByteVector(bytes: ByteVector): TwoDPosition = {
-    require(bytes.length == 8)
-    val latitude = Latitude.fromByteVector(bytes.take(4))
-    val longitude = Longitude.fromByteVector(bytes.drop(4))
-    TwoDPosition(latitude, longitude)
-  }
-}
-
 final case class TwoDPosition(lat: Latitude, long: Longitude) {
-  def toByteVector: ByteVector = lat.toByteVector ++ long.toByteVector
-
   def bearingAt(that: TwoDPosition): Double = {
     val calc = new GeodeticCalculator()
     val reference = Ellipsoid.WGS84

@@ -12,7 +12,9 @@ import akka.stream.scaladsl.{ Keep, Sink, Source }
 import scodec.bits.ByteVector
 import akka.http.scaladsl.marshalling.sse.EventStreamMarshalling._
 import com.github.mwegrz.app.Shutdownable
+import com.github.mwegrz.scalautil.akka.stream.scaladsl.RestartPolicy
 import com.github.mwegrz.scalautil.store.TimeSeriesStore
+import com.github.mwegrz.scalautil.akka.stream.scaladsl.SinkOps
 
 import scala.concurrent.ExecutionContext
 
@@ -24,12 +26,13 @@ class TimeSeriesSource[Key, Value](name: String)(
     valueToEntityMarshaller: ToEntityMarshaller[Value],
     multiDocumentToEntityMarshaller: ToEntityMarshaller[MultiDocument[Value]],
     executionContext: ExecutionContext,
-    materializer: Materializer
+    materializer: Materializer,
+    restartPolicy: RestartPolicy
 ) extends Shutdownable {
   private val killSwitch = valueSource
     .log(name)
     .viaMat(KillSwitches.single)(Keep.right)
-    .toMat(valueStore.addIfNotExists)(Keep.left)
+    .toMat(valueStore.addIfNotExists.toRestartableWithBackoff)(Keep.left)
     .run()
 
   def route(keys: Set[Key]): Route = get {

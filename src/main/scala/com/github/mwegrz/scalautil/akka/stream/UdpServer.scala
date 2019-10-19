@@ -43,7 +43,11 @@ final case class UdpServer(config: Config)(
             val bytes = ByteVector(datagram.data.toArray)
             log.debug(
               "Packet received",
-              ("host" -> datagram.remote.getHostName, "port" -> datagram.remote.getPort, "data" -> bytes.toHex)
+              (
+                "host" -> datagram.remote.getHostName,
+                "port" -> datagram.remote.getPort,
+                "data" -> bytes.toHex
+              )
             )
             (datagram.remote, bytes)
           }

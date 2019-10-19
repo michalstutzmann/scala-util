@@ -12,6 +12,7 @@ import akka.http.scaladsl.server._
 import akka.http.scaladsl.server.directives.RouteDirectives.reject
 import akka.http.scaladsl.model.headers._
 import akka.stream.ActorMaterializer
+import ch.megard.akka.http.cors.scaladsl.settings.CorsSettings
 import com.github.mwegrz.app.Shutdownable
 import com.github.mwegrz.scalastructlog.KeyValueLogging
 import com.typesafe.config.Config
@@ -135,16 +136,20 @@ class HttpServer private (config: Config, httpApis: Set[HttpApi])(
   private val host = config.getString("host")
   private val port = config.getInt("port")
 
-  private val path: Route = cors() {
-    aroundRequest(logRequest)(executionContext) {
-      val time = Instant.now()
-      httpApis
-        .foldLeft(pathEndOrSingleSlash(reject)) {
-          case (r, api) =>
-            api.route(time) ~ r
-        }
+  private val path: Route =
+    cors(
+      CorsSettings.defaultSettings
+        .withAllowedMethods(CorsSettings.defaultSettings.allowedMethods ++ Seq(HttpMethods.PATCH))
+    ) {
+      aroundRequest(logRequest)(executionContext) {
+        val time = Instant.now()
+        httpApis
+          .foldLeft(pathEndOrSingleSlash(reject)) {
+            case (r, api) =>
+              api.route(time) ~ r
+          }
+      }
     }
-  }
 
   private[http] val route = redirectToNoTrailingSlashIfPresent(StatusCodes.MovedPermanently) {
     basePath match {
