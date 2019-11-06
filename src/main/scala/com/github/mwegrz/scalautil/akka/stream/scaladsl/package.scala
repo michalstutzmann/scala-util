@@ -4,10 +4,9 @@ import java.net.InetSocketAddress
 
 import akka.stream.{ FlowShape, KillSwitch }
 import akka.{ Done, NotUsed }
-import akka.stream.scaladsl.{ Broadcast, Flow, GraphDSL, Keep, RestartFlow, RestartSink, RestartSource, Sink, Source }
+import akka.stream.scaladsl.{ Broadcast, Flow, GraphDSL, Keep, Sink, Source }
 import akka.util.ByteString
 import org.scalactic.{ Bad, Good, Or }
-import com.github.mwegrz.scalautil.javaDurationToDuration
 
 import scala.concurrent.Future
 import scala.util.{ Failure, Success, Try }
@@ -18,30 +17,6 @@ package object scaladsl {
   implicit class SourceOps[A, C](source: Source[A, C]) {
     def collectAsync[T](parallelism: Int)(pf: PartialFunction[A, Future[T]]): Source[T, C] =
       source.filter(pf.isDefinedAt).mapAsync(parallelism)(pf)
-
-    def toRestartableOnFailureWithBackoff(implicit restartPolicy: RestartPolicy): Source[A, NotUsed] = {
-      RestartSource.onFailuresWithBackoff(
-        minBackoff = restartPolicy.minBackoff,
-        maxBackoff = restartPolicy.maxBackoff,
-        randomFactor = restartPolicy.randomFactor,
-        maxRestarts = restartPolicy.maxRestarts
-      ) { () =>
-        source
-      }
-    }
-  }
-
-  implicit class SinkOps[A, C](source: Sink[A, C]) {
-    def toRestartableWithBackoff(implicit restartPolicy: RestartPolicy): Sink[A, NotUsed] = {
-      RestartSink.withBackoff(
-        minBackoff = restartPolicy.minBackoff,
-        maxBackoff = restartPolicy.maxBackoff,
-        randomFactor = restartPolicy.randomFactor,
-        maxRestarts = restartPolicy.maxRestarts
-      ) { () =>
-        source
-      }
-    }
   }
 
   implicit class FlowOps[A, B, C](flow: Flow[A, B, C]) {
@@ -57,17 +32,6 @@ package object scaladsl {
     }
 
     def toSink: Sink[A, C] = flow.toMat(Sink.ignore)(Keep.left)
-
-    def toRestartableOnFailureWithBackoff(implicit restartPolicy: RestartPolicy): Flow[A, B, NotUsed] = {
-      RestartFlow.onFailuresWithBackoff(
-        minBackoff = restartPolicy.minBackoff,
-        maxBackoff = restartPolicy.maxBackoff,
-        randomFactor = restartPolicy.randomFactor,
-        maxRestarts = restartPolicy.maxRestarts
-      ) { () =>
-        flow
-      }
-    }
   }
 
   implicit class OrFlowOps[A, B, C, D](flow: Flow[A, Or[B, C], D]) {

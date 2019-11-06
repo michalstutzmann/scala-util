@@ -13,6 +13,12 @@ package object scalautil {
   implicit def javaDurationToDuration(duration: java.time.Duration): FiniteDuration =
     FiniteDuration(duration.toNanos, TimeUnit.NANOSECONDS)
 
+  implicit def byteStringToByteVector(byteString: ByteString): ByteVector =
+    ByteVector(byteString.toArray)
+
+  implicit def byteVectorToByteString(byteVector: ByteVector): ByteString =
+    ByteString(byteVector.toArray)
+
   implicit class ConfigOps(config: Config) {
     def withReferenceDefaults(path: String): Config = {
 

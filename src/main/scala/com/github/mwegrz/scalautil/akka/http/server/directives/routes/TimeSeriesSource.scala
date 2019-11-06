@@ -8,13 +8,12 @@ import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.marshalling.ToEntityMarshaller
 import akka.http.scaladsl.unmarshalling.Unmarshaller
 import akka.stream.{ KillSwitches, Materializer, OverflowStrategy }
-import akka.stream.scaladsl.{ Keep, Sink, Source }
+import akka.stream.scaladsl.{ Keep, RestartSink, Sink, Source }
 import scodec.bits.ByteVector
 import akka.http.scaladsl.marshalling.sse.EventStreamMarshalling._
 import com.github.mwegrz.app.Shutdownable
-import com.github.mwegrz.scalautil.akka.stream.scaladsl.RestartPolicy
+import com.github.mwegrz.scalautil.akka.stream.scaladsl.{ PolicyRestartSink, RestartPolicy }
 import com.github.mwegrz.scalautil.store.TimeSeriesStore
-import com.github.mwegrz.scalautil.akka.stream.scaladsl.SinkOps
 
 import scala.concurrent.ExecutionContext
 
@@ -32,7 +31,7 @@ class TimeSeriesSource[Key, Value](name: String)(
   private val killSwitch = valueSource
     .log(name)
     .viaMat(KillSwitches.single)(Keep.right)
-    .toMat(valueStore.addIfNotExists.toRestartableWithBackoff)(Keep.left)
+    .toMat(PolicyRestartSink.withBackoff(() => valueStore.addIfNotExists))(Keep.left)
     .run()
 
   def route(keys: Set[Key]): Route = get {

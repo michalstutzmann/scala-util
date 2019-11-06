@@ -10,7 +10,10 @@ import akka.stream.scaladsl.Tcp.OutgoingConnection
 import akka.stream.scaladsl.{ Flow, Keep, Source, Tcp }
 import akka.util.ByteString
 import com.github.mwegrz.scalastructlog.KeyValueLogging
+import com.github.mwegrz.scalautil.serialization.Serde
 import com.typesafe.config.Config
+import com.github.mwegrz.scalautil.ConfigOps
+import scodec.bits.ByteVector
 
 import scala.collection.immutable.Iterable
 import scala.concurrent.{ ExecutionContext, Future, Promise }
@@ -22,7 +25,7 @@ object MqttClient {
       actorMaterializer: ActorMaterializer,
       executionContext: ExecutionContext
   ): MqttClient =
-    new DefaultMqttClient(config)
+    new DefaultMqttClient(config.withReferenceDefaults("mqtt-client"))
 
   object Qos {
     case object AtLeastOnce extends Qos {
@@ -49,9 +52,9 @@ object MqttClient {
 trait MqttClient {
   import MqttClient._
 
-  def createFlow[A, B](topics: Map[String, Qos], bufferSize: Int, qos: Qos)(
-      toBinary: A => Array[Byte],
-      fromBinary: Array[Byte] => B
+  def createFlow[A, B](topics: Map[String, Qos], bufferSize: Int, qos: Qos, name: String)(
+      implicit aSerde: Serde[A],
+      bSerde: Serde[B]
   ): Flow[(String, A), (String, B), Future[Connected]]
 }
 
@@ -71,9 +74,9 @@ class DefaultMqttClient private[mqtt] (config: Config)(
   private val clientId = if (config.hasPath("client-id")) config.getString("client-id") else ""
   private val parallelism = if (config.hasPath("parallelism")) config.getInt("parallelism") else availableProcessors
 
-  override def createFlow[A, B](topics: Map[String, Qos], bufferSize: Int, qos: Qos)(
-      toBinary: A => Array[Byte],
-      fromBinary: Array[Byte] => B
+  override def createFlow[A, B](topics: Map[String, Qos], bufferSize: Int, qos: Qos, name: String)(
+      implicit aSerde: Serde[A],
+      bSerde: Serde[B]
   ): Flow[(String, A), (String, B), Future[Connected]] = {
     val connection = Tcp().outgoingConnection(host, port)
     val session = ActorMqttClientSession(MqttSessionSettings())
@@ -98,7 +101,7 @@ class DefaultMqttClient private[mqtt] (config: Config)(
         case (topic, msg) =>
           val promise = Promise[None.type]()
           session ! Command(
-            Publish(qos.toControlPacketFlags, topic, ByteString(toBinary(msg))),
+            Publish(qos.toControlPacketFlags, topic, ByteString(aSerde.valueToBytes(msg).toArray)),
             () => promise.complete(Try(None))
           )
           promise.future
@@ -133,26 +136,39 @@ class DefaultMqttClient private[mqtt] (config: Config)(
       }
       .collect {
         case Right(Event(p: Publish, _)) =>
-          (p.topicName, fromBinary(p.payload.toArray))
+          (p.topicName, bSerde.bytesToValue(ByteVector(p.payload.toArray)))
       }
       .watchTermination() { (outgoingConnection, f) =>
         f.onComplete {
           case Success(_) =>
             session.shutdown()
-            log.debug("Flow completed")
+            log.debug("Flow completed", "name" -> name)
           case Failure(exception) =>
             session.shutdown()
-            throw log.error("Flow failed", exception)
+            throw log.error("Flow failed", exception, "name" -> name)
         }
 
-        for {
+        log.debug("Flow created", "name" -> name)
+
+        val connected = for {
           value <- outgoingConnection
           _ <- connAckPromise.future
           _ <- subAckPromise.future
         } yield {
-          log.debug("Flow created")
           Connected(value)
         }
+
+        connected.onComplete {
+          case Success(Connected(value)) =>
+            log.debug(
+              "Connection established",
+              ("name" -> name, "host" -> value.remoteAddress.getHostName, "port" -> value.remoteAddress.getPort)
+            )
+          case Failure(exception) =>
+            log.error("Connection failed", exception, "name" -> name)
+        }
+
+        connected
       }
   }
 }

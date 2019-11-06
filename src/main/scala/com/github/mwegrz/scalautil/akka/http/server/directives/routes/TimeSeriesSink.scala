@@ -21,14 +21,14 @@ class TimeSeriesSink[Key, Value](name: String)(
     materializer: Materializer,
     validator: Validator[Value]
 ) {
-  def route(keys: Set[Key])(update: Value => Value): Route = post {
+  def route(keys: Set[Key])(update: (Instant, Value) => Value): Route = post {
     entity(as[SingleDocument[Value]]) {
       case SingleDocument(Some(resource @ Resource(_, _, value))) =>
         validate(value)(validator) {
-          val updatedValue = update(value)
           val time = Instant.now()
+          val updatedValue = update(time, value)
           keys foreach { key =>
-            Source.single((key, Instant.now(), updatedValue)).log(name).runWith(valueStore.addIfNotExists)
+            Source.single((key, time, updatedValue)).runWith(valueStore.addIfNotExists)
             Source.single(updatedValue).runWith(valueSink.contramap((key, time, _)))
           }
           val id = createId(time)

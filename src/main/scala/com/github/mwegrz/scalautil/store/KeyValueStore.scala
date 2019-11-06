@@ -198,33 +198,33 @@ class ActorKeyValueStore[Key: Ordering, Value](persistenceId: String)(
 
   override def add(key: Key, value: Value): Future[Unit] =
     (actor ? Add(
-      ByteVector(keySerde.valueToBinary(key)),
-      ByteVector(valueSerde.valueToBinary(value))
+      keySerde.valueToBytes(key),
+      valueSerde.valueToBytes(value)
     )).mapTo[Unit]
 
   override def retrieve(key: Key): Future[Option[Value]] =
-    (actor ? Retrieve(ByteVector(keySerde.valueToBinary(key))))
+    (actor ? Retrieve(keySerde.valueToBytes(key)))
       .mapTo[Option[ByteVector]]
-      .map(_.map(value => valueSerde.binaryToValue(value.toArray)))
+      .map(_.map(value => valueSerde.bytesToValue(value)))
 
   override def retrieveAll: Future[SortedMap[Key, Value]] =
     (actor ? RetrieveAll)
       .mapTo[SortedMap[ByteVector, ByteVector]]
       .map(_.map {
         case (binaryKey, binaryValue) =>
-          (keySerde.binaryToValue(binaryKey.toArray), valueSerde.binaryToValue(binaryValue.toArray))
+          (keySerde.bytesToValue(binaryKey), valueSerde.bytesToValue(binaryValue))
       })
 
   override def retrievePage(cursor: Option[Key], count: Int): Future[SortedMap[Key, Value]] =
-    (actor ? RetrievePage(cursor.map(keySerde.valueToBinary).map(ByteVector(_)), count))
+    (actor ? RetrievePage(cursor.map(keySerde.valueToBytes), count))
       .mapTo[SortedMap[ByteVector, ByteVector]]
       .map(_.map {
         case (binaryKey, binaryValue) =>
-          (keySerde.binaryToValue(binaryKey.toArray), valueSerde.binaryToValue(binaryValue.toArray))
+          (keySerde.bytesToValue(binaryKey), valueSerde.bytesToValue(binaryValue))
       })
 
   override def delete(key: Key): Future[Unit] =
-    (actor ? Delete(ByteVector(keySerde.valueToBinary(key)))).mapTo[Unit]
+    (actor ? Delete(keySerde.valueToBytes(key))).mapTo[Unit]
 
   override def shutdown(): Unit = actorRefFactory.stop(actor)
 }

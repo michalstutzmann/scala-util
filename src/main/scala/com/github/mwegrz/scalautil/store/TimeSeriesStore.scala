@@ -10,8 +10,8 @@ import com.github.mwegrz.scalastructlog.KeyValueLogging
 import com.github.mwegrz.scalautil.cassandra.CassandraClient
 import com.github.mwegrz.scalautil.serialization.Serde
 import com.typesafe.config.Config
+import scodec.bits.ByteVector
 
-import scala.collection.SortedMap
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ Await, ExecutionContext, Future }
 
@@ -31,6 +31,8 @@ trait TimeSeriesStore[Key, Value] {
   def retrieveRange(keys: Set[Key], fromTime: Instant): Source[(Key, Instant, Value), NotUsed]
 
   def retrieveLast(keys: Set[Key], count: Int): Source[(Key, Instant, Value), NotUsed]
+
+  def retrieveKeys: Source[Key, NotUsed]
 }
 
 /*class InMemoryTimeSeriesStore[Key, Value](
@@ -132,9 +134,9 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
       ) {
         case ((key, time, value), s) =>
           s.bind(
-            ByteBuffer.wrap(keySerde.valueToBinary(key)),
+            ByteBuffer.wrap(keySerde.valueToBytes(key).toArray),
             time,
-            ByteBuffer.wrap(valueSerde.valueToBinary(value))
+            ByteBuffer.wrap(valueSerde.valueToBytes(value).toArray)
           )
       }
   }
@@ -151,9 +153,9 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
       ) {
         case ((key, time, value), s) =>
           s.bind(
-            ByteBuffer.wrap(keySerde.valueToBinary(key)),
+            ByteBuffer.wrap(keySerde.valueToBytes(key).toArray),
             time,
-            ByteBuffer.wrap(valueSerde.valueToBinary(value))
+            ByteBuffer.wrap(valueSerde.valueToBytes(value).toArray)
           )
       }
   }
@@ -173,9 +175,9 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
       )
       .map { row =>
         (
-          keySerde.binaryToValue(row.getBytes("key").array()),
+          keySerde.bytesToValue(ByteVector(row.getBytes("key").array())),
           row.get("time", classOf[Instant]),
-          valueSerde.binaryToValue(row.getBytes("value").array())
+          valueSerde.bytesToValue(ByteVector(row.getBytes("value").array()))
         )
       }
   }
@@ -194,13 +196,13 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
       cassandraClient
         .createSource(
           query,
-          List(ByteBuffer.wrap(keySerde.valueToBinary(key)), fromTime, toTime)
+          List(ByteBuffer.wrap(keySerde.valueToBytes(key).toArray), fromTime, toTime)
         )
         .map { row =>
           (
             key,
             row.get("time", classOf[Instant]),
-            valueSerde.binaryToValue(row.getBytes("value").array())
+            valueSerde.bytesToValue(ByteVector(row.getBytes("value").array()))
           )
         }
     }
@@ -223,13 +225,13 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
       cassandraClient
         .createSource(
           query,
-          List(ByteBuffer.wrap(keySerde.valueToBinary(key)), fromTime)
+          List(ByteBuffer.wrap(keySerde.valueToBytes(key).toArray), fromTime)
         )
         .map { row =>
           (
             key,
             row.get("time", classOf[Instant]),
-            valueSerde.binaryToValue(row.getBytes("value").array())
+            valueSerde.bytesToValue(ByteVector(row.getBytes("value").array()))
           )
         }
     }
@@ -249,13 +251,13 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
       cassandraClient
         .createSource(
           query,
-          List(ByteBuffer.wrap(keySerde.valueToBinary(key)), count.asInstanceOf[AnyRef])
+          List(ByteBuffer.wrap(keySerde.valueToBytes(key).toArray), count.asInstanceOf[AnyRef])
         )
         .map { row =>
           (
             key,
             row.get("time", classOf[Instant]),
-            valueSerde.binaryToValue(row.getBytes("value").array())
+            valueSerde.bytesToValue(ByteVector(row.getBytes("value").array()))
           )
         }
         .fold(List.empty[(Key, Instant, Value)]) {
@@ -267,6 +269,24 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
     keys.map(forKey).foldLeft(Source.empty[(Key, Instant, Value)]) { (a, b) =>
       a.concat(b)
     }
+  }
+
+  override def retrieveKeys: Source[Key, NotUsed] = {
+    val query = s"""SELECT DISTINCT key
+                   |FROM $keyspace.$table ALLOW FILTERING""".stripMargin
+
+    cassandraClient
+      .createSource(
+        query,
+        Nil
+      )
+      .map { row =>
+        keySerde.bytesToValue(ByteVector(row.getBytes("key").array()))
+      }
+      .fold(List.empty[Key]) {
+        case (rows, row) => row :: rows
+      }
+      .mapConcat(identity)
   }
 
   private def createTableIfNotExists(): Future[Done] = {

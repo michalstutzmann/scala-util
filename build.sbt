@@ -11,6 +11,7 @@ lazy val root = (project in file("."))
       AkkaHttp % Optional,
       AkkaHttpTestkit % "it,test",
       AkkaPersistence % Optional,
+      AkkaPersistenceTyped % Optional,
       AkkaSlf4j % Optional,
       AkkaTestkit % Test,
       AkkaHttpCors % Optional,
@@ -38,7 +39,8 @@ lazy val root = (project in file("."))
       CommonsVfs2 % Optional,
       ScalaTest % Optional,
       ScalaCheck % Optional,
-      AkkaStreamAlpakkaUdp % Optional
+      AkkaStreamAlpakkaUdp % Optional,
+      Courier % Optional
     ),
     homepage := Some(url("http://github.com/mwegrz/scala-util")),
     scmInfo := Some(

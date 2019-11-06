@@ -12,6 +12,7 @@ import akka.stream.scaladsl.{ RestartSource, Source }
 import com.github.mwegrz.scalastructlog.KeyValueLogging
 import com.github.mwegrz.scalautil.akka.stream.alpakka.sse.scaladsl.NotRetryingEventSource
 import com.typesafe.config.Config
+import com.github.mwegrz.scalautil.ConfigOps
 import com.github.mwegrz.scalautil.javaDurationToDuration
 
 import scala.concurrent.{ ExecutionContext, Future }
@@ -22,7 +23,7 @@ object SseClient {
       actorMaterializer: ActorMaterializer,
       executionContext: ExecutionContext
   ): SseClient =
-    new DefaultSseClient(config)
+    new DefaultSseClient(config.withReferenceDefaults("sse-client"))
 }
 
 trait SseClient {

@@ -1,4 +1,5 @@
 package com.github.mwegrz.scalautil.oauth2
+
 import io.circe.{ Decoder, Encoder }
 
 object TokenType {
@@ -14,7 +15,7 @@ object TokenType {
   implicit val circeDecoder: Decoder[TokenType] = Decoder.decodeString.map(apply)
 }
 
-trait TokenType {
+sealed trait TokenType {
   def value: String
 
   override def toString: String = value

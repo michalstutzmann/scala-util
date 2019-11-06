@@ -8,6 +8,7 @@ import com.github.mwegrz.scalautil.avro4s._
 import com.github.mwegrz.scalautil.serialization.Serde
 import com.sksamuel.avro4s.{ Decoder, Encoder, SchemaFor }
 import org.apache.avro.Schema
+import scodec.bits.ByteVector
 
 abstract class AvroSerializer[Value: SchemaFor: Encoder: Decoder](
     extendedActorSystem: ExtendedActorSystem
@@ -33,7 +34,7 @@ abstract class AvroSerializer[Value: SchemaFor: Encoder: Decoder](
     fromAvro[Value](bytes.drop(4), Some(writerSchema), readerSchema).get.asInstanceOf[AnyRef]
   }
 
-  override def valueToBinary(value: Value): Array[Byte] = toBinary(value.asInstanceOf[AnyRef])
+  override def valueToBytes(value: Value): ByteVector = ByteVector(toBinary(value.asInstanceOf[AnyRef]))
 
-  override def binaryToValue(binary: Array[Byte]): Value = fromBinary(binary).asInstanceOf[Value]
+  override def bytesToValue(binary: ByteVector): Value = fromBinary(binary.toArray).asInstanceOf[Value]
 }
