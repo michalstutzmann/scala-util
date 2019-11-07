@@ -18,6 +18,7 @@ import scala.concurrent.duration._
 
 object KeyValueStore {
   final case class KeyExistsException[Key](key: Key) extends IllegalArgumentException
+  final case class ForbiddenException[Key](key: Key) extends IllegalArgumentException
   final case class InvalidValueException[Value](value: Value) extends IllegalArgumentException
 }
 

@@ -61,7 +61,7 @@ class TimeSeriesSource[Key, Value](name: String)(
               case None =>
                 lastEventTimeOrFromTime.fold(liveValues) { value =>
                   val historicalValues =
-                    retrieveHistoricalValues(keys, value)
+                    retrieveHistoricalValues(keys, value, until.getOrElse(Instant.now))
 
                   val historicalAndLiveValues =
                     historicalValues.concat(

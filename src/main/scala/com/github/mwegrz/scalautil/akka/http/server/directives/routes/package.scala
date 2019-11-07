@@ -77,6 +77,7 @@ package object routes {
                     complete(StatusCodes.Created -> envelope)
                   case Failure(KeyValueStore.KeyExistsException(_))    => complete(StatusCodes.Conflict)
                   case Failure(KeyValueStore.InvalidValueException(_)) => complete(StatusCodes.BadRequest)
+                  case Failure(KeyValueStore.ForbiddenException(_))    => complete(StatusCodes.Forbidden)
                 }
               }
           }
@@ -90,6 +91,7 @@ package object routes {
                 case Success(value)                                  => complete(StatusCodes.Created -> value)
                 case Failure(KeyValueStore.KeyExistsException(_))    => complete(StatusCodes.Conflict)
                 case Failure(KeyValueStore.InvalidValueException(_)) => complete(StatusCodes.BadRequest)
+                case Failure(KeyValueStore.ForbiddenException(_))    => complete(StatusCodes.Forbidden)
               }
             }
         }
@@ -106,6 +108,7 @@ package object routes {
                     complete(SingleDocument(Option.empty[Resource[Value]]))
                   case Failure(KeyValueStore.KeyExistsException(_))    => complete(StatusCodes.Conflict)
                   case Failure(KeyValueStore.InvalidValueException(_)) => complete(StatusCodes.BadRequest)
+                  case Failure(KeyValueStore.ForbiddenException(_))    => complete(StatusCodes.Forbidden)
                 }
               }
           }
@@ -141,6 +144,7 @@ package object routes {
                 case Success(value)                                  => complete(StatusCodes.Created -> value)
                 case Failure(KeyValueStore.KeyExistsException(_))    => complete(StatusCodes.Conflict)
                 case Failure(KeyValueStore.InvalidValueException(_)) => complete(StatusCodes.BadRequest)
+                case Failure(KeyValueStore.ForbiddenException(_))    => complete(StatusCodes.Forbidden)
               }
             }
         }
@@ -157,6 +161,7 @@ package object routes {
                     complete(SingleDocument(Option.empty[Resource[Value]]))
                   case Failure(KeyValueStore.KeyExistsException(_))    => complete(StatusCodes.Conflict)
                   case Failure(KeyValueStore.InvalidValueException(_)) => complete(StatusCodes.BadRequest)
+                  case Failure(KeyValueStore.ForbiddenException(_))    => complete(StatusCodes.Forbidden)
                 }
               }
           }
@@ -284,11 +289,11 @@ package object routes {
       }
     }
 
-  private[routes] def retrieveHistoricalValues[Key, Value](keys: Set[Key], fromTime: Instant)(
+  private[routes] def retrieveHistoricalValues[Key, Value](keys: Set[Key], fromTime: Instant, untilTime: Instant)(
       implicit valueStore: TimeSeriesStore[Key, Value]
   ): Source[(Instant, Value), NotUsed] =
     valueStore
-      .retrieveRange(keys, fromTime)
+      .retrieveRange(keys, fromTime, untilTime)
       .map { case (_, time, value) => (time, value) }
 
   private[routes] def retrieveHistoricalValues[Key, Value](keys: Set[Key], tail: Int)(
