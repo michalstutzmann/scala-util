@@ -1,3 +1,3 @@
 package com.github.mwegrz.scalautil.quantities
 
-final case class Snr(value: Float) extends AnyVal
+final case class Snr(value: Double) extends AnyVal

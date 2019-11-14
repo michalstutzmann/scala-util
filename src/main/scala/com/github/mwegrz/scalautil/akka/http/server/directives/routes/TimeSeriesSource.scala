@@ -8,7 +8,7 @@ import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.marshalling.ToEntityMarshaller
 import akka.http.scaladsl.unmarshalling.Unmarshaller
 import akka.stream.{ KillSwitches, Materializer, OverflowStrategy }
-import akka.stream.scaladsl.{ Keep, RestartSink, Sink, Source }
+import akka.stream.scaladsl.{ Keep, Sink, Source }
 import scodec.bits.ByteVector
 import akka.http.scaladsl.marshalling.sse.EventStreamMarshalling._
 import com.github.mwegrz.app.Shutdownable
@@ -29,9 +29,8 @@ class TimeSeriesSource[Key, Value](name: String)(
     restartPolicy: RestartPolicy
 ) extends Shutdownable {
   private val killSwitch = valueSource
-    .log(name)
     .viaMat(KillSwitches.single)(Keep.right)
-    .toMat(PolicyRestartSink.withBackoff(() => valueStore.addIfNotExists))(Keep.left)
+    .toMat(PolicyRestartSink.withBackoff(() => valueStore.addOrReplace))(Keep.left)
     .run()
 
   def route(keys: Set[Key]): Route = get {
@@ -61,7 +60,7 @@ class TimeSeriesSource[Key, Value](name: String)(
               case None =>
                 lastEventTimeOrFromTime.fold(liveValues) { value =>
                   val historicalValues =
-                    retrieveHistoricalValues(keys, value, until.getOrElse(Instant.now))
+                    retrieveHistoricalValues(keys, value)
 
                   val historicalAndLiveValues =
                     historicalValues.concat(

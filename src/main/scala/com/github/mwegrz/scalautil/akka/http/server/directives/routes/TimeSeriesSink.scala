@@ -28,7 +28,7 @@ class TimeSeriesSink[Key, Value](name: String)(
           val time = Instant.now()
           val updatedValue = update(time, value)
           keys foreach { key =>
-            Source.single((key, time, updatedValue)).runWith(valueStore.addIfNotExists)
+            Source.single((key, time, updatedValue)).runWith(valueStore.addOrReplace)
             Source.single(updatedValue).runWith(valueSink.contramap((key, time, _)))
           }
           val id = createId(time)

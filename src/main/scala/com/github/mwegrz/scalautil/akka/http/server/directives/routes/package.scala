@@ -289,11 +289,11 @@ package object routes {
       }
     }
 
-  private[routes] def retrieveHistoricalValues[Key, Value](keys: Set[Key], fromTime: Instant, untilTime: Instant)(
+  private[routes] def retrieveHistoricalValues[Key, Value](keys: Set[Key], fromTime: Instant)(
       implicit valueStore: TimeSeriesStore[Key, Value]
   ): Source[(Instant, Value), NotUsed] =
     valueStore
-      .retrieveRange(keys, fromTime, untilTime)
+      .retrieveRange(keys, fromTime)
       .map { case (_, time, value) => (time, value) }
 
   private[routes] def retrieveHistoricalValues[Key, Value](keys: Set[Key], tail: Int)(

@@ -33,6 +33,8 @@ trait TimeSeriesStore[Key, Value] {
   def retrieveLast(keys: Set[Key], count: Int): Source[(Key, Instant, Value), NotUsed]
 
   def retrieveKeys: Source[Key, NotUsed]
+
+  def deleteKey(key: Key): Future[Done]
 }
 
 /*class InMemoryTimeSeriesStore[Key, Value](
@@ -288,6 +290,23 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
       }
       .mapConcat(identity)
   }
+
+  override def deleteKey(key: Key): Future[Done] =
+    Source
+      .single(key)
+      .runWith(
+        cassandraClient
+          .createSink[Key](
+            s"""DELETE
+           |FROM $keyspace.$table
+           |WHERE key = ?""".stripMargin
+          ) {
+            case (key, s) =>
+              s.bind(
+                ByteBuffer.wrap(keySerde.valueToBytes(key).toArray)
+              )
+          }
+      )
 
   private def createTableIfNotExists(): Future[Done] = {
     log.debug("Creating table if not exists", ("keyspace" -> keyspace, "table" -> table))
