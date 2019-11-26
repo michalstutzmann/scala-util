@@ -289,11 +289,11 @@ package object routes {
       }
     }
 
-  private[routes] def retrieveHistoricalValues[Key, Value](keys: Set[Key], fromTime: Instant)(
+  private[routes] def retrieveHistoricalValues[Key, Value](keys: Set[Key], sinceTime: Instant)(
       implicit valueStore: TimeSeriesStore[Key, Value]
   ): Source[(Instant, Value), NotUsed] =
     valueStore
-      .retrieveRange(keys, fromTime)
+      .retrieveRange(keys, sinceTime)
       .map { case (_, time, value) => (time, value) }
 
   private[routes] def retrieveHistoricalValues[Key, Value](keys: Set[Key], tail: Int)(
@@ -301,6 +301,13 @@ package object routes {
   ): Source[(Instant, Value), NotUsed] =
     valueStore
       .retrieveLast(keys, tail)
+      .map { case (_, time, value) => (time, value) }
+
+  private[routes] def retrieveHistoricalValues[Key, Value](keys: Set[Key], tail: Int, untilTime: Instant)(
+      implicit valueStore: TimeSeriesStore[Key, Value]
+  ): Source[(Instant, Value), NotUsed] =
+    valueStore
+      .retrieveLastUntil(keys, tail, untilTime)
       .map { case (_, time, value) => (time, value) }
 
   private[routes] def receiveLiveValues[Key, Value](keys: Set[Key])(

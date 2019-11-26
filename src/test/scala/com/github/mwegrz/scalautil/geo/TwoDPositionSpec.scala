@@ -1,5 +1,6 @@
 package com.github.mwegrz.scalautil.geo
 
+import com.github.mwegrz.scalautil.quantities.{ Latitude, Longitude }
 import com.github.mwegrz.scalautil.scalatest.TestSpec
 import org.scalatest.Matchers
 

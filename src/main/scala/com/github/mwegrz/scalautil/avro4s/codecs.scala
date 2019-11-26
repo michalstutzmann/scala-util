@@ -39,7 +39,7 @@ object codecs {
   implicit val Avro4sInternetAddressSchemaFor: SchemaFor[InternetAddress] = SchemaFor.StringSchemaFor.map(identity)
   implicit val Avro4sInternetAddressEncoder: Encoder[InternetAddress] = Encoder.StringEncoder.comap(_.toString)
   implicit val Avro4sInternetAddressDecoder: Decoder[InternetAddress] =
-    Decoder.StringDecoder.map(InternetAddress.parse(_).head)
+    Decoder.StringDecoder.map(new InternetAddress(_, true))
 
   implicit val Avro4sZoneIdSchemaFor: SchemaFor[ZoneId] = SchemaFor.StringSchemaFor.map(identity)
   implicit val Avro4sZoneIdEncoder: Encoder[ZoneId] = Encoder.StringEncoder.comap(_.getId)

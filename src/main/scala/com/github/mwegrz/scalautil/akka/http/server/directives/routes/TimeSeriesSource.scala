@@ -78,8 +78,8 @@ class TimeSeriesSource[Key, Value](name: String)(
         case _ =>
           tail match {
             case Some(value) =>
-              val values = valueStore
-                .retrieveLast(keys, value)
+              val values = until
+                .fold(valueStore.retrieveLast(keys, value))(valueStore.retrieveLastUntil(keys, value, _))
                 .map(_._3)
                 .map(Resource(name, None, _))
                 .toMat(Sink.seq)(Keep.right)

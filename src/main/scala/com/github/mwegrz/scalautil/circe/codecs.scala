@@ -43,7 +43,7 @@ object codecs {
 
   implicit val CirceInternetAddressEncoder: Encoder[InternetAddress] = Encoder.encodeString.contramap(_.toString)
   implicit val CirceInternetAddressDecoder: Decoder[InternetAddress] =
-    Decoder.decodeString.map(InternetAddress.parse(_).head)
+    Decoder.decodeString.map(new InternetAddress(_, true))
 
   implicit def circeStringValueClassKeyEncoder[Key, Ref](
       implicit generic: Lazy[Generic.Aux[Key, Ref]],

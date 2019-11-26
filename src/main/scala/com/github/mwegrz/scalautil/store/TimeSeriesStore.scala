@@ -20,17 +20,19 @@ trait TimeSeriesStore[Key, Value] {
 
   def addIfNotExists: Sink[(Key, Instant, Value), Future[Done]]
 
-  def retrieveRange(fromTime: Instant, untilTime: Instant): Source[(Key, Instant, Value), NotUsed]
+  def retrieveRange(sinceTime: Instant, untilTime: Instant): Source[(Key, Instant, Value), NotUsed]
 
   def retrieveRange(
       keys: Set[Key],
-      fromTime: Instant,
+      sinceTime: Instant,
       untilTime: Instant
   ): Source[(Key, Instant, Value), NotUsed]
 
-  def retrieveRange(keys: Set[Key], fromTime: Instant): Source[(Key, Instant, Value), NotUsed]
+  def retrieveRange(keys: Set[Key], sinceTime: Instant): Source[(Key, Instant, Value), NotUsed]
 
   def retrieveLast(keys: Set[Key], count: Int): Source[(Key, Instant, Value), NotUsed]
+
+  def retrieveLastUntil(keys: Set[Key], count: Int, untilTime: Instant): Source[(Key, Instant, Value), NotUsed]
 
   def retrieveKeys: Source[Key, NotUsed]
 
@@ -163,8 +165,8 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
   }
 
   override def retrieveRange(
-      fromTime: Instant,
-      toTime: Instant
+      sinceTime: Instant,
+      untilTime: Instant
   ): Source[(Key, Instant, Value), NotUsed] = {
     val query = s"""SELECT key, time, value
                    |FROM $keyspace.$table
@@ -173,7 +175,7 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
     cassandraClient
       .createSource(
         query,
-        List(fromTime, toTime)
+        List(sinceTime, untilTime)
       )
       .map { row =>
         (
@@ -186,8 +188,8 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
 
   override def retrieveRange(
       keys: Set[Key],
-      fromTime: Instant,
-      toTime: Instant
+      sinceTime: Instant,
+      untilTime: Instant
   ): Source[(Key, Instant, Value), NotUsed] = {
     def forKey(key: Key): Source[(Key, Instant, Value), NotUsed] = {
       val query = s"""SELECT time, value
@@ -198,7 +200,7 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
       cassandraClient
         .createSource(
           query,
-          List(ByteBuffer.wrap(keySerde.valueToBytes(key).toArray), fromTime, toTime)
+          List(ByteBuffer.wrap(keySerde.valueToBytes(key).toArray), sinceTime, untilTime)
         )
         .map { row =>
           (
@@ -216,7 +218,7 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
 
   override def retrieveRange(
       keys: Set[Key],
-      fromTime: Instant
+      sinceTime: Instant
   ): Source[(Key, Instant, Value), NotUsed] = {
     def forKey(key: Key): Source[(Key, Instant, Value), NotUsed] = {
       val query = s"""SELECT time, value
@@ -227,7 +229,7 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
       cassandraClient
         .createSource(
           query,
-          List(ByteBuffer.wrap(keySerde.valueToBytes(key).toArray), fromTime)
+          List(ByteBuffer.wrap(keySerde.valueToBytes(key).toArray), sinceTime)
         )
         .map { row =>
           (
@@ -254,6 +256,40 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
         .createSource(
           query,
           List(ByteBuffer.wrap(keySerde.valueToBytes(key).toArray), count.asInstanceOf[AnyRef])
+        )
+        .map { row =>
+          (
+            key,
+            row.get("time", classOf[Instant]),
+            valueSerde.bytesToValue(ByteVector(row.getBytes("value").array()))
+          )
+        }
+        .fold(List.empty[(Key, Instant, Value)]) {
+          case (rows, row) => row :: rows
+        }
+        .mapConcat(identity)
+    }
+
+    keys.map(forKey).foldLeft(Source.empty[(Key, Instant, Value)]) { (a, b) =>
+      a.concat(b)
+    }
+  }
+
+  override def retrieveLastUntil(
+      keys: Set[Key],
+      count: Int,
+      untilTime: Instant
+  ): Source[(Key, Instant, Value), NotUsed] = {
+    def forKey(key: Key): Source[(Key, Instant, Value), NotUsed] = {
+      val query = s"""SELECT time, value
+                     |FROM $keyspace.$table
+                     |WHERE key = ? AND time < ?
+                     |LIMIT ?""".stripMargin
+
+      cassandraClient
+        .createSource(
+          query,
+          List(ByteBuffer.wrap(keySerde.valueToBytes(key).toArray), untilTime, count.asInstanceOf[AnyRef])
         )
         .map { row =>
           (
