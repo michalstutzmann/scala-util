@@ -3,7 +3,14 @@ package com.github.mwegrz.scalautil.akka.http.server.directives
 import akka.NotUsed
 import akka.http.scaladsl.model.{ MessageEntity, StatusCodes }
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.{ Directive, Directive0, PathMatcher1, Route, ValidationRejection }
+import akka.http.scaladsl.server.{
+  AuthorizationFailedRejection,
+  Directive,
+  Directive0,
+  PathMatcher1,
+  Route,
+  ValidationRejection
+}
 import akka.http.scaladsl.marshalling.{ Marshal, ToEntityMarshaller }
 import akka.http.scaladsl.unmarshalling.{ FromEntityUnmarshaller, Unmarshaller }
 import akka.stream.{ Materializer, OverflowStrategy }
@@ -11,6 +18,7 @@ import akka.stream.scaladsl.{ Keep, Sink, Source }
 import scodec.bits.ByteVector
 import akka.http.scaladsl.marshalling.sse.EventStreamMarshalling._
 import java.time.Instant
+
 import akka.http.scaladsl.model.sse.ServerSentEvent
 import akka.http.scaladsl.server.directives.RouteDirectives.reject
 import com.github.mwegrz.scalautil.store.{ KeyValueStore, TimeSeriesStore }
@@ -51,7 +59,10 @@ package object routes {
               //val nextCursor = a.keys.lastOption.map(b => ByteVector.encodeAscii(b.toString).right.get.toBase64)
               MultiDocument(data)
             }
-          complete(envelope)
+          onComplete(envelope) {
+            case Success(value)                               => complete(value)
+            case Failure(KeyValueStore.ForbiddenException(_)) => reject(AuthorizationFailedRejection)
+          }
         } ~ pass {
           val envelope = store.retrieveAll
             .map { values =>
@@ -60,7 +71,10 @@ package object routes {
                 case (key, value) => Resource(name, Some(key.toString), value)
               })
             }
-          complete(envelope)
+          onComplete(envelope) {
+            case Success(value)                               => complete(value)
+            case Failure(KeyValueStore.ForbiddenException(_)) => reject(AuthorizationFailedRejection)
+          }
         }
       } ~
         post {
@@ -77,7 +91,7 @@ package object routes {
                     complete(StatusCodes.Created -> envelope)
                   case Failure(KeyValueStore.KeyExistsException(_))    => complete(StatusCodes.Conflict)
                   case Failure(KeyValueStore.InvalidValueException(_)) => complete(StatusCodes.BadRequest)
-                  case Failure(KeyValueStore.ForbiddenException(_))    => complete(StatusCodes.Forbidden)
+                  case Failure(KeyValueStore.ForbiddenException(_))    => reject(AuthorizationFailedRejection)
                 }
               }
           }
@@ -91,7 +105,7 @@ package object routes {
                 case Success(value)                                  => complete(StatusCodes.Created -> value)
                 case Failure(KeyValueStore.KeyExistsException(_))    => complete(StatusCodes.Conflict)
                 case Failure(KeyValueStore.InvalidValueException(_)) => complete(StatusCodes.BadRequest)
-                case Failure(KeyValueStore.ForbiddenException(_))    => complete(StatusCodes.Forbidden)
+                case Failure(KeyValueStore.ForbiddenException(_))    => reject(AuthorizationFailedRejection)
               }
             }
         }
@@ -108,7 +122,7 @@ package object routes {
                     complete(SingleDocument(Option.empty[Resource[Value]]))
                   case Failure(KeyValueStore.KeyExistsException(_))    => complete(StatusCodes.Conflict)
                   case Failure(KeyValueStore.InvalidValueException(_)) => complete(StatusCodes.BadRequest)
-                  case Failure(KeyValueStore.ForbiddenException(_))    => complete(StatusCodes.Forbidden)
+                  case Failure(KeyValueStore.ForbiddenException(_))    => reject(AuthorizationFailedRejection)
                 }
               }
           }
@@ -144,7 +158,7 @@ package object routes {
                 case Success(value)                                  => complete(StatusCodes.Created -> value)
                 case Failure(KeyValueStore.KeyExistsException(_))    => complete(StatusCodes.Conflict)
                 case Failure(KeyValueStore.InvalidValueException(_)) => complete(StatusCodes.BadRequest)
-                case Failure(KeyValueStore.ForbiddenException(_))    => complete(StatusCodes.Forbidden)
+                case Failure(KeyValueStore.ForbiddenException(_))    => reject(AuthorizationFailedRejection)
               }
             }
         }
@@ -161,7 +175,7 @@ package object routes {
                     complete(SingleDocument(Option.empty[Resource[Value]]))
                   case Failure(KeyValueStore.KeyExistsException(_))    => complete(StatusCodes.Conflict)
                   case Failure(KeyValueStore.InvalidValueException(_)) => complete(StatusCodes.BadRequest)
-                  case Failure(KeyValueStore.ForbiddenException(_))    => complete(StatusCodes.Forbidden)
+                  case Failure(KeyValueStore.ForbiddenException(_))    => reject(AuthorizationFailedRejection)
                 }
               }
           }
