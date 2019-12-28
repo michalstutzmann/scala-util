@@ -37,6 +37,12 @@ trait TimeSeriesStore[Key, Value] {
   def retrieveKeys: Source[Key, NotUsed]
 
   def deleteKey(key: Key): Future[Done]
+
+  def deleteRange(
+      key: Key,
+      sinceTime: Instant,
+      untilTime: Instant
+  ): Future[Done]
 }
 
 /*class InMemoryTimeSeriesStore[Key, Value](
@@ -336,6 +342,27 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
             s"""DELETE
            |FROM $keyspace.$table
            |WHERE key = ?""".stripMargin
+          ) {
+            case (key, s) =>
+              s.bind(
+                ByteBuffer.wrap(keySerde.valueToBytes(key).toArray)
+              )
+          }
+      )
+
+  def deleteRange(
+      key: Key,
+      sinceTime: Instant,
+      untilTime: Instant
+  ): Future[Done] =
+    Source
+      .single(key)
+      .runWith(
+        cassandraClient
+          .createSink[Key](
+            s"""DELETE
+               |FROM $keyspace.$table
+               |WHERE key = ? AND """.stripMargin
           ) {
             case (key, s) =>
               s.bind(
