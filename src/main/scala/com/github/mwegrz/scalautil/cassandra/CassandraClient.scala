@@ -12,7 +12,7 @@ import com.typesafe.config.Config
 import com.github.mwegrz.scalautil.ConfigOps
 
 import scala.concurrent.{ ExecutionContext, Future }
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 object CassandraClient extends KeyValueLogging {
   def apply(config: Config)(implicit executionContext: ExecutionContext): CassandraClient =
@@ -25,10 +25,26 @@ object CassandraClient extends KeyValueLogging {
     val client = apply(config)
     val keyspace = config.getString("keyspace")
     val replicationStrategy = config.getString("replication-strategy")
-    val replicationFactor = config.getInt("replication-factor")
-    client
-      .createKeyspaceIfNotExists(keyspace, replicationStrategy, replicationFactor)
-      .map(_ => client)
+
+    if (replicationStrategy == "SimpleStrategy") {
+      val replicationFactor = config.getInt("replication-factor")
+      client
+        .createKeyspaceIfNotExistsWithSimpleReplicationStrategy(keyspace, replicationFactor)
+        .map(_ => client)
+    } else {
+      val dataCenterReplicationFactors = config
+        .getStringList("data-center-replication-factors")
+        .asScala
+        .map { entry =>
+          entry.split(":") match {
+            case Array(dataCenter, replicationFactorString) => (dataCenter, replicationFactorString.toInt)
+          }
+        }
+        .toMap
+      client
+        .createKeyspaceIfNotExistsWithNetworkTopologyReplicationStrategy(keyspace, dataCenterReplicationFactors)
+        .map(_ => client)
+    }
   }
 }
 
@@ -40,7 +56,14 @@ trait CassandraClient extends Shutdownable {
 
   def execute(cql: String)(implicit actorMaterializer: ActorMaterializer): Future[Done]
 
-  def createKeyspaceIfNotExists(keyspace: String, `class`: String, replicationFactor: Int)(
+  def createKeyspaceIfNotExistsWithSimpleReplicationStrategy(keyspace: String, replicationFactor: Int)(
+      implicit actorMaterializer: ActorMaterializer
+  ): Future[Done]
+
+  def createKeyspaceIfNotExistsWithNetworkTopologyReplicationStrategy(
+      keyspace: String,
+      dataCenterReplicationFactors: Map[String, Int]
+  )(
       implicit actorMaterializer: ActorMaterializer
   ): Future[Done]
 
@@ -82,13 +105,31 @@ class DefaultCassandraClient(config: Config)(implicit executionContext: Executio
     CassandraSource(statement)
   }
 
-  override def createKeyspaceIfNotExists(keyspace: String, `class`: String, replicationFactor: Int)(
+  override def createKeyspaceIfNotExistsWithSimpleReplicationStrategy(keyspace: String, replicationFactor: Int)(
       implicit actorMaterializer: ActorMaterializer
   ): Future[Done] =
     execute(
       s"""CREATE KEYSPACE IF NOT EXISTS $keyspace
-      WITH REPLICATION = { 'class' : '${`class`}', 'replication_factor' : $replicationFactor };""".stripMargin
+      WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : $replicationFactor };""".stripMargin
     )
+
+  override def createKeyspaceIfNotExistsWithNetworkTopologyReplicationStrategy(
+      keyspace: String,
+      dataCenterReplicationFactors: Map[String, Int]
+  )(
+      implicit actorMaterializer: ActorMaterializer
+  ): Future[Done] = {
+    val replicationFactorString = dataCenterReplicationFactors
+      .map {
+        case (dataCenter, replicationFactor) =>
+          s"""'$dataCenter' : '$replicationFactor'"""
+      }
+      .mkString(", ")
+    execute(
+      s"""CREATE KEYSPACE IF NOT EXISTS $keyspace
+      WITH REPLICATION = { 'class' : 'NetworkTopologyStrategy', $replicationFactorString };""".stripMargin
+    )
+  }
 
   override def registerCodec[A](codec: TypeCodec[A]): Unit =
     cluster.getConfiguration.getCodecRegistry.register(codec)
