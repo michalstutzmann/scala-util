@@ -1,4 +1,5 @@
 /.idea/
+.code-workspace
 .project
 .classpath
 .cache
