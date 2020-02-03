@@ -52,7 +52,7 @@ object MqttClient {
 trait MqttClient {
   import MqttClient._
 
-  def createFlow[A, B](topics: Map[String, Qos], bufferSize: Int, qos: Qos, name: String)(
+  def createFlow[A, B](topics: Map[String, Qos], qos: Qos, name: String)(
       implicit aSerde: Serde[A],
       bSerde: Serde[B]
   ): Flow[(String, A), (String, B), Future[Connected]]
@@ -74,7 +74,7 @@ class DefaultMqttClient private[mqtt] (config: Config)(
   private val clientId = if (config.hasPath("client-id")) config.getString("client-id") else ""
   private val parallelism = if (config.hasPath("parallelism")) config.getInt("parallelism") else availableProcessors
 
-  override def createFlow[A, B](topics: Map[String, Qos], bufferSize: Int, qos: Qos, name: String)(
+  override def createFlow[A, B](topics: Map[String, Qos], qos: Qos, name: String)(
       implicit aSerde: Serde[A],
       bSerde: Serde[B]
   ): Flow[(String, A), (String, B), Future[Connected]] = {
