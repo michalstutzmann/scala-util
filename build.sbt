@@ -40,7 +40,8 @@ lazy val root = (project in file("."))
       ScalaTest % Optional,
       ScalaCheck % Optional,
       AkkaStreamAlpakkaUdp % Optional,
-      Courier % Optional
+      Courier % Optional,
+      LettuceCore % Optional
     ),
     homepage := Some(url("http://github.com/mwegrz/scala-util")),
     scmInfo := Some(

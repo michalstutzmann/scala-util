@@ -38,27 +38,30 @@ class TimeSeriesSource[Key, Value](name: String)(
       (
         Symbol("filter[since]").as[Instant].?,
         Symbol("filter[until]").as[Instant].?,
-        Symbol("filter[tail]").as[Int].?
+        Symbol("filter[tail]").as[Int].?,
+        Symbol("lastEventId").as[String].?
       )
-    ) { (since, until, tail) =>
+    ) { (since, until, tail, lastEventIdParam) =>
       optionalHeaderValueByName("Accept") {
         case Some("text/event-stream") =>
           optionalHeaderValueByName("Last-Event-ID") { lastEventId =>
-            val lastEventFromTime = lastEventId.map(
-              value => Instant.ofEpochMilli(ByteVector.fromBase64(value).get.toLong()).plusNanos(1)
-            )
-            val lastEventTimeOrFromTime = lastEventFromTime.orElse(since)
+            val lastEventTime = lastEventId
+              .orElse(lastEventIdParam)
+              .map(
+                value => Instant.ofEpochMilli(ByteVector.fromBase64(value).get.toLong()).plusNanos(1)
+              )
+            val lastEventTimeOrSinceTime = lastEventTime.orElse(since)
             val liveValues = receiveLiveValues(keys)
 
-            val values = tail match {
-              case Some(value) =>
+            val values = (lastEventTime, tail) match {
+              case (None, Some(value)) =>
                 val historicalValues = retrieveHistoricalValues(keys, value)
 
                 historicalValues.concat(
                   liveValues.buffer(LiveValuesBufferSize, OverflowStrategy.dropNew)
                 )
-              case None =>
-                lastEventTimeOrFromTime.fold(liveValues) { value =>
+              case (_, _) =>
+                lastEventTimeOrSinceTime.fold(liveValues) { value =>
                   val historicalValues =
                     retrieveHistoricalValues(keys, value)
 
