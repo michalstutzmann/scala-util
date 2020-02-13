@@ -61,18 +61,13 @@ class TimeSeriesSource[Key, Value](name: String)(
                   liveValues.buffer(LiveValuesBufferSize, OverflowStrategy.dropNew)
                 )
               case (_, _) =>
-                lastEventTimeOrSinceTime.fold(liveValues) { value =>
-                  val historicalValues =
-                    retrieveHistoricalValues(keys, value)
-
+                lastEventTimeOrSinceTime.fold(liveValues) { sinceValue =>
                   val historicalAndLiveValues =
-                    historicalValues.concat(
+                    retrieveHistoricalValues(keys, sinceValue).concat(
                       liveValues.buffer(LiveValuesBufferSize, OverflowStrategy.dropNew)
                     )
                   until
-                    .fold(historicalAndLiveValues)(
-                      value => historicalAndLiveValues.takeWhile { case (time, _) => time.isBefore(value) }
-                    )
+                    .fold(historicalAndLiveValues)(untilValue => retrieveHistoricalValues(keys, sinceValue, untilValue))
                 }
             }
             val response = toServerSentEvents(values)
