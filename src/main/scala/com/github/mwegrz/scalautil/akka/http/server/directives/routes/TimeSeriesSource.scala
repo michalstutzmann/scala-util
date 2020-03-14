@@ -47,9 +47,7 @@ class TimeSeriesSource[Key, Value](name: String)(
           optionalHeaderValueByName("Last-Event-ID") { lastEventId =>
             val lastEventTime = lastEventId
               .orElse(lastEventIdParam)
-              .map(
-                value => Instant.ofEpochMilli(ByteVector.fromBase64(value).get.toLong()).plusNanos(1)
-              )
+              .map(value => Instant.ofEpochMilli(ByteVector.fromBase64(value).get.toLong()).plusNanos(1))
             val lastEventTimeOrSinceTime = lastEventTime.orElse(since)
             val liveValues = receiveLiveValues(keys)
 

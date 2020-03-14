@@ -25,12 +25,10 @@ object AroundDirectives {
       {
         val onDone = onRequest(ctx.request)
         mapInnerRoute { inner =>
-          withRequestTimeoutResponse(
-            _ => {
-              onDone(Success(Complete(timeoutResponse)))
-              timeoutResponse
-            }
-          ) {
+          withRequestTimeoutResponse(_ => {
+            onDone(Success(Complete(timeoutResponse)))
+            timeoutResponse
+          }) {
             inner.andThen { resultFuture =>
               resultFuture
                 .map {

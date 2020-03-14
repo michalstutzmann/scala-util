@@ -80,9 +80,7 @@ object ActorKeyValueStore {
 
     def retrievePage(key: Option[ByteVector], count: Int): Map[ByteVector, ByteVector] =
       key
-        .fold(values) { k =>
-          values.from(k)
-        }
+        .fold(values) { k => values.from(k) }
         .take(count)
 
     def delete(key: ByteVector): State = copy(values = values - key)
@@ -157,9 +155,7 @@ class InMemoryKeyValueStore[Key: Ordering, Value](initialValues: Map[Key, Value]
   override def retrievePage(key: Option[Key], count: Int): Future[SortedMap[Key, Value]] =
     Future.successful {
       key
-        .fold(valuesByKey) { k =>
-          valuesByKey.from(k)
-        }
+        .fold(valuesByKey) { k => valuesByKey.from(k) }
         .take(count)
     }
 

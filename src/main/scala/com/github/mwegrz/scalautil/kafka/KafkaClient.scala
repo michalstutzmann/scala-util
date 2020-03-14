@@ -69,9 +69,7 @@ class DefaultKafkaClient private[kafka] (config: Config)(
   )(fromBinary: (Array[Byte], Array[Byte]) => A): Source[A, NotUsed] =
     Consumer
       .plainSource(consumerSettings, Subscriptions.topics(topic))
-      .map { r =>
-        fromBinary(r.key(), r.value())
-      }
+      .map { r => fromBinary(r.key(), r.value()) }
       .mapMaterializedValue(_ => NotUsed)
 
   def committableSource[A](

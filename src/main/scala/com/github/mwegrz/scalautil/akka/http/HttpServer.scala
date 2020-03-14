@@ -82,9 +82,7 @@ class HttpServer private (config: Config, httpApis: Set[HttpApi])(
             "protocol" -> request.protocol.value,
             "headers" -> request.headers.mkString(","),
             "status" -> response.status.intValue(),
-            data.fold("contentLength" -> contentLength.toString)(
-              value => "content" -> value.toByteVector.toBase64
-            ),
+            data.fold("contentLength" -> contentLength.toString)(value => "content" -> value.toByteVector.toBase64),
             "time-elapsed" -> timeElapsed
           )
         )
@@ -101,9 +99,7 @@ class HttpServer private (config: Config, httpApis: Set[HttpApi])(
             "protocol" -> request.protocol.value,
             "headers" -> request.headers.mkString(","),
             "status" -> 404,
-            data.fold("contentLength" -> contentLength.toString)(
-              value => "content" -> value.toByteVector.toBase64
-            ),
+            data.fold("contentLength" -> contentLength.toString)(value => "content" -> value.toByteVector.toBase64),
             "rejections" -> rejections.mkString(","),
             "time-elapsed" -> timeElapsed
           )
@@ -120,9 +116,7 @@ class HttpServer private (config: Config, httpApis: Set[HttpApi])(
             "protocol" -> request.protocol.value,
             "headers" -> request.headers.mkString(","),
             "status" -> 500,
-            data.fold("contentLength" -> contentLength.toString)(
-              value => "content" -> value.toByteVector.toBase64
-            ),
+            data.fold("contentLength" -> contentLength.toString)(value => "content" -> value.toByteVector.toBase64),
             "cause" -> exception.getMessage,
             "time-elapsed" -> timeElapsed
           )
@@ -164,9 +158,7 @@ class HttpServer private (config: Config, httpApis: Set[HttpApi])(
 
   bindingFuture
     .map(_.localAddress)
-    .map(
-      localAddress => log.debug(s"Bound to ${localAddress.getHostString}:${localAddress.getPort}")
-    )
+    .map(localAddress => log.debug(s"Bound to ${localAddress.getHostString}:${localAddress.getPort}"))
 
   override def shutdown(): Unit = bindingFuture.flatMap(_.unbind()).map(_ => log.debug("Shut down"))
 }

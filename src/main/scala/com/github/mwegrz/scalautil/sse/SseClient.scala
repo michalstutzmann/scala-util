@@ -80,9 +80,7 @@ class DefaultSseClient private[sse] (config: Config)(
               case t: Throwable =>
                 log.error("Source encountered a failure and has been restarted", t)
             }
-            .foreach { _ =>
-              log.debug("Source completed")
-            }
+            .foreach { _ => log.debug("Source completed") }
         }
     }
   }

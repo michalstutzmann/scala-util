@@ -467,21 +467,15 @@ object SqlDatabaseClient {
         getLocalDateTimeOption(name, ZoneId.systemDefault())
 
       override def getLocalDateTimeOption(name: String, timeZoneId: ZoneId): Option[LocalDateTime] =
-        Option(rs.getTimestamp(name)).map { ts =>
-          LocalDateTime.ofInstant(ts.toInstant, timeZoneId)
-        }
+        Option(rs.getTimestamp(name)).map { ts => LocalDateTime.ofInstant(ts.toInstant, timeZoneId) }
 
       override def getByteArrayOption(name: String): Option[Array[Byte]] = Option(rs.getBytes(name))
 
       override def withBlobOptionInputStream[A](name: String)(f: InputStream => A): Option[A] =
-        Option(rs.getBlob(name)).map { b =>
-          arm.using(b.getBinaryStream) { f }
-        }
+        Option(rs.getBlob(name)).map { b => arm.using(b.getBinaryStream) { f } }
 
       override def withClobOptionInputStream[A](name: String)(f: InputStream => A): Option[A] =
-        Option(rs.getClob(name)).map { b =>
-          arm.using(b.getAsciiStream) { f }
-        }
+        Option(rs.getClob(name)).map { b => arm.using(b.getAsciiStream) { f } }
     }
   }
 
@@ -562,17 +556,18 @@ object SqlDatabaseClient {
       }
     }
     ec.execute(canceller)
-    val result = try {
-      f(ps)
-    } catch {
-      case ex: SQLException =>
-        if (canceller.cancelled) throw new SQLTimeoutException() else throw ex
-    } finally {
-      canceller.finished = true
-      timedOut.countDown()
-      //ps.synchronized(ps.notifyAll())
-      cancellerDone.await()
-    }
+    val result =
+      try {
+        f(ps)
+      } catch {
+        case ex: SQLException =>
+          if (canceller.cancelled) throw new SQLTimeoutException() else throw ex
+      } finally {
+        canceller.finished = true
+        timedOut.countDown()
+        //ps.synchronized(ps.notifyAll())
+        cancellerDone.await()
+      }
     if (canceller.cancelled) throw new SQLTimeoutException()
     result
   }
@@ -631,9 +626,7 @@ object SqlDatabaseClient {
     )
 
     val props: Properties = new Properties()
-    config.getConfig("properties").entrySet().asScala.foreach { a =>
-      props.put(a.getKey, a.getValue.render())
-    }
+    config.getConfig("properties").entrySet().asScala.foreach { a => props.put(a.getKey, a.getValue.render()) }
     ds.setDataSourceProperties(props)
     // TODO
     //ds.setScheduledExecutorService()

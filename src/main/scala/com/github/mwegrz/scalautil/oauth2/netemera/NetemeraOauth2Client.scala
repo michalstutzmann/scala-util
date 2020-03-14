@@ -57,8 +57,6 @@ class NetemeraOauth2Client private (config: Config)(
 
     http
       .singleRequest(request)
-      .flatMap { a =>
-        Unmarshal(a).to[TokenObtained]
-      }
+      .flatMap { a => Unmarshal(a).to[TokenObtained] }
   }
 }

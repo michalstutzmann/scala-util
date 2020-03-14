@@ -49,9 +49,7 @@ class Auth0Oauth2Client private (config: Config)(
       val request = HttpRequest(method = HttpMethods.POST, uri = uri, entity = entity)
       http
         .singleRequest(request)
-        .flatMap { response =>
-          Unmarshal(response).to[TokenObtained]
-        }
+        .flatMap { response => Unmarshal(response).to[TokenObtained] }
     }
   }
 }

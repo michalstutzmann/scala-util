@@ -9,7 +9,5 @@ object marshalling {
       evidence: Ref <:< (Value :: HNil),
       marshaller: Marshaller[Value, A]
   ): Marshaller[ValueClass, A] =
-    marshaller.compose { value =>
-      generic.value.to(value).head
-    }
+    marshaller.compose { value => generic.value.to(value).head }
 }

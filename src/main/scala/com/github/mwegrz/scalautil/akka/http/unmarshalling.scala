@@ -15,9 +15,7 @@ object unmarshalling {
       implicit generic: Lazy[Generic.Aux[ValueClass, Ref]],
       evidence: (String :: HNil) =:= Ref
   ): Unmarshaller[String, ValueClass] =
-    Unmarshaller.strict { value =>
-      generic.value.from(value :: HNil)
-    }
+    Unmarshaller.strict { value => generic.value.from(value :: HNil) }
 
   implicit def stringToNetemeraJwtClaimUnmarshaller(
       implicit jwtKey: JwtKey,

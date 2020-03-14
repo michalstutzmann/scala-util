@@ -217,9 +217,7 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
         }
     }
 
-    keys.map(forKey).foldLeft(Source.empty[(Key, Instant, Value)]) { (a, b) =>
-      a.concat(b)
-    }
+    keys.map(forKey).foldLeft(Source.empty[(Key, Instant, Value)]) { (a, b) => a.concat(b) }
   }
 
   override def retrieveRange(
@@ -246,9 +244,7 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
         }
     }
 
-    keys.map(forKey).foldLeft(Source.empty[(Key, Instant, Value)]) { (a, b) =>
-      a.concat(b)
-    }
+    keys.map(forKey).foldLeft(Source.empty[(Key, Instant, Value)]) { (a, b) => a.concat(b) }
   }
 
   override def retrieveLast(keys: Set[Key], count: Int): Source[(Key, Instant, Value), NotUsed] = {
@@ -276,9 +272,7 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
         .mapConcat(identity)
     }
 
-    keys.map(forKey).foldLeft(Source.empty[(Key, Instant, Value)]) { (a, b) =>
-      a.concat(b)
-    }
+    keys.map(forKey).foldLeft(Source.empty[(Key, Instant, Value)]) { (a, b) => a.concat(b) }
   }
 
   override def retrieveLastUntil(
@@ -310,9 +304,7 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
         .mapConcat(identity)
     }
 
-    keys.map(forKey).foldLeft(Source.empty[(Key, Instant, Value)]) { (a, b) =>
-      a.concat(b)
-    }
+    keys.map(forKey).foldLeft(Source.empty[(Key, Instant, Value)]) { (a, b) => a.concat(b) }
   }
 
   override def retrieveKeys: Source[Key, NotUsed] = {
@@ -324,9 +316,7 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
         query,
         Nil
       )
-      .map { row =>
-        keySerde.bytesToValue(ByteVector(row.getBytes("key").array()))
-      }
+      .map { row => keySerde.bytesToValue(ByteVector(row.getBytes("key").array())) }
       .fold(List.empty[Key]) {
         case (rows, row) => row :: rows
       }

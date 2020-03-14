@@ -25,14 +25,14 @@ object codecs {
 
   implicit val CirceByteVectorEncoder: Encoder[ByteVector] = Encoder.encodeString.contramap(_.toHex)
   implicit val CirceByteVectorDecoder: Decoder[ByteVector] =
-    Decoder.decodeString.map(
-      value => ByteVector.fromHex(value).getOrElse(throw new IllegalArgumentException(s"Invalid hex value: $value"))
+    Decoder.decodeString.map(value =>
+      ByteVector.fromHex(value).getOrElse(throw new IllegalArgumentException(s"Invalid hex value: $value"))
     )
 
   implicit val CirceBitVectorEncoder: Encoder[BitVector] = Encoder.encodeString.contramap(_.toBin)
   implicit val CirceBitVectorDecoder: Decoder[BitVector] =
-    Decoder.decodeString.map(
-      value => BitVector.fromBin(value).getOrElse(throw new IllegalArgumentException(s"Invalid bin value: $value"))
+    Decoder.decodeString.map(value =>
+      BitVector.fromBin(value).getOrElse(throw new IllegalArgumentException(s"Invalid bin value: $value"))
     )
 
   implicit val CirceZoneIdEncoder: Encoder[ZoneId] = Encoder.encodeString.contramap(_.getId)

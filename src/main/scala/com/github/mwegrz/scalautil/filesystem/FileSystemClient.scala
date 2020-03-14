@@ -182,9 +182,7 @@ class FileSystemClient private (conf: Config) extends Shutdownable {
   def setLastModified(path: String, instant: Instant): Unit =
     withFile(path)(_.getContent.setLastModifiedTime(instant.toEpochMilli))
 
-  def info(path: String): FileInfo = withFile(path) { file =>
-    FileInfo.fromFileObject(file, file.getName)
-  }
+  def info(path: String): FileInfo = withFile(path) { file => FileInfo.fromFileObject(file, file.getName) }
 
   def list(
       path: String,
@@ -209,9 +207,7 @@ class FileSystemClient private (conf: Config) extends Shutdownable {
       val rootName = dir.getName
       //log.debug("Files found", "files" -> dir.getChildren.map(_.getName).mkString(","))
       //dir.findFiles(selector).toList map { file =>
-      dir.getChildren.toList.map { file =>
-        FileInfo.fromFileObject(file, rootName)
-      }
+      dir.getChildren.toList.map { file => FileInfo.fromFileObject(file, rootName) }
     }
   }
 
@@ -225,9 +221,7 @@ class FileSystemClient private (conf: Config) extends Shutdownable {
     * its ancestors.
     */
   @throws[FileSystemException]
-  def createFile(path: String): Unit = withFile(path) { file =>
-    file.createFile()
-  }
+  def createFile(path: String): Unit = withFile(path) { file => file.createFile() }
 
   /** Creates this directory, if it does not exist. Also creates any ancestor directories which do not exist.
     * This method does nothing if the directory already exists.
@@ -238,9 +232,7 @@ class FileSystemClient private (conf: Config) extends Shutdownable {
     * its ancestors.
     */
   @throws[FileSystemException]
-  def createDirectory(path: String): Unit = withFile(path) { file =>
-    file.createFolder()
-  }
+  def createDirectory(path: String): Unit = withFile(path) { file => file.createFolder() }
 
   /** Deletes this file.  Does nothing if this file does not exist of if it is a
     * directory that has children.  Does not delete any descendents of this file.
@@ -250,9 +242,7 @@ class FileSystemClient private (conf: Config) extends Shutdownable {
     * or on error deleting this file.
     */
   @throws[FileSystemException]
-  def delete(path: String): Boolean = withFile(path) { file =>
-    file.delete()
-  }
+  def delete(path: String): Boolean = withFile(path) { file => file.delete() }
 
   def changeDirectory(path: String): FileSystemClient = ???
 
@@ -317,11 +307,7 @@ class FileSystemClient private (conf: Config) extends Shutdownable {
     }
 
   private def withFile[A](path: String)(f: FileObject => A): A =
-    withManager { manager =>
-      arm.using(manager.resolveFile(path, opts)) { file =>
-        f(file)
-      }
-    }
+    withManager { manager => arm.using(manager.resolveFile(path, opts)) { file => f(file) } }
 
   private def withManager[A](f: FileSystemManager => A): A = {
     val manager = pool.borrowObject()
