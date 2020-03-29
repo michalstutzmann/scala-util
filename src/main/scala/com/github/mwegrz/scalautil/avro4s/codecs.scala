@@ -54,8 +54,7 @@ object codecs {
       implicit rep: CaseClass1Rep[CC, A],
       subschema: SchemaFor[A],
       fieldMapper: FieldMapper = DefaultFieldMapper
-  ): SchemaFor[CC] =
-    SchemaFor.const(subschema.schema(fieldMapper))
+  ): SchemaFor[CC] = subschema.map(_ => subschema.schema(fieldMapper))
 
   implicit def avro4sValueClassEncoder[CC <: AnyVal, A](
       implicit rep: CaseClass1Rep[CC, A],
@@ -73,7 +72,7 @@ object codecs {
       implicit valueSchemaFor: SchemaFor[Value],
       fieldMapper: FieldMapper = DefaultFieldMapper
   ): SchemaFor[Map[Key, Value]] =
-    SchemaFor.const(Schema.createMap(valueSchemaFor.schema(fieldMapper)))
+    SchemaFor.mapSchemaFor(valueSchemaFor.map(_ => valueSchemaFor.schema(fieldMapper))).map[Map[Key, Value]](identity)
 
   implicit def avro4sMapEncoder[Key, Value](
       implicit keyEncoder: KeyEncoder[Key],
@@ -95,7 +94,11 @@ object codecs {
       implicit valueSchemaFor: SchemaFor[Value],
       fieldMapper: FieldMapper = DefaultFieldMapper
   ): SchemaFor[SortedMap[Key, Value]] =
-    SchemaFor.const(Schema.createMap(valueSchemaFor.schema(fieldMapper)))
+    SchemaFor
+      .mapSchemaFor(valueSchemaFor.map(_ => valueSchemaFor.schema(fieldMapper)))
+      .map[SortedMap[Key, Value]](identity)
+  //valueSchemaFor.map(_ => valueSchemaFor.schema(fieldMapper)))
+  //SchemaFor.const(Schema.createMap(valueSchemaFor.schema(fieldMapper)))
 
   implicit def avro4sSortedMapEncoder[Key, Value](
       implicit keyEncoder: KeyEncoder[Key],

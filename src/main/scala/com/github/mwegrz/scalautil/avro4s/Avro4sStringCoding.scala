@@ -8,7 +8,7 @@ trait Avro4sStringCoding[A] {
 
   def unapply(a: A): Option[String]
 
-  implicit val avro4sSchemaFor: SchemaFor[A] = SchemaFor.const(Schema.create(Schema.Type.STRING))
+  implicit val avro4sSchemaFor: SchemaFor[A] = SchemaFor.StringSchemaFor.map[A](identity)
   implicit val avro4sEncoder: Encoder[A] = Encoder.StringEncoder.comap(unapply(_).get)
   implicit val avro4sDecoder: Decoder[A] = Decoder.StringDecoder.map(apply)
 }
