@@ -133,7 +133,7 @@ class HttpServer private (config: Config, httpApis: Set[HttpApi])(
   private val path: Route =
     cors(
       CorsSettings.defaultSettings
-        .withAllowedMethods(CorsSettings.defaultSettings.allowedMethods ++ Seq(HttpMethods.PATCH))
+        .withAllowedMethods(CorsSettings.defaultSettings.allowedMethods ++ Seq(HttpMethods.PATCH, HttpMethods.DELETE))
     ) {
       aroundRequest(logRequest)(executionContext) {
         val time = Instant.now()
