@@ -35,7 +35,7 @@ trait KeyValueStore[Key, Value] {
 
   def retrievePage(cursor: Option[Key], count: Int): Future[SortedMap[Key, Value]]
 
-  def delete(key: Key): Future[Unit]
+  def delete(key: Key): Future[Option[Value]]
 }
 
 object ActorKeyValueStore {
@@ -122,9 +122,10 @@ object ActorKeyValueStore {
 
       case event @ Delete(key: ByteVector) =>
         persist(event) { _ =>
+          val value = state.retrieve(key)
           state = state.delete(key)
           saveSnapshotIfNeeded()
-          sender() ! (())
+          sender() ! value
         }
     }
 
@@ -159,8 +160,10 @@ class InMemoryKeyValueStore[Key: Ordering, Value](initialValues: Map[Key, Value]
         .take(count)
     }
 
-  override def delete(key: Key): Future[Unit] = Future.successful {
+  override def delete(key: Key): Future[Option[Value]] = Future.successful {
+    val value = valuesByKey.get(key)
     valuesByKey = valuesByKey - key
+    value
   }
 }
 
@@ -220,8 +223,8 @@ class ActorKeyValueStore[Key: Ordering, Value](persistenceId: String)(
           (keySerde.bytesToValue(binaryKey), valueSerde.bytesToValue(binaryValue))
       })
 
-  override def delete(key: Key): Future[Unit] =
-    (actor ? Delete(keySerde.valueToBytes(key))).mapTo[Unit]
+  override def delete(key: Key): Future[Option[Value]] =
+    (actor ? Delete(keySerde.valueToBytes(key))).mapTo[Option[Value]]
 
   override def shutdown(): Unit = actorRefFactory.stop(actor)
 }
