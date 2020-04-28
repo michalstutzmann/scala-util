@@ -128,7 +128,6 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
     with KeyValueLogging {
   private val keyspace = config.getString("keyspace")
   private val table = config.getString("table")
-  private val rowTtl = config.getDuration("row-ttl")
 
   Await.ready(createTableIfNotExists(), Duration.Inf)
 
@@ -140,7 +139,7 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
            |  key,
            |  time,
            |  value
-           |) VALUES (?, ?, ?) USING TTL ${rowTtl.getSeconds}""".stripMargin
+           |) VALUES (?, ?, ?)""".stripMargin
       ) {
         case ((key, time, value), s) =>
           s.bind(
@@ -159,7 +158,7 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
            |  key,
            |  time,
            |  value
-           |) VALUES (?, ?, ?) IF NOT EXISTS USING TTL ${rowTtl.getSeconds}""".stripMargin
+           |) VALUES (?, ?, ?) IF NOT EXISTS""".stripMargin
       ) {
         case ((key, time, value), s) =>
           s.bind(
