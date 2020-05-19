@@ -1,14 +1,14 @@
 package com.github.mwegrz.scalautil.circe
 
-import java.time.ZoneId
+import java.time.{ZoneId, ZoneOffset}
 import java.util.Base64
 
 import akka.http.scaladsl.model.Uri
 import com.github.mwegrz.scalautil.CaseClass1Rep
-import io.circe.{ Decoder, Encoder, KeyDecoder, KeyEncoder }
+import io.circe.{Decoder, Encoder, KeyDecoder, KeyEncoder}
 import javax.mail.internet.InternetAddress
-import scodec.bits.{ BitVector, ByteVector }
-import shapeless.{ ::, Generic, HNil, Lazy }
+import scodec.bits.{BitVector, ByteVector}
+import shapeless.{::, Generic, HNil, Lazy}
 
 object codecs {
   implicit def circeValueClassEncoder[CC <: AnyVal, A](
@@ -37,6 +37,9 @@ object codecs {
 
   implicit val CirceZoneIdEncoder: Encoder[ZoneId] = Encoder.encodeString.contramap(_.getId)
   implicit val CirceZoneIdDecoder: Decoder[ZoneId] = Decoder.decodeString.map(ZoneId.of)
+
+  implicit val CirceZoneOffsetEncoder: Encoder[ZoneOffset] = Encoder.encodeString.contramap(_.getId)
+  implicit val CirceZoneOffsetDecoder: Decoder[ZoneOffset] = Decoder.decodeString.map(ZoneOffset.of)
 
   implicit val CirceUriEncoder: Encoder[Uri] = Encoder.encodeString.contramap(_.toString)
   implicit val CirceUriDecoder: Decoder[Uri] = Decoder.decodeString.map(Uri(_))
