@@ -2,7 +2,8 @@ package com.github.mwegrz.scalautil.akka.serialization
 
 import akka.actor.ExtendedActorSystem
 import com.sksamuel.avro4s.{ Decoder, Encoder, SchemaFor }
-import org.apache.avro.Schema
+import org.apache.avro.SchemaCompatibility.SchemaCompatibilityType
+import org.apache.avro.{ Schema, SchemaCompatibility }
 
 import scala.reflect.ClassTag
 
@@ -28,4 +29,16 @@ class ResourceAvroSerializer[A: SchemaFor: Encoder: Decoder: ClassTag](
         (version, schema)
       }
       .toMap
+
+  require(isBackwardsCompatible, "current schema is not backward compatible")
+
+  def isBackwardsCompatible: Boolean =
+    if (currentVersion > 1) {
+      SchemaCompatibility
+        .checkReaderWriterCompatibility(
+          versionToWriterSchema(currentVersion),
+          versionToWriterSchema(currentVersion - 1)
+        )
+        .getType == SchemaCompatibilityType.COMPATIBLE
+    } else true
 }
