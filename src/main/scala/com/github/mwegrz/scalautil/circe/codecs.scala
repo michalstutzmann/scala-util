@@ -1,14 +1,14 @@
 package com.github.mwegrz.scalautil.circe
 
-import java.time.{ZoneId, ZoneOffset}
+import java.time.{ ZoneId, ZoneOffset }
 import java.util.Base64
 
 import akka.http.scaladsl.model.Uri
 import com.github.mwegrz.scalautil.CaseClass1Rep
-import io.circe.{Decoder, Encoder, KeyDecoder, KeyEncoder}
+import io.circe.{ Decoder, Encoder, KeyDecoder, KeyEncoder }
 import javax.mail.internet.InternetAddress
-import scodec.bits.{BitVector, ByteVector}
-import shapeless.{::, Generic, HNil, Lazy}
+import scodec.bits.{ BitVector, ByteVector }
+import shapeless.{ ::, Generic, HNil, Lazy }
 
 object codecs {
   implicit def circeValueClassEncoder[CC <: AnyVal, A](

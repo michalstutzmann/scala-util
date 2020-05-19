@@ -1,15 +1,15 @@
 package com.github.mwegrz.scalautil.avro4s
 
-import java.time.{Duration, ZoneId, ZoneOffset}
+import java.time.{ Duration, ZoneId, ZoneOffset }
 
 import akka.http.scaladsl.model.Uri
 import com.sksamuel.avro4s._
-import io.circe.{KeyDecoder, KeyEncoder}
+import io.circe.{ KeyDecoder, KeyEncoder }
 import org.apache.avro.Schema
-import scodec.bits.{BitVector, ByteVector}
-import com.github.mwegrz.scalautil.{CaseClass1Rep, circe}
+import scodec.bits.{ BitVector, ByteVector }
+import com.github.mwegrz.scalautil.{ CaseClass1Rep, circe }
 import javax.mail.internet.InternetAddress
-import shapeless.{::, Generic, HNil, Lazy}
+import shapeless.{ ::, Generic, HNil, Lazy }
 
 import scala.collection.immutable.SortedMap
 
