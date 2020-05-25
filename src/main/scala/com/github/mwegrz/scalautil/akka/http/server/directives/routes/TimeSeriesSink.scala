@@ -23,7 +23,7 @@ class TimeSeriesSink[Key, Value](name: String)(
 ) {
   def route(keys: Set[Key])(update: (Instant, Value) => Value): Route = post {
     entity(as[SingleDocument[Value]]) {
-      case SingleDocument(Some(resource @ Resource(_, _, value))) =>
+      case SingleDocument(Some(resource @ Resource(_, _, Some(value)))) =>
         validate(value)(validator) {
           val time = Instant.now()
           val updatedValue = update(time, value)
@@ -34,7 +34,7 @@ class TimeSeriesSink[Key, Value](name: String)(
           val id = createId(time)
           complete(
             StatusCodes.Created -> SingleDocument(
-              Some(resource.copy(`type` = name, id = Some(id), attributes = updatedValue))
+              Some(resource.copy(`type` = name, id = id, attributes = Some(updatedValue)))
             )
           )
         }

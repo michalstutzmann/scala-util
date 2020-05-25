@@ -1,7 +1,6 @@
 package com.github.mwegrz.scalautil
 
 import scala.language.experimental.macros
-import scala.language.higherKinds
 import scala.reflect.macros.whitebox
 
 final class CaseClass1Rep[CC, F1](val apply: F1 => CC, val unapply: CC => F1)

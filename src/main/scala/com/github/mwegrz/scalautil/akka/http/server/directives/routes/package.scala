@@ -55,7 +55,7 @@ package object routes {
                 elems
                   .take(limit)
                   .toList
-                  .map { case (key, value) => Resource(name, Some(key.toString), value) }
+                  .map { case (key, value) => Resource(name, key.toString, Some(value)) }
               //val nextCursor = a.keys.lastOption.map(b => ByteVector.encodeAscii(b.toString).right.get.toBase64)
               MultiDocument(data)
             }
@@ -68,7 +68,7 @@ package object routes {
             .map { values =>
               val data = values.toList
               MultiDocument(data.map {
-                case (key, value) => Resource(name, Some(key.toString), value)
+                case (key, value) => Resource(name, key.toString, Some(value))
               })
             }
           onComplete(envelope) {
@@ -79,13 +79,13 @@ package object routes {
       } ~
         post {
           entity(as[SingleDocument[Value]]) {
-            case envelope @ SingleDocument(Some(resource @ Resource(_, _, entity))) =>
+            case envelope @ SingleDocument(Some(resource @ Resource(_, _, Some(entity)))) =>
               validate(entity)(validator) {
                 onComplete(store.add(entity)) {
                   case Success(Some((key, value))) =>
                     complete(
                       StatusCodes.Created -> envelope
-                        .copy(data = Some(resource.copy(id = Some(key.toString), attributes = value)))
+                        .copy(data = Some(resource.copy(id = key.toString, attributes = Some(value))))
                     )
                   case Success(None) =>
                     complete(StatusCodes.Created -> envelope)
@@ -99,7 +99,7 @@ package object routes {
     } ~ path(keyPathMatcher) { id =>
       post {
         entity(as[SingleDocument[Value]]) {
-          case envelope @ SingleDocument(Some(resource @ Resource(_, _, entity))) =>
+          case envelope @ SingleDocument(Some(resource @ Resource(_, _, Some(entity)))) =>
             validate(entity)(validator) {
               onComplete(store.add(id, entity)) {
                 case Success(value)                                  => complete(StatusCodes.Created -> value)
@@ -112,11 +112,11 @@ package object routes {
       } ~
         patch {
           entity(as[SingleDocument[Value]]) {
-            case document @ SingleDocument(Some(resource @ Resource(_, _, entity))) =>
+            case document @ SingleDocument(Some(resource @ Resource(_, _, Some(entity)))) =>
               validate(entity)(validator) {
                 onComplete(store.update(id, entity)) {
                   case Success(Some(value)) =>
-                    val updatedResource = resource.copy(attributes = value)
+                    val updatedResource = resource.copy(attributes = Some(value))
                     complete(document.copy(data = Some(updatedResource)))
                   case Success(None) =>
                     complete(SingleDocument(Option.empty[Resource[Value]]))
@@ -130,7 +130,7 @@ package object routes {
         get {
           onSuccess(store.retrieve(id)) { value =>
             rejectEmptyResponse {
-              complete(value.map(b => SingleDocument[Value](Some(Resource(name, Some(id.toString), b)))))
+              complete(value.map(b => SingleDocument[Value](Some(Resource(name, id.toString, Some(b))))))
             }
           }
         } ~
@@ -152,7 +152,7 @@ package object routes {
     pathEnd {
       post {
         entity(as[SingleDocument[Value]]) {
-          case envelope @ SingleDocument(Some(resource @ Resource(_, _, entity))) =>
+          case envelope @ SingleDocument(Some(resource @ Resource(_, _, Some(entity)))) =>
             validate(entity)(validator) {
               onComplete(store.add(id, entity)) {
                 case Success(value)                                  => complete(StatusCodes.Created -> value)
@@ -165,11 +165,11 @@ package object routes {
       } ~
         patch {
           entity(as[SingleDocument[Value]]) {
-            case document @ SingleDocument(Some(resource @ Resource(_, _, entity))) =>
+            case document @ SingleDocument(Some(resource @ Resource(_, _, Some(entity)))) =>
               validate(entity)(validator) {
                 onComplete(store.update(id, entity)) {
                   case Success(Some(value)) =>
-                    val updatedResource = resource.copy(attributes = value)
+                    val updatedResource = resource.copy(attributes = Some(value))
                     complete(document.copy(data = Some(updatedResource)))
                   case Success(None) =>
                     complete(SingleDocument(Option.empty[Resource[Value]]))
@@ -183,7 +183,7 @@ package object routes {
         get {
           onSuccess(store.retrieve(id)) { value =>
             rejectEmptyResponse {
-              complete(value.map(b => SingleDocument[Value](Some(Resource(name, Some(id.toString), b)))))
+              complete(value.map(b => SingleDocument[Value](Some(Resource(name, id.toString, Some(b))))))
             }
           }
         } ~

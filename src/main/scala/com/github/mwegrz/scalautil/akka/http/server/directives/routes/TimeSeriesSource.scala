@@ -77,7 +77,7 @@ class TimeSeriesSource[Key, Value](name: String)(
               val values = until
                 .fold(valueStore.retrieveLast(keys, value))(valueStore.retrieveLastUntil(keys, value, _))
                 .map(_._3)
-                .map(Resource(name, None, _))
+                .map(a => Resource(name, null, Some(a)))
                 .toMat(Sink.seq)(Keep.right)
                 .run()
                 .map(_.toList)
@@ -87,7 +87,7 @@ class TimeSeriesSource[Key, Value](name: String)(
               val values = valueStore
                 .retrieveRange(keys, since.getOrElse(Instant.EPOCH), until.getOrElse(Instant.now))
                 .map(_._3)
-                .map(Resource(name, None, _))
+                .map(a => Resource(name, null, Some(a)))
                 .toMat(Sink.seq)(Keep.right)
                 .run()
                 .map(_.toList)
