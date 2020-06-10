@@ -11,14 +11,14 @@ import scodec.bits.{ BitVector, ByteVector }
 import shapeless.{ ::, Generic, HNil, Lazy }
 
 object codecs {
-  implicit def circeValueClassEncoder[CC <: AnyVal, A](
-      implicit rep: CaseClass1Rep[CC, A],
+  implicit def circeValueClassEncoder[CC <: AnyVal, A](implicit
+      rep: CaseClass1Rep[CC, A],
       delegate: Encoder[A]
   ): Encoder[CC] =
     delegate.contramap(rep.unapply)
 
-  implicit def circeValueClassFromValue[CC <: AnyVal, B](
-      implicit rep: CaseClass1Rep[CC, B],
+  implicit def circeValueClassFromValue[CC <: AnyVal, B](implicit
+      rep: CaseClass1Rep[CC, B],
       delegate: Decoder[B]
   ): Decoder[CC] =
     delegate.map { rep.apply }
@@ -48,13 +48,13 @@ object codecs {
   implicit val CirceInternetAddressDecoder: Decoder[InternetAddress] =
     Decoder.decodeString.map(new InternetAddress(_, true))
 
-  implicit def circeStringValueClassKeyEncoder[Key, Ref](
-      implicit generic: Lazy[Generic.Aux[Key, Ref]],
+  implicit def circeStringValueClassKeyEncoder[Key, Ref](implicit
+      generic: Lazy[Generic.Aux[Key, Ref]],
       evidence: Ref <:< (String :: HNil)
   ): KeyEncoder[Key] = key => generic.value.to(key).head
 
-  implicit def circeStringValueClassKeyDecoder[Key, Ref](
-      implicit generic: Lazy[Generic.Aux[Key, Ref]],
+  implicit def circeStringValueClassKeyDecoder[Key, Ref](implicit
+      generic: Lazy[Generic.Aux[Key, Ref]],
       evidence: (String :: HNil) =:= Ref
   ): KeyDecoder[Key] =
     string => Some(generic.value.from(string :: HNil))

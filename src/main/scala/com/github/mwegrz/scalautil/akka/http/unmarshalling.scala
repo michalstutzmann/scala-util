@@ -11,14 +11,14 @@ import pdi.jwt.JwtAlgorithm
 import shapeless.{ ::, Generic, HNil, Lazy }
 
 object unmarshalling {
-  implicit def stringToStringValueClassUnmarshaller[ValueClass, Ref](
-      implicit generic: Lazy[Generic.Aux[ValueClass, Ref]],
+  implicit def stringToStringValueClassUnmarshaller[ValueClass, Ref](implicit
+      generic: Lazy[Generic.Aux[ValueClass, Ref]],
       evidence: (String :: HNil) =:= Ref
   ): Unmarshaller[String, ValueClass] =
     Unmarshaller.strict { value => generic.value.from(value :: HNil) }
 
-  implicit def stringToNetemeraJwtClaimUnmarshaller(
-      implicit jwtKey: JwtKey,
+  implicit def stringToNetemeraJwtClaimUnmarshaller(implicit
+      jwtKey: JwtKey,
       jwtAlgorithm: JwtAlgorithm
   ): Unmarshaller[String, NetemeraJwtClaim] =
     Unmarshaller.strict(NetemeraJwtClaim.fromString(_).get)

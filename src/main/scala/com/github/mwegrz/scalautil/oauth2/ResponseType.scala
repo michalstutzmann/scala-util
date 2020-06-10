@@ -9,10 +9,11 @@ object ResponseType {
     override lazy val value = "code"
   }
 
-  def apply(value: String): ResponseType = value match {
-    case Token.value => Token
-    case Code.value  => Code
-  }
+  def apply(value: String): ResponseType =
+    value match {
+      case Token.value => Token
+      case Code.value  => Code
+    }
 
   def unapply(responseType: ResponseType): Option[String] = Some(responseType.value)
 }

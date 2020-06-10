@@ -27,15 +27,16 @@ package object scodec {
     }
   }
 
-  def fromHex(hex: String, byteOrdering: ByteOrdering): Try[ByteVector] = Try {
-    ByteVector
-      .fromHex(hex)
-      .map { byteVector =>
-        byteOrdering match {
-          case BigEndian    => byteVector
-          case LittleEndian => byteVector.reverse
+  def fromHex(hex: String, byteOrdering: ByteOrdering): Try[ByteVector] =
+    Try {
+      ByteVector
+        .fromHex(hex)
+        .map { byteVector =>
+          byteOrdering match {
+            case BigEndian    => byteVector
+            case LittleEndian => byteVector.reverse
+          }
         }
-      }
-      .getOrElse(throw new IllegalArgumentException(s"invalid hex value: $hex"))
-  }
+        .getOrElse(throw new IllegalArgumentException(s"invalid hex value: $hex"))
+    }
 }

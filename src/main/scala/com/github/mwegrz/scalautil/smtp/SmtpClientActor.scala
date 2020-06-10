@@ -35,36 +35,37 @@ object SmtpClientActor {
 
   final case class EmailSent(email: Email) extends Event
 
-  def behavior(config: Config, name: String): Behavior[Command] = Behaviors.setup { context =>
-    implicit val executionContext: ExecutionContext = context.executionContext
-    val log = context.log
-    val smtpClient = SmtpClient(config)
+  def behavior(config: Config, name: String): Behavior[Command] =
+    Behaviors.setup { context =>
+      implicit val executionContext: ExecutionContext = context.executionContext
+      val log = context.log
+      val smtpClient = SmtpClient(config)
 
-    val commandHandler: (State, Command) => Effect[Event, State] = { (state, command) =>
-      command match {
-        case SendEmail(_, email, replyTo) =>
-          smtpClient.sendEmail(email).onComplete {
-            case Success(value)     => log.info(s"E-mail sent: $email")
-            case Failure(exception) => log.warning(exception, s"Could not sent e-mail: $email")
-          }
-          //Effect.persist(EmailSent(email)).thenRun(replyTo.tell)
-          Effect.none
+      val commandHandler: (State, Command) => Effect[Event, State] = { (state, command) =>
+        command match {
+          case SendEmail(_, email, replyTo) =>
+            smtpClient.sendEmail(email).onComplete {
+              case Success(value)     => log.info(s"E-mail sent: $email")
+              case Failure(exception) => log.warning(exception, s"Could not sent e-mail: $email")
+            }
+            //Effect.persist(EmailSent(email)).thenRun(replyTo.tell)
+            Effect.none
+        }
       }
-    }
 
-    val eventHandler: (State, Event) => State = { (state, event) =>
-      event match {
-        case EmailSent(email) => state
+      val eventHandler: (State, Event) => State = { (state, event) =>
+        event match {
+          case EmailSent(email) => state
+        }
       }
-    }
 
-    EventSourcedBehavior[Command, Event, State](
-      persistenceId = PersistenceId(name),
-      emptyState = State(),
-      commandHandler = commandHandler,
-      eventHandler = eventHandler
-    ).withRetention(
-      RetentionCriteria.snapshotEvery(numberOfEvents = 100, keepNSnapshots = 2).withDeleteEventsOnSnapshot
-    )
-  }
+      EventSourcedBehavior[Command, Event, State](
+        persistenceId = PersistenceId(name),
+        emptyState = State(),
+        commandHandler = commandHandler,
+        eventHandler = eventHandler
+      ).withRetention(
+        RetentionCriteria.snapshotEvery(numberOfEvents = 100, keepNSnapshots = 2).withDeleteEventsOnSnapshot
+      )
+    }
 }

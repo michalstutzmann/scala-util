@@ -6,32 +6,36 @@ import scala.language.higherKinds
 import scala.util.Random
 
 object Generator {
-  def integers(implicit random: Random): Generator[Int] = new Generator[Int] {
-    override def generate(): Int = random.nextInt()
+  def integers(implicit random: Random): Generator[Int] =
+    new Generator[Int] {
+      override def generate(): Int = random.nextInt()
 
-    override def generateGaussian(mean: Double, standardDeviation: Double): Int =
-      (random.nextGaussian() * standardDeviation + mean).round.toInt
-  }
+      override def generateGaussian(mean: Double, standardDeviation: Double): Int =
+        (random.nextGaussian() * standardDeviation + mean).round.toInt
+    }
 
-  def longs(implicit random: Random): Generator[Long] = new Generator[Long] {
-    override def generate(): Long = random.nextLong()
+  def longs(implicit random: Random): Generator[Long] =
+    new Generator[Long] {
+      override def generate(): Long = random.nextLong()
 
-    override def generateGaussian(mean: Double, standardDeviation: Double): Long =
-      (random.nextGaussian() * standardDeviation + mean).round
-  }
+      override def generateGaussian(mean: Double, standardDeviation: Double): Long =
+        (random.nextGaussian() * standardDeviation + mean).round
+    }
 
-  def doubles(implicit random: Random): Generator[Double] = new Generator[Double] {
-    override def generate(): Double = random.nextDouble()
+  def doubles(implicit random: Random): Generator[Double] =
+    new Generator[Double] {
+      override def generate(): Double = random.nextDouble()
 
-    override def generateGaussian(mean: Double, standardDeviation: Double): Double =
-      random.nextGaussian() * standardDeviation + mean
-  }
+      override def generateGaussian(mean: Double, standardDeviation: Double): Double =
+        random.nextGaussian() * standardDeviation + mean
+    }
 
-  def single[T](x: T): Generator[T] = new Generator[T] {
-    override def generate(): T = x
+  def single[T](x: T): Generator[T] =
+    new Generator[T] {
+      override def generate(): T = x
 
-    override def generateGaussian(mean: Double, standardDeviation: Double): T = generate()
-  }
+      override def generateGaussian(mean: Double, standardDeviation: Double): T = generate()
+    }
 
   def longsBetween(lowest: Long, highest: Long)(implicit random: Random): Generator[Long] =
     for (x <- longs) yield lowest + Math.abs(x) % (highest - lowest)
@@ -92,17 +96,19 @@ trait Generator[+T] { self =>
   def generateGaussian(mean: Double, standardDeviation: Double): T =
     throw new UnsupportedOperationException
 
-  def map[S](f: T => S): Generator[S] = new Generator[S] {
-    override def generate(): S = f(self.generate())
+  def map[S](f: T => S): Generator[S] =
+    new Generator[S] {
+      override def generate(): S = f(self.generate())
 
-    override def generateGaussian(mean: Double, standardDeviation: Double): S =
-      f(self.generateGaussian(mean, standardDeviation))
-  }
+      override def generateGaussian(mean: Double, standardDeviation: Double): S =
+        f(self.generateGaussian(mean, standardDeviation))
+    }
 
-  def flatMap[S](f: T => Generator[S]): Generator[S] = new Generator[S] {
-    override def generate(): S = f(self.generate()).generate()
+  def flatMap[S](f: T => Generator[S]): Generator[S] =
+    new Generator[S] {
+      override def generate(): S = f(self.generate()).generate()
 
-    override def generateGaussian(mean: Double, standardDeviation: Double): S =
-      f(self.generateGaussian(mean, standardDeviation)).generateGaussian(mean, standardDeviation)
-  }
+      override def generateGaussian(mean: Double, standardDeviation: Double): S =
+        f(self.generateGaussian(mean, standardDeviation)).generateGaussian(mean, standardDeviation)
+    }
 }

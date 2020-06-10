@@ -102,8 +102,8 @@ class FileSystemClient private (conf: Config) extends Shutdownable {
 
   override def shutdown(): Unit = pool.close()
 
-  def readBytes(path: String)(
-      implicit compression: Option[Compression] = None,
+  def readBytes(path: String)(implicit
+      compression: Option[Compression] = None,
       bufferSize: BufferSize = DefaultBufferSize
   ): Array[Byte] =
     withInputStream(path) { is =>
@@ -119,15 +119,15 @@ class FileSystemClient private (conf: Config) extends Shutdownable {
       baos.toByteArray
     }(compression)
 
-  def readString(path: String)(
-      implicit encoding: Encoding = DefaultEncoding,
+  def readString(path: String)(implicit
+      encoding: Encoding = DefaultEncoding,
       compression: Option[Compression] = None,
       bufferSize: BufferSize = DefaultBufferSize
   ): String =
     readLines(path)(encoding, compression, bufferSize).mkString
 
-  def readLines(path: String)(
-      implicit encoding: Encoding = DefaultEncoding,
+  def readLines(path: String)(implicit
+      encoding: Encoding = DefaultEncoding,
       compression: Option[Compression] = None,
       bufferSize: BufferSize = DefaultBufferSize
   ): List[String] =
@@ -148,21 +148,21 @@ class FileSystemClient private (conf: Config) extends Shutdownable {
       source.getLines().toList
     }
 
-  def writeBytes(path: String, bytes: Array[Byte])(
-      implicit compression: Option[Compression] = None
+  def writeBytes(path: String, bytes: Array[Byte])(implicit
+      compression: Option[Compression] = None
   ): Unit =
     withOutputStream(path) { os =>
       val cos = compressOutputStream(os, compression)
       os.write(bytes)
     }(compression)
 
-  def writeString(path: String, string: String)(
-      implicit compression: Option[Compression] = None
+  def writeString(path: String, string: String)(implicit
+      compression: Option[Compression] = None
   ): Unit =
     writeLines(path, List(string))(compression)
 
-  def writeLines(path: String, lines: List[String])(
-      implicit compression: Option[Compression] = None
+  def writeLines(path: String, lines: List[String])(implicit
+      compression: Option[Compression] = None
   ): Unit =
     withOutputStream(path) { os =>
       val cos = compressOutputStream(os, compression)
@@ -246,45 +246,47 @@ class FileSystemClient private (conf: Config) extends Shutdownable {
 
   def changeDirectory(path: String): FileSystemClient = ???
 
-  def inputStream(path: String): InputStream = new InputStream {
-    private val manager = pool.borrowObject()
-    private val file = manager.resolveFile(path, opts)
-    private val is = file.getContent.getInputStream
+  def inputStream(path: String): InputStream =
+    new InputStream {
+      private val manager = pool.borrowObject()
+      private val file = manager.resolveFile(path, opts)
+      private val is = file.getContent.getInputStream
 
-    override def read(): Int = is.read()
+      override def read(): Int = is.read()
 
-    override def close(): Unit = {
-      try {
-        is.close()
-      } finally {
+      override def close(): Unit = {
         try {
-          file.close()
+          is.close()
         } finally {
-          pool.returnObject(manager)
+          try {
+            file.close()
+          } finally {
+            pool.returnObject(manager)
+          }
         }
       }
     }
-  }
 
-  def outputStream(path: String): OutputStream = new OutputStream {
-    private val manager = pool.borrowObject()
-    private val file = manager.resolveFile(path, opts)
-    private val os = file.getContent.getOutputStream
+  def outputStream(path: String): OutputStream =
+    new OutputStream {
+      private val manager = pool.borrowObject()
+      private val file = manager.resolveFile(path, opts)
+      private val os = file.getContent.getOutputStream
 
-    override def write(b: Int): Unit = os.write(b)
+      override def write(b: Int): Unit = os.write(b)
 
-    override def close(): Unit = {
-      try {
-        os.close()
-      } finally {
+      override def close(): Unit = {
         try {
-          file.close()
+          os.close()
         } finally {
-          pool.returnObject(manager)
+          try {
+            file.close()
+          } finally {
+            pool.returnObject(manager)
+          }
         }
       }
     }
-  }
 
   def withInputStream[A](
       path: String

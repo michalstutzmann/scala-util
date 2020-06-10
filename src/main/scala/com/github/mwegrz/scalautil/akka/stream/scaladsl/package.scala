@@ -22,14 +22,18 @@ package object scaladsl {
   implicit class FlowOps[A, B, C](flow: Flow[A, B, C]) {
     def toSource: Source[B, C] = Source.maybe.viaMat(flow)(Keep.right)
 
-    def toKillableSource: Source[B, (KillSwitch, C)] = Source.maybe.viaMat(flow)(Keep.both).mapMaterializedValue {
-      case (promise, c) =>
-        (new KillSwitch {
-          override def shutdown(): Unit = promise.trySuccess(None)
+    def toKillableSource: Source[B, (KillSwitch, C)] =
+      Source.maybe.viaMat(flow)(Keep.both).mapMaterializedValue {
+        case (promise, c) =>
+          (
+            new KillSwitch {
+              override def shutdown(): Unit = promise.trySuccess(None)
 
-          override def abort(ex: Throwable): Unit = promise.tryFailure(ex)
-        }, c)
-    }
+              override def abort(ex: Throwable): Unit = promise.tryFailure(ex)
+            },
+            c
+          )
+      }
 
     def toSink: Sink[A, C] = flow.toMat(Sink.ignore)(Keep.left)
   }

@@ -16,8 +16,8 @@ import scodec.bits.ByteVector
 import scala.concurrent.ExecutionContext
 
 object RedisClient {
-  def apply(config: Config)(
-      implicit actorSystem: ActorSystem,
+  def apply(config: Config)(implicit
+      actorSystem: ActorSystem,
       actorMaterializer: ActorMaterializer,
       executionContext: ExecutionContext
   ): RedisClient =

@@ -80,8 +80,8 @@ object NotRetryingEventSource {
       send: HttpRequest => Future[HttpResponse],
       initialLastEventId: Option[String] = None,
       retryDelay: FiniteDuration = Duration.Zero
-  )(
-      implicit mat: Materializer,
+  )(implicit
+      mat: Materializer,
       actorSystem: ActorSystem
   ): EventSource = {
     import EventStreamUnmarshalling._

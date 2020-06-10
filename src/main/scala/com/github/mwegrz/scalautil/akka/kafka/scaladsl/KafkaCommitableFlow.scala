@@ -11,8 +11,8 @@ object KafkaCommitableFlow {
       producerSettings: ProducerSettings[K1, V1],
       consumerSettings: ConsumerSettings[K2, V2],
       subscription: Subscription
-  )(
-      implicit actorSystem: ActorSystem,
+  )(implicit
+      actorSystem: ActorSystem,
       actorMaterializer: ActorMaterializer
   ): KafkaCommitableFlow[K1, V1, K2, V2] = {
     val sink = Producer.commitableSink[K1, V1](producerSettings)

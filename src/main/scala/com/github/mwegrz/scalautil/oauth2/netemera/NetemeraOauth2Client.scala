@@ -16,8 +16,8 @@ import io.circe.generic.extras.auto._
 import scala.concurrent.{ ExecutionContext, Future }
 
 object NetemeraOauth2Client {
-  def apply(config: Config)(
-      implicit actorSystem: ActorSystem,
+  def apply(config: Config)(implicit
+      actorSystem: ActorSystem,
       actorMaterializer: ActorMaterializer,
       executionContext: ExecutionContext
   ): NetemeraOauth2Client =
@@ -27,8 +27,8 @@ object NetemeraOauth2Client {
     Configuration.default.withSnakeCaseMemberNames.withDefaults
 }
 
-class NetemeraOauth2Client private (config: Config)(
-    implicit actorSystem: ActorSystem,
+class NetemeraOauth2Client private (config: Config)(implicit
+    actorSystem: ActorSystem,
     actorMaterializer: ActorMaterializer,
     executionContext: ExecutionContext
 ) extends Oauth2Client {

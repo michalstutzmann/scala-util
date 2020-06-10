@@ -8,20 +8,21 @@ import akka.http.scaladsl.model.{ HttpRequest, Uri }
 import akka.http.scaladsl.settings.ConnectionPoolSettings
 import akka.stream.ActorMaterializer
 import akka.stream.alpakka.sse.scaladsl.EventSource
-import akka.stream.scaladsl.{ RestartSource, Source }
+import akka.stream.scaladsl.Source
 import com.github.mwegrz.scalastructlog.KeyValueLogging
 import com.github.mwegrz.scalautil.akka.stream.alpakka.sse.scaladsl.NotRetryingEventSource
 import com.typesafe.config.Config
 import com.github.mwegrz.scalautil.ConfigOps
-import com.github.mwegrz.scalautil.javaDurationToDuration
+import com.github.mwegrz.scalautil.akka.stream.scaladsl.{ PolicyRestartSource, RestartPolicy }
 
 import scala.concurrent.{ ExecutionContext, Future }
 
 object SseClient {
-  def apply(config: Config)(
-      implicit actorSystem: ActorSystem,
+  def apply(config: Config)(implicit
+      actorSystem: ActorSystem,
       actorMaterializer: ActorMaterializer,
-      executionContext: ExecutionContext
+      executionContext: ExecutionContext,
+      restartPolicy: RestartPolicy
   ): SseClient =
     new DefaultSseClient(config.withReferenceDefaults("sse-client"))
 }
@@ -35,17 +36,14 @@ trait SseClient {
   ): Source[SseEvent, NotUsed]
 }
 
-class DefaultSseClient private[sse] (config: Config)(
-    implicit actorSystem: ActorSystem,
+class DefaultSseClient private[sse] (config: Config)(implicit
+    actorSystem: ActorSystem,
     actorMaterializer: ActorMaterializer,
-    executionContext: ExecutionContext
+    executionContext: ExecutionContext,
+    restartPolicy: RestartPolicy
 ) extends SseClient
     with KeyValueLogging {
   private val connectionPoolSettings = ConnectionPoolSettings(actorSystem)
-  private val restartPolicyMinBackoff = config.getDuration("restart-policy.min-backoff")
-  private val restartPolicyMaxBackoff = config.getDuration("restart-policy.max-backoff")
-  private val restartPolicyRandomFactor = config.getDouble("restart-policy.random-factor")
-  private val restartPolicyMaxRestarts = config.getInt("restart-policy.max-restarts")
 
   override def createSource(
       uri: Uri,
@@ -68,12 +66,7 @@ class DefaultSseClient private[sse] (config: Config)(
       NotRetryingEventSource(uri, send, initialLastEventId)
     }
 
-    RestartSource.onFailuresWithBackoff(
-      minBackoff = restartPolicyMinBackoff,
-      maxBackoff = restartPolicyMaxBackoff,
-      randomFactor = restartPolicyRandomFactor,
-      maxRestarts = restartPolicyMaxRestarts
-    ) { () =>
+    PolicyRestartSource.onFailuresWithBackoff { () =>
       source
         .watchTermination() { (_, f) =>
           f.recover {

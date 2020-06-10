@@ -53,48 +53,48 @@ object codecs {
   implicit def avro4sIndexedSeqEncoder[A: Encoder]: Encoder[IndexedSeq[A]] = Encoder.seqEncoder[A].comap(_.toIndexedSeq)
   implicit def avro4sIndexedSeqDecoder[A: Decoder]: Decoder[IndexedSeq[A]] = Decoder.seqDecoder[A].map(_.toIndexedSeq)
 
-  implicit def avro4sValueClassSchemaFor[CC <: AnyVal, A](
-      implicit rep: CaseClass1Rep[CC, A],
+  implicit def avro4sValueClassSchemaFor[CC <: AnyVal, A](implicit
+      rep: CaseClass1Rep[CC, A],
       subschema: SchemaFor[A],
       fieldMapper: FieldMapper = DefaultFieldMapper
   ): SchemaFor[CC] = subschema.map(_ => subschema.schema(fieldMapper))
 
-  implicit def avro4sValueClassEncoder[CC <: AnyVal, A](
-      implicit rep: CaseClass1Rep[CC, A],
+  implicit def avro4sValueClassEncoder[CC <: AnyVal, A](implicit
+      rep: CaseClass1Rep[CC, A],
       delegate: Encoder[A]
   ): Encoder[CC] =
     delegate.comap(rep.unapply)
 
-  implicit def avro4sValueClassFromValue[CC <: AnyVal, B](
-      implicit rep: CaseClass1Rep[CC, B],
+  implicit def avro4sValueClassFromValue[CC <: AnyVal, B](implicit
+      rep: CaseClass1Rep[CC, B],
       delegate: Decoder[B]
   ): Decoder[CC] =
     delegate.map { rep.apply }
 
-  implicit def avro4sMapSchemaFor[Key, Value](
-      implicit valueSchemaFor: SchemaFor[Value],
+  implicit def avro4sMapSchemaFor[Key, Value](implicit
+      valueSchemaFor: SchemaFor[Value],
       fieldMapper: FieldMapper = DefaultFieldMapper
   ): SchemaFor[Map[Key, Value]] =
     SchemaFor.mapSchemaFor(valueSchemaFor.map(_ => valueSchemaFor.schema(fieldMapper))).map[Map[Key, Value]](identity)
 
-  implicit def avro4sMapEncoder[Key, Value](
-      implicit keyEncoder: KeyEncoder[Key],
+  implicit def avro4sMapEncoder[Key, Value](implicit
+      keyEncoder: KeyEncoder[Key],
       valueEncoder: Encoder[Value]
   ): Encoder[Map[Key, Value]] =
     Encoder
       .mapEncoder[Value]
       .comap(_.map { case (key, value) => (keyEncoder.apply(key), value) })
 
-  implicit def avro4sMapDecoder[Key, Value](
-      implicit keyDecoder: KeyDecoder[Key],
+  implicit def avro4sMapDecoder[Key, Value](implicit
+      keyDecoder: KeyDecoder[Key],
       valueDecoder: Decoder[Value]
   ): Decoder[Map[Key, Value]] =
     Decoder
       .mapDecoder[Value]
       .map(_.map { case (key, value) => (keyDecoder(key).get, value) })
 
-  implicit def avro4sSortedMapSchemaFor[Key, Value](
-      implicit valueSchemaFor: SchemaFor[Value],
+  implicit def avro4sSortedMapSchemaFor[Key, Value](implicit
+      valueSchemaFor: SchemaFor[Value],
       fieldMapper: FieldMapper = DefaultFieldMapper
   ): SchemaFor[SortedMap[Key, Value]] =
     SchemaFor
@@ -103,27 +103,27 @@ object codecs {
   //valueSchemaFor.map(_ => valueSchemaFor.schema(fieldMapper)))
   //SchemaFor.const(Schema.createMap(valueSchemaFor.schema(fieldMapper)))
 
-  implicit def avro4sSortedMapEncoder[Key, Value](
-      implicit keyEncoder: KeyEncoder[Key],
+  implicit def avro4sSortedMapEncoder[Key, Value](implicit
+      keyEncoder: KeyEncoder[Key],
       valueEncoder: Encoder[Value],
       ordering: Ordering[Key]
   ): Encoder[SortedMap[Key, Value]] =
     avro4sMapEncoder[Key, Value].comap(_.toMap)
 
-  implicit def avro4sSortedMapDecoder[Key, Value](
-      implicit keyDecoder: KeyDecoder[Key],
+  implicit def avro4sSortedMapDecoder[Key, Value](implicit
+      keyDecoder: KeyDecoder[Key],
       valueDecoder: Decoder[Value],
       ordering: Ordering[Key]
   ): Decoder[SortedMap[Key, Value]] =
     avro4sMapDecoder[Key, Value].map(SortedMap.from[Key, Value])
 
-  implicit def avro4sStringValueClassKeyEncoder[Key, Ref](
-      implicit generic: Lazy[Generic.Aux[Key, Ref]],
+  implicit def avro4sStringValueClassKeyEncoder[Key, Ref](implicit
+      generic: Lazy[Generic.Aux[Key, Ref]],
       evidence: Ref <:< (String :: HNil)
   ): KeyEncoder[Key] = circe.codecs.circeStringValueClassKeyEncoder
 
-  implicit def avro4sStringValueClassKeyDecoder[Key, Ref](
-      implicit generic: Lazy[Generic.Aux[Key, Ref]],
+  implicit def avro4sStringValueClassKeyDecoder[Key, Ref](implicit
+      generic: Lazy[Generic.Aux[Key, Ref]],
       evidence: (String :: HNil) =:= Ref
   ): KeyDecoder[Key] = circe.codecs.circeStringValueClassKeyDecoder
 }

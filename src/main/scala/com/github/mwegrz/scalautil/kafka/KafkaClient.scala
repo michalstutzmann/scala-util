@@ -47,8 +47,8 @@ trait KafkaClient {
   ): Flow[(A, CommittableOffset), (B, CommittableOffset), NotUsed]
 }
 
-class DefaultKafkaClient private[kafka] (config: Config)(
-    implicit actorSystem: ActorSystem,
+class DefaultKafkaClient private[kafka] (config: Config)(implicit
+    actorSystem: ActorSystem,
     actorMaterializer: ActorMaterializer
 ) extends KafkaClient {
   private implicit val producerSettings: ProducerSettings[Array[Byte], Array[Byte]] =

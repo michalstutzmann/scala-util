@@ -24,8 +24,8 @@ package object scaladsl {
   def byteMessageFlow[A, B](
       inTopic: String,
       outTopic: String
-  )(toBinary: A => (Array[Byte], Array[Byte]), fromBinary: (Array[Byte], Array[Byte]) => B)(
-      implicit producerSettings: ProducerSettings[Array[Byte], Array[Byte]],
+  )(toBinary: A => (Array[Byte], Array[Byte]), fromBinary: (Array[Byte], Array[Byte]) => B)(implicit
+      producerSettings: ProducerSettings[Array[Byte], Array[Byte]],
       consumerSettings: ConsumerSettings[Array[Byte], Array[Byte]],
       actorSystem: ActorSystem,
       actorMaterializer: ActorMaterializer
@@ -42,8 +42,8 @@ package object scaladsl {
 
   def ask[A, B](requestTopic: String, responseTopic: String)(
       arg: A
-  )(toBinary: A => Array[Byte], fromBinary: Array[Byte] => B)(
-      implicit producerSettings: ProducerSettings[Array[Byte], Array[Byte]],
+  )(toBinary: A => Array[Byte], fromBinary: Array[Byte] => B)(implicit
+      producerSettings: ProducerSettings[Array[Byte], Array[Byte]],
       consumerSettings: ConsumerSettings[Array[Byte], Array[Byte]],
       actorSystem: ActorSystem,
       actorMaterializer: ActorMaterializer,

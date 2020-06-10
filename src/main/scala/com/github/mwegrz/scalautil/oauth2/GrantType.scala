@@ -13,10 +13,11 @@ object GrantType {
     override lazy val value = "refresh_token"
   }
 
-  def apply(value: String): GrantType = value match {
-    case ClientCredentials.value => ClientCredentials
-    case RefreshToken.value      => RefreshToken
-  }
+  def apply(value: String): GrantType =
+    value match {
+      case ClientCredentials.value => ClientCredentials
+      case RefreshToken.value      => RefreshToken
+    }
 }
 
 trait GrantType {

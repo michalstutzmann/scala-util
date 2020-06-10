@@ -20,8 +20,8 @@ import scala.concurrent.{ ExecutionContext, Future, Promise }
 import scala.util.{ Failure, Success, Try }
 
 object MqttClient {
-  def apply(config: Config)(
-      implicit actorSystem: ActorSystem,
+  def apply(config: Config)(implicit
+      actorSystem: ActorSystem,
       actorMaterializer: ActorMaterializer,
       executionContext: ExecutionContext
   ): MqttClient =
@@ -52,14 +52,14 @@ object MqttClient {
 trait MqttClient {
   import MqttClient._
 
-  def createFlow[A, B](topics: Map[String, Qos], qos: Qos, name: String)(
-      implicit aSerde: Serde[A],
+  def createFlow[A, B](topics: Map[String, Qos], qos: Qos, name: String)(implicit
+      aSerde: Serde[A],
       bSerde: Serde[B]
   ): Flow[(String, A), (String, B), Future[Connected]]
 }
 
-class DefaultMqttClient private[mqtt] (config: Config)(
-    implicit actorSystem: ActorSystem,
+class DefaultMqttClient private[mqtt] (config: Config)(implicit
+    actorSystem: ActorSystem,
     actorMaterializer: ActorMaterializer,
     executionContext: ExecutionContext
 ) extends MqttClient
@@ -74,8 +74,8 @@ class DefaultMqttClient private[mqtt] (config: Config)(
   private val clientId = if (config.hasPath("client-id")) config.getString("client-id") else ""
   private val parallelism = if (config.hasPath("parallelism")) config.getInt("parallelism") else availableProcessors
 
-  override def createFlow[A, B](topics: Map[String, Qos], qos: Qos, name: String)(
-      implicit aSerde: Serde[A],
+  override def createFlow[A, B](topics: Map[String, Qos], qos: Qos, name: String)(implicit
+      aSerde: Serde[A],
       bSerde: Serde[B]
   ): Flow[(String, A), (String, B), Future[Connected]] = {
     val connection = Tcp().outgoingConnection(host, port)

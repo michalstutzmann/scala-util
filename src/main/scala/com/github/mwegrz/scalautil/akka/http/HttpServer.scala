@@ -25,8 +25,8 @@ import scala.util.{ Failure, Success, Try }
 import com.github.mwegrz.scalautil.akka.http.server.directives.AroundDirectives._
 
 object HttpServer {
-  def apply(config: Config, httpApis: Set[HttpApi])(
-      implicit actorSystem: ActorSystem,
+  def apply(config: Config, httpApis: Set[HttpApi])(implicit
+      actorSystem: ActorSystem,
       actorMaterializer: ActorMaterializer,
       executor: ExecutionContext
   ): HttpServer =
@@ -35,8 +35,8 @@ object HttpServer {
   private def generateRequestId(): String = UUID.randomUUID().toString
 }
 
-class HttpServer private (config: Config, httpApis: Set[HttpApi])(
-    implicit actorSystem: ActorSystem,
+class HttpServer private (config: Config, httpApis: Set[HttpApi])(implicit
+    actorSystem: ActorSystem,
     actorMaterializer: ActorMaterializer,
     executionContext: ExecutionContext
 ) extends Shutdownable

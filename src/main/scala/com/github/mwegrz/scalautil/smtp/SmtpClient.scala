@@ -36,8 +36,8 @@ class SmtpClient private (config: Config)(implicit executionContext: ExecutionCo
 
     val sending = mailer(envelope)
     sending.onComplete {
-      case Success(_)         => log.debug("Email sent")
-      case Failure(exception) => log.error("Could not send e-mail", exception)
+      case Success(_)         => log.debug("Email sent", "email" -> email)
+      case Failure(exception) => log.error("Could not send e-mail", exception, "email" -> email)
     }
     sending
   }

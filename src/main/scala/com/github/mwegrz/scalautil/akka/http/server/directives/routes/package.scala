@@ -31,8 +31,8 @@ import scala.util.{ Failure, Success }
 package object routes {
   private[routes] val LiveValuesBufferSize = 1000
 
-  def keyValueStore[Key, Value](name: String)(
-      implicit store: KeyValueStore[Key, Value],
+  def keyValueStore[Key, Value](name: String)(implicit
+      store: KeyValueStore[Key, Value],
       keyPathMatcher: PathMatcher1[Key],
       unitToEntityMarshaller: ToEntityMarshaller[Unit],
       valueToEntityMarshaller: ToEntityMarshaller[Value],
@@ -139,8 +139,8 @@ package object routes {
         }
     }
 
-  def singleValue[Key, Value](name: String, id: Key)(
-      implicit store: KeyValueStore[Key, Value],
+  def singleValue[Key, Value](name: String, id: Key)(implicit
+      store: KeyValueStore[Key, Value],
       unitToEntityMarshaller: ToEntityMarshaller[Unit],
       valueToEntityMarshaller: ToEntityMarshaller[Value],
       errorDocumentToEntityMarshaller: ToEntityMarshaller[ErrorDocument],
@@ -303,8 +303,8 @@ package object routes {
       }
     }
 
-  private[routes] def retrieveHistoricalValues[Key, Value](keys: Set[Key], sinceTime: Instant)(
-      implicit valueStore: TimeSeriesStore[Key, Value]
+  private[routes] def retrieveHistoricalValues[Key, Value](keys: Set[Key], sinceTime: Instant)(implicit
+      valueStore: TimeSeriesStore[Key, Value]
   ): Source[(Instant, Value), NotUsed] =
     valueStore
       .retrieveRange(keys, sinceTime)
@@ -317,22 +317,22 @@ package object routes {
       .retrieveRange(keys, sinceTime, untilTime)
       .map { case (_, time, value) => (time, value) }
 
-  private[routes] def retrieveHistoricalValues[Key, Value](keys: Set[Key], tail: Int)(
-      implicit valueStore: TimeSeriesStore[Key, Value]
+  private[routes] def retrieveHistoricalValues[Key, Value](keys: Set[Key], tail: Int)(implicit
+      valueStore: TimeSeriesStore[Key, Value]
   ): Source[(Instant, Value), NotUsed] =
     valueStore
       .retrieveLast(keys, tail)
       .map { case (_, time, value) => (time, value) }
 
-  private[routes] def retrieveHistoricalValues[Key, Value](keys: Set[Key], tail: Int, untilTime: Instant)(
-      implicit valueStore: TimeSeriesStore[Key, Value]
+  private[routes] def retrieveHistoricalValues[Key, Value](keys: Set[Key], tail: Int, untilTime: Instant)(implicit
+      valueStore: TimeSeriesStore[Key, Value]
   ): Source[(Instant, Value), NotUsed] =
     valueStore
       .retrieveLastUntil(keys, tail, untilTime)
       .map { case (_, time, value) => (time, value) }
 
-  private[routes] def receiveLiveValues[Key, Value](keys: Set[Key])(
-      implicit valueSource: Source[(Key, Instant, Value), NotUsed]
+  private[routes] def receiveLiveValues[Key, Value](keys: Set[Key])(implicit
+      valueSource: Source[(Key, Instant, Value), NotUsed]
   ): Source[(Instant, Value), NotUsed] =
     valueSource
       .filter { case (key, _, _) => keys.contains(key) }
@@ -340,8 +340,8 @@ package object routes {
         case (_, time, value) => (time, value)
       }
 
-  private[routes] def toServerSentEvents[Key, Value](source: Source[(Instant, Value), NotUsed])(
-      implicit valueToEntityMarshaller: ToEntityMarshaller[Value],
+  private[routes] def toServerSentEvents[Key, Value](source: Source[(Instant, Value), NotUsed])(implicit
+      valueToEntityMarshaller: ToEntityMarshaller[Value],
       executionContext: ExecutionContext,
       materializer: Materializer
   ): Source[ServerSentEvent, NotUsed] =

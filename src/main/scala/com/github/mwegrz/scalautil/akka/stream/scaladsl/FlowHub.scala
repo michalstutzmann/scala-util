@@ -5,8 +5,8 @@ import akka.stream.{ ActorMaterializer, KillSwitches }
 import akka.stream.scaladsl.{ BroadcastHub, Flow, Keep, MergeHub, Sink }
 import com.github.mwegrz.app.Shutdownable
 
-class FlowHub[A](bufferSize: Int = 256, perProducerBufferSize: Int = 16, drain: Boolean = false)(
-    implicit actorMaterializer: ActorMaterializer
+class FlowHub[A](bufferSize: Int = 256, perProducerBufferSize: Int = 16, drain: Boolean = false)(implicit
+    actorMaterializer: ActorMaterializer
 ) extends Shutdownable {
 
   private val ((sink, killSwitch), source) =

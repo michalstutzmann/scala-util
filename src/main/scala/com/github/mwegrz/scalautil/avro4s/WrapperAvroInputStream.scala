@@ -15,8 +15,8 @@ class WrapperAvroInputStream[T](
     writerSchema: Schema,
     readerSchema: Schema,
     fieldMapper: FieldMapper
-)(
-    implicit decoder: Decoder[T]
+)(implicit
+    decoder: Decoder[T]
 ) extends AvroInputStream[T] {
 
   private val datumReader = readerSchema.getType match {
@@ -40,19 +40,21 @@ class WrapperAvroInputStream[T](
   /**
     * Returns an iterator for the values of T in the stream.
     */
-  override def iterator: Iterator[T] = new Iterator[T] {
-    override def hasNext: Boolean = _iter.hasNext
-    override def next(): T = decoder.decode(_iter.next, readerSchema, fieldMapper)
-  }
+  override def iterator: Iterator[T] =
+    new Iterator[T] {
+      override def hasNext: Boolean = _iter.hasNext
+      override def next(): T = decoder.decode(_iter.next, readerSchema, fieldMapper)
+    }
 
   /**
     * Returns an iterator for values of Try[T], so that any
     * decoding issues are wrapped.
     */
-  override def tryIterator: Iterator[Try[T]] = new Iterator[Try[T]] {
-    override def hasNext: Boolean = _iter.hasNext
-    override def next(): Try[T] = Try(decoder.decode(_iter.next, readerSchema, fieldMapper))
-  }
+  override def tryIterator: Iterator[Try[T]] =
+    new Iterator[Try[T]] {
+      override def hasNext: Boolean = _iter.hasNext
+      override def next(): Try[T] = Try(decoder.decode(_iter.next, readerSchema, fieldMapper))
+    }
 
   override def close(): Unit = in.close()
 }

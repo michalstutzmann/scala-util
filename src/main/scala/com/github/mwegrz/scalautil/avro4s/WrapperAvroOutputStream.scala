@@ -20,16 +20,17 @@ class WrapperAvroOutputStream[T](
     os.close()
   }
 
-  override def write(t: T): Unit = schema.getType match {
-    case Schema.Type.STRING =>
-      val datumWriter = new GenericDatumWriter[org.apache.avro.util.Utf8](schema)
-      val record = encoder.encode(t, schema, fieldMapper).asInstanceOf[Utf8]
-      datumWriter.write(record, serializer)
-    case _ =>
-      val datumWriter = new GenericDatumWriter[GenericRecord](schema)
-      val record = encoder.encode(t, schema, fieldMapper).asInstanceOf[GenericRecord]
-      datumWriter.write(record, serializer)
-  }
+  override def write(t: T): Unit =
+    schema.getType match {
+      case Schema.Type.STRING =>
+        val datumWriter = new GenericDatumWriter[org.apache.avro.util.Utf8](schema)
+        val record = encoder.encode(t, schema, fieldMapper).asInstanceOf[Utf8]
+        datumWriter.write(record, serializer)
+      case _ =>
+        val datumWriter = new GenericDatumWriter[GenericRecord](schema)
+        val record = encoder.encode(t, schema, fieldMapper).asInstanceOf[GenericRecord]
+        datumWriter.write(record, serializer)
+    }
 
   override def flush(): Unit = serializer.flush()
   override def fSync(): Unit = ()

@@ -12,8 +12,8 @@ import com.typesafe.config.Config
 
 import scala.concurrent.{ ExecutionContext, Future }
 
-final case class UdpServer(config: Config)(
-    implicit actorSystem: ActorSystem,
+final case class UdpServer(config: Config)(implicit
+    actorSystem: ActorSystem,
     actorMaterializer: ActorMaterializer,
     executionContext: ExecutionContext
 ) extends KeyValueLogging {

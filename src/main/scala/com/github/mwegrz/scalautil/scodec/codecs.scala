@@ -15,9 +15,12 @@ object codecs {
   def asciiL: Codec[String] = ascii.xmap[String](_.reverse, _.reverse)
 
   def allBytesExceptLast[A](n: Int, codec: Codec[A]): Codec[A] =
-    Codec(codec.asEncoder, Decoder[A] { bits: BitVector =>
-      codec.decode(bits.dropRight(n * 8L)).map { _.copy(remainder = bits.takeRight(n * 8L)) }
-    })
+    Codec(
+      codec.asEncoder,
+      Decoder[A] { bits: BitVector =>
+        codec.decode(bits.dropRight(n * 8L)).map { _.copy(remainder = bits.takeRight(n * 8L)) }
+      }
+    )
 
   def unboundedList[A](elementBitLength: Int, codec: Codec[A]): Codec[List[A]] =
     boundedList(None, elementBitLength, codec)
@@ -74,12 +77,13 @@ object codecs {
         Attempt.fromTry(decrypt).flatMap(bytes => codec.decode(bytes.toBitVector))
       }
 
-      private def cipher(cipherMode: Int, bytes: ByteVector): Try[ByteVector] = Try {
-        val secretKeySpec = new SecretKeySpec(key.toArray, "AES")
-        val aes = Cipher.getInstance(s"AES/$mode/$padding", BouncyCastleProvider.PROVIDER_NAME)
-        aes.init(cipherMode, secretKeySpec, new IvParameterSpec(iv.toArray))
-        ByteVector(aes.doFinal(bytes.toArray))
-      }
+      private def cipher(cipherMode: Int, bytes: ByteVector): Try[ByteVector] =
+        Try {
+          val secretKeySpec = new SecretKeySpec(key.toArray, "AES")
+          val aes = Cipher.getInstance(s"AES/$mode/$padding", BouncyCastleProvider.PROVIDER_NAME)
+          aes.init(cipherMode, secretKeySpec, new IvParameterSpec(iv.toArray))
+          ByteVector(aes.doFinal(bytes.toArray))
+        }
     }
 
   object AesPadding {

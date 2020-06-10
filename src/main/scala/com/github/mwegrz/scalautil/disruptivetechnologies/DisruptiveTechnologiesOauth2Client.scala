@@ -18,8 +18,8 @@ import pdi.jwt.{ JwtAlgorithm, JwtCirce, JwtClaim, JwtHeader }
 import scala.concurrent.{ ExecutionContext, Future }
 
 object DisruptiveTechnologiesOauth2Client {
-  def apply(config: Config)(
-      implicit actorSystem: ActorSystem,
+  def apply(config: Config)(implicit
+      actorSystem: ActorSystem,
       actorMaterializer: ActorMaterializer,
       executionContext: ExecutionContext
   ): DisruptiveTechnologiesOauth2Client =
@@ -29,8 +29,8 @@ object DisruptiveTechnologiesOauth2Client {
     Configuration.default.withSnakeCaseMemberNames.withDefaults
 }
 
-class DisruptiveTechnologiesOauth2Client private (config: Config)(
-    implicit actorSystem: ActorSystem,
+class DisruptiveTechnologiesOauth2Client private (config: Config)(implicit
+    actorSystem: ActorSystem,
     actorMaterializer: ActorMaterializer,
     executionContext: ExecutionContext
 ) extends Oauth2Client {

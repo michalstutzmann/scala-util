@@ -22,10 +22,11 @@ abstract class MacroUtils {
     }.toList
 
   object Product1 {
-    def unapply(t: Type): Option[MethodSymbol] = caseAccessors(t) match {
-      case _1 :: Nil => Some(_1)
-      case _         => None
-    }
+    def unapply(t: Type): Option[MethodSymbol] =
+      caseAccessors(t) match {
+        case _1 :: Nil => Some(_1)
+        case _         => None
+      }
   }
 
   protected def companion(t: Type): Symbol = t.typeSymbol.companion

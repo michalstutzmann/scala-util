@@ -119,8 +119,8 @@ trait TimeSeriesStore[Key, Value] {
   }
 }*/
 
-class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, config: Config)(
-    implicit executionContext: ExecutionContext,
+class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, config: Config)(implicit
+    executionContext: ExecutionContext,
     actorMaterializer: ActorMaterializer,
     keySerde: Serde[Key],
     valueSerde: Serde[Value]

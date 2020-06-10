@@ -18,8 +18,8 @@ object CassandraClient extends KeyValueLogging {
   def apply(config: Config)(implicit executionContext: ExecutionContext): CassandraClient =
     new DefaultCassandraClient(config.withReferenceDefaults("cassandra-client"))
 
-  def withKeyspaceIfNotExists(config: Config)(
-      implicit executionContext: ExecutionContext,
+  def withKeyspaceIfNotExists(config: Config)(implicit
+      executionContext: ExecutionContext,
       actorMaterializer: ActorMaterializer
   ): Future[CassandraClient] = {
     val client = apply(config)
@@ -56,15 +56,15 @@ trait CassandraClient extends Shutdownable {
 
   def execute(cql: String)(implicit actorMaterializer: ActorMaterializer): Future[Done]
 
-  def createKeyspaceIfNotExistsWithSimpleReplicationStrategy(keyspace: String, replicationFactor: Int)(
-      implicit actorMaterializer: ActorMaterializer
+  def createKeyspaceIfNotExistsWithSimpleReplicationStrategy(keyspace: String, replicationFactor: Int)(implicit
+      actorMaterializer: ActorMaterializer
   ): Future[Done]
 
   def createKeyspaceIfNotExistsWithNetworkTopologyReplicationStrategy(
       keyspace: String,
       dataCenterReplicationFactors: Map[String, Int]
-  )(
-      implicit actorMaterializer: ActorMaterializer
+  )(implicit
+      actorMaterializer: ActorMaterializer
   ): Future[Done]
 
   def registerCodec[A](codec: TypeCodec[A]): Unit
@@ -93,10 +93,18 @@ class DefaultCassandraClient(config: Config)(implicit executionContext: Executio
 
   log.debug("Initialized")
 
+  private var preparedSinkStatements = Map.empty[String, PreparedStatement]
+
   override def createSink[A](
       cql: String
   )(statementBinder: (A, PreparedStatement) => BoundStatement): Sink[A, Future[Done]] = {
-    val preparedStatement = session.prepare(cql)
+    val preparedStatement = preparedSinkStatements.get(cql) match {
+      case Some(value) => value
+      case None =>
+        val value = session.prepare(cql)
+        preparedSinkStatements = preparedSinkStatements.updated(cql, value)
+        value
+    }
     CassandraSink[A](parallelism = 2, preparedStatement, statementBinder)
   }
 
@@ -105,8 +113,8 @@ class DefaultCassandraClient(config: Config)(implicit executionContext: Executio
     CassandraSource(statement)
   }
 
-  override def createKeyspaceIfNotExistsWithSimpleReplicationStrategy(keyspace: String, replicationFactor: Int)(
-      implicit actorMaterializer: ActorMaterializer
+  override def createKeyspaceIfNotExistsWithSimpleReplicationStrategy(keyspace: String, replicationFactor: Int)(implicit
+      actorMaterializer: ActorMaterializer
   ): Future[Done] =
     execute(
       s"""CREATE KEYSPACE IF NOT EXISTS $keyspace
@@ -116,8 +124,8 @@ class DefaultCassandraClient(config: Config)(implicit executionContext: Executio
   override def createKeyspaceIfNotExistsWithNetworkTopologyReplicationStrategy(
       keyspace: String,
       dataCenterReplicationFactors: Map[String, Int]
-  )(
-      implicit actorMaterializer: ActorMaterializer
+  )(implicit
+      actorMaterializer: ActorMaterializer
   ): Future[Done] = {
     val replicationFactorString = dataCenterReplicationFactors
       .map {

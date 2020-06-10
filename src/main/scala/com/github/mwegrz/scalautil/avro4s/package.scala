@@ -29,22 +29,23 @@ package object avro4s {
       bytes: Array[Byte],
       writerSchema: Option[Schema] = None,
       readerSchema: Schema
-  )(implicit fieldMapper: FieldMapper = DefaultFieldMapper): Try[A] = Try {
-    val resolvedWriterSchema = writerSchema.getOrElse(readerSchema)
-    val resolvedReaderSchema = readerSchema
+  )(implicit fieldMapper: FieldMapper = DefaultFieldMapper): Try[A] =
+    Try {
+      val resolvedWriterSchema = writerSchema.getOrElse(readerSchema)
+      val resolvedReaderSchema = readerSchema
 
-    val in = new ByteArrayInputStream(bytes)
+      val in = new ByteArrayInputStream(bytes)
 
-    val input = new WrapperAvroInputStream[A](in, resolvedWriterSchema, resolvedReaderSchema, fieldMapper)
+      val input = new WrapperAvroInputStream[A](in, resolvedWriterSchema, resolvedReaderSchema, fieldMapper)
 
-    if (input.iterator.hasNext) {
-      input.iterator.toSeq.head
-    } else {
-      throw new IllegalArgumentException(
-        s"Cannot decode: bytes: 0x${ByteVector(bytes).toHex}: " +
-          s"writer schema: ${resolvedWriterSchema.toString(false)} " +
-          s"reader schema: ${resolvedReaderSchema.toString(false)}"
-      )
+      if (input.iterator.hasNext) {
+        input.iterator.toSeq.head
+      } else {
+        throw new IllegalArgumentException(
+          s"Cannot decode: bytes: 0x${ByteVector(bytes).toHex}: " +
+            s"writer schema: ${resolvedWriterSchema.toString(false)} " +
+            s"reader schema: ${resolvedReaderSchema.toString(false)}"
+        )
+      }
     }
-  }
 }

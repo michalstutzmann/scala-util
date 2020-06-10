@@ -17,8 +17,7 @@ import com.github.mwegrz.scalautil.store.TimeSeriesStore
 
 import scala.concurrent.ExecutionContext
 
-class TimeSeriesSource[Key, Value](name: String)(
-    implicit
+class TimeSeriesSource[Key, Value](name: String)(implicit
     valueStore: TimeSeriesStore[Key, Value],
     valueSource: Source[(Key, Instant, Value), NotUsed],
     instantFromStringUnmarshaller: Unmarshaller[String, Instant],
@@ -33,70 +32,73 @@ class TimeSeriesSource[Key, Value](name: String)(
     .toMat(PolicyRestartSink.withBackoff(() => valueStore.addOrReplace))(Keep.left)
     .run()
 
-  def route(keys: Set[Key]): Route = get {
-    parameters(
-      (
-        Symbol("filter[since]").as[Instant].?,
-        Symbol("filter[until]").as[Instant].?,
-        Symbol("filter[tail]").as[Int].?,
-        Symbol("lastEventId").as[String].?
-      )
-    ) { (since, until, tail, lastEventIdParam) =>
-      optionalHeaderValueByName("Accept") {
-        case Some("text/event-stream") =>
-          optionalHeaderValueByName("Last-Event-ID") { lastEventId =>
-            val lastEventTime = lastEventId
-              .orElse(lastEventIdParam)
-              .map(value => Instant.ofEpochMilli(ByteVector.fromBase64(value).get.toLong()).plusNanos(1))
-            val lastEventTimeOrSinceTime = lastEventTime.orElse(since)
-            val liveValues = receiveLiveValues(keys)
+  def route(keys: Set[Key]): Route =
+    get {
+      parameters(
+        (
+          Symbol("filter[since]").as[Instant].?,
+          Symbol("filter[until]").as[Instant].?,
+          Symbol("filter[tail]").as[Int].?,
+          Symbol("lastEventId").as[String].?
+        )
+      ) { (since, until, tail, lastEventIdParam) =>
+        optionalHeaderValueByName("Accept") {
+          case Some("text/event-stream") =>
+            optionalHeaderValueByName("Last-Event-ID") { lastEventId =>
+              val lastEventTime = lastEventId
+                .orElse(lastEventIdParam)
+                .map(value => Instant.ofEpochMilli(ByteVector.fromBase64(value).get.toLong()).plusNanos(1))
+              val lastEventTimeOrSinceTime = lastEventTime.orElse(since)
+              val liveValues = receiveLiveValues(keys)
 
-            val values = (lastEventTime, tail) match {
-              case (None, Some(value)) =>
-                val historicalValues = retrieveHistoricalValues(keys, value)
+              val values = (lastEventTime, tail) match {
+                case (None, Some(value)) =>
+                  val historicalValues = retrieveHistoricalValues(keys, value)
 
-                historicalValues.concat(
-                  liveValues.buffer(LiveValuesBufferSize, OverflowStrategy.dropNew)
-                )
-              case (_, _) =>
-                lastEventTimeOrSinceTime.fold(liveValues) { sinceValue =>
-                  val historicalAndLiveValues =
-                    retrieveHistoricalValues(keys, sinceValue).concat(
-                      liveValues.buffer(LiveValuesBufferSize, OverflowStrategy.dropNew)
-                    )
-                  until
-                    .fold(historicalAndLiveValues)(untilValue => retrieveHistoricalValues(keys, sinceValue, untilValue))
-                }
+                  historicalValues.concat(
+                    liveValues.buffer(LiveValuesBufferSize, OverflowStrategy.dropNew)
+                  )
+                case (_, _) =>
+                  lastEventTimeOrSinceTime.fold(liveValues) { sinceValue =>
+                    val historicalAndLiveValues =
+                      retrieveHistoricalValues(keys, sinceValue).concat(
+                        liveValues.buffer(LiveValuesBufferSize, OverflowStrategy.dropNew)
+                      )
+                    until
+                      .fold(historicalAndLiveValues)(untilValue =>
+                        retrieveHistoricalValues(keys, sinceValue, untilValue)
+                      )
+                  }
+              }
+              val response = toServerSentEvents(values)
+              complete(response)
             }
-            val response = toServerSentEvents(values)
-            complete(response)
-          }
-        case _ =>
-          tail match {
-            case Some(value) =>
-              val values = until
-                .fold(valueStore.retrieveLast(keys, value))(valueStore.retrieveLastUntil(keys, value, _))
-                .map(_._3)
-                .map(a => Resource(name, null, Some(a)))
-                .toMat(Sink.seq)(Keep.right)
-                .run()
-                .map(_.toList)
-                .map(MultiDocument(_))
-              complete(values)
-            case None =>
-              val values = valueStore
-                .retrieveRange(keys, since.getOrElse(Instant.EPOCH), until.getOrElse(Instant.now))
-                .map(_._3)
-                .map(a => Resource(name, null, Some(a)))
-                .toMat(Sink.seq)(Keep.right)
-                .run()
-                .map(_.toList)
-                .map(MultiDocument(_))
-              complete(values)
-          }
+          case _ =>
+            tail match {
+              case Some(value) =>
+                val values = until
+                  .fold(valueStore.retrieveLast(keys, value))(valueStore.retrieveLastUntil(keys, value, _))
+                  .map(_._3)
+                  .map(a => Resource(name, null, Some(a)))
+                  .toMat(Sink.seq)(Keep.right)
+                  .run()
+                  .map(_.toList)
+                  .map(MultiDocument(_))
+                complete(values)
+              case None =>
+                val values = valueStore
+                  .retrieveRange(keys, since.getOrElse(Instant.EPOCH), until.getOrElse(Instant.now))
+                  .map(_._3)
+                  .map(a => Resource(name, null, Some(a)))
+                  .toMat(Sink.seq)(Keep.right)
+                  .run()
+                  .map(_.toList)
+                  .map(MultiDocument(_))
+                complete(values)
+            }
+        }
       }
     }
-  }
 
   override def shutdown(): Unit = killSwitch.shutdown()
 }

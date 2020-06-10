@@ -93,18 +93,19 @@ class SqlDatabaseClient private (database: Database, maxPoolSize: Int) {
     val a = new StreamingInvokerAction[Vector[A], A, Effect] {
       override def statements = Nil
       override def createBuilder = Vector.newBuilder[A]
-      override def createInvoker(statements: Iterable[String]) = new Invoker[A] {
-        override def iteratorTo(
-            maxRows: Int
-        )(implicit session: JdbcBackend#SessionDef): CloseableIterator[A] = {
-          val ps = session.conn.prepareStatement(sql.queryParts.mkString)
-          val pp = new PositionedParameters(ps)
-          sql.unitPConv((), pp)
-          //ps.setQueryTimeout(timeout.toSeconds)
-          val rs = withTimeout(ps, timeout)(_.executeQuery())
-          new ResultSetIterator[A](rs, maxRows, autoClose = true)(f)
+      override def createInvoker(statements: Iterable[String]) =
+        new Invoker[A] {
+          override def iteratorTo(
+              maxRows: Int
+          )(implicit session: JdbcBackend#SessionDef): CloseableIterator[A] = {
+            val ps = session.conn.prepareStatement(sql.queryParts.mkString)
+            val pp = new PositionedParameters(ps)
+            sql.unitPConv((), pp)
+            //ps.setQueryTimeout(timeout.toSeconds)
+            val rs = withTimeout(ps, timeout)(_.executeQuery())
+            new ResultSetIterator[A](rs, maxRows, autoClose = true)(f)
+          }
         }
-      }
     }
     //database.stream(sql.as[A](GetResult(r => retrieveRow(r.rs)(f))).withStatementParameters(statementInit = st => st.setQueryTimeout(timeout.toSeconds)))
     database.stream(a)
@@ -125,17 +126,18 @@ class SqlDatabaseClient private (database: Database, maxPoolSize: Int) {
     val a = new StreamingInvokerAction[Vector[A], A, Effect] {
       override def statements = Nil
       override def createBuilder = Vector.newBuilder[A]
-      override def createInvoker(statements: Iterable[String]) = new Invoker[A] {
-        override def iteratorTo(
-            maxRows: Int
-        )(implicit session: JdbcBackend#SessionDef): CloseableIterator[A] = {
-          val ps = session.conn.prepareStatement(sql)
-          setParameters(ps, params)
-          //ps.setQueryTimeout(timeout.toSeconds)
-          val rs = withTimeout(ps, timeout)(_.executeQuery())
-          new ResultSetIterator[A](rs, maxRows, autoClose = true)(f)
+      override def createInvoker(statements: Iterable[String]) =
+        new Invoker[A] {
+          override def iteratorTo(
+              maxRows: Int
+          )(implicit session: JdbcBackend#SessionDef): CloseableIterator[A] = {
+            val ps = session.conn.prepareStatement(sql)
+            setParameters(ps, params)
+            //ps.setQueryTimeout(timeout.toSeconds)
+            val rs = withTimeout(ps, timeout)(_.executeQuery())
+            new ResultSetIterator[A](rs, maxRows, autoClose = true)(f)
+          }
         }
-      }
     }
     database.stream(a)
   }
@@ -152,8 +154,8 @@ class SqlDatabaseClient private (database: Database, maxPoolSize: Int) {
     database.run(a.transactionally)
   }
 
-  def updateAsync(sql: String, params: Seq[Option[Any]] = Nil)(
-      implicit timeout: Timeout
+  def updateAsync(sql: String, params: Seq[Option[Any]] = Nil)(implicit
+      timeout: Timeout
   ): Future[Int] = {
     val a = new SimpleJdbcAction[Int](c => {
       withPreparedStatement(c.connection, sql) { ps =>
@@ -178,8 +180,8 @@ class SqlDatabaseClient private (database: Database, maxPoolSize: Int) {
     database.run(DBIO.seq(as: _*).transactionally.withPinnedSession)
   }
 
-  def updateBatch(sql: String, params: Seq[Seq[Option[Any]]] = Nil)(
-      implicit timeout: Timeout
+  def updateBatch(sql: String, params: Seq[Seq[Option[Any]]] = Nil)(implicit
+      timeout: Timeout
   ): Future[Array[Int]] = {
     val a = new SimpleJdbcAction[Array[Int]](c => {
       withPreparedStatement(c.connection, sql) { ps =>
@@ -218,13 +220,14 @@ class SqlDatabaseClient private (database: Database, maxPoolSize: Int) {
     val a = new StreamingInvokerAction[Vector[A], A, Effect] {
       override def statements = Nil
       override def createBuilder = Vector.newBuilder[A]
-      override def createInvoker(statements: Iterable[String]) = new Invoker[A] {
-        override def iteratorTo(
-            maxRows: Int
-        )(implicit session: JdbcBackend#SessionDef): CloseableIterator[A] = {
-          new ResultSetIterator[A](qf(session.metaData), maxRows = 0, autoClose = true)(f)
+      override def createInvoker(statements: Iterable[String]) =
+        new Invoker[A] {
+          override def iteratorTo(
+              maxRows: Int
+          )(implicit session: JdbcBackend#SessionDef): CloseableIterator[A] = {
+            new ResultSetIterator[A](qf(session.metaData), maxRows = 0, autoClose = true)(f)
+          }
         }
-      }
     }
     database.stream(a)
   }

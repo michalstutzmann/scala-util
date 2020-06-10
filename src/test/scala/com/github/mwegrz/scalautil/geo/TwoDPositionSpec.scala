@@ -2,9 +2,8 @@ package com.github.mwegrz.scalautil.geo
 
 import com.github.mwegrz.scalautil.quantities.{ Latitude, Longitude }
 import com.github.mwegrz.scalautil.scalatest.TestSpec
-import org.scalatest.Matchers
 
-class TwoDPositionSpec extends TestSpec with Matchers {
+class TwoDPositionSpec extends TestSpec {
   describe("Position 2D") {
     it("should calculate the bearing at a different 2D position") {
       Given("two 2D positions")

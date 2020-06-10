@@ -63,12 +63,18 @@ class UdpFlowStage(
 
       override def preStart(): Unit = IO(Udp).tell(Udp.Bind(self.ref, localAddr), self.ref)
 
-      setHandler(in, new InHandler {
-        override def onPush(): Unit = self.ref.tell(grab(in), self.ref)
-      })
+      setHandler(
+        in,
+        new InHandler {
+          override def onPush(): Unit = self.ref.tell(grab(in), self.ref)
+        }
+      )
 
-      setHandler(out, new OutHandler {
-        override def onPull(): Unit = if (buffer.nonEmpty) push(out, buffer.dequeue)
-      })
+      setHandler(
+        out,
+        new OutHandler {
+          override def onPull(): Unit = if (buffer.nonEmpty) push(out, buffer.dequeue)
+        }
+      )
     }
 }

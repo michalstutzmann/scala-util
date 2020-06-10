@@ -8,6 +8,12 @@ object Serde {
 
     override def bytesToValue(binary: ByteVector): Unit = ()
   }
+
+  implicit val StringSerde: Serde[String] = new Serde[String] {
+    override def valueToBytes(value: String): ByteVector = ByteVector.encodeAscii(value).toTry.get
+
+    override def bytesToValue(binary: ByteVector): String = binary.decodeAscii.toTry.get
+  }
 }
 
 trait Serde[Value] {

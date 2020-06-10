@@ -1,19 +1,26 @@
 package com.github.mwegrz.scalautil.store
 
-import akka.NotUsed
+import java.nio.ByteBuffer
+import java.time.Instant
+
+import akka.{ Done, NotUsed }
 import akka.actor.{ ActorRefFactory, ExtendedActorSystem, Props }
 import akka.persistence.{ PersistentActor, RecoveryCompleted, SnapshotOffer }
-import akka.stream.scaladsl.Sink
+import akka.stream.ActorMaterializer
+import akka.stream.scaladsl.{ Sink, Source }
 import akka.util.Timeout
 import com.github.mwegrz.app.Shutdownable
+import com.github.mwegrz.scalastructlog.KeyValueLogging
 import com.github.mwegrz.scalautil.akka.serialization.ResourceAvroSerializer
 import com.github.mwegrz.scalautil.serialization.Serde
 import com.sksamuel.avro4s._
 import com.github.mwegrz.scalautil.avro4s.codecs._
+import com.github.mwegrz.scalautil.cassandra.CassandraClient
+import com.typesafe.config.Config
 import scodec.bits.ByteVector
 
 import scala.collection.immutable.SortedMap
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ Await, ExecutionContext, Future }
 import scala.concurrent.duration._
 
 object KeyValueStore {
@@ -36,6 +43,107 @@ trait KeyValueStore[Key, Value] {
   def retrievePage(cursor: Option[Key], count: Int): Future[SortedMap[Key, Value]]
 
   def delete(key: Key): Future[Option[Value]]
+}
+
+class CassandraKeyValueStore[Key, Value](cassandraClient: CassandraClient, config: Config)(implicit
+    executionContext: ExecutionContext,
+    actorMaterializer: ActorMaterializer,
+    keySerde: Serde[Key],
+    valueSerde: Serde[Value]
+) extends KeyValueStore[Key, Value]
+    with KeyValueLogging {
+  private val keyspace = config.getString("keyspace")
+  private val table = config.getString("table")
+
+  Await.ready(createTableIfNotExists(), Duration.Inf)
+
+  override def add(value: Value): Future[Option[(Key, Value)]] =
+    Future.failed(new UnsupportedOperationException)
+
+  override def update(key: Key, value: Value): Future[Option[Value]] =
+    add(key, value).map(_ => Some(value))
+
+  override def add(key: Key, value: Value): Future[Unit] = {
+    Source
+      .single((key, value))
+      .runWith(
+        cassandraClient
+          .createSink[(Key, Value)](
+            s"""INSERT
+           |INTO $keyspace.$table(
+           |  key,
+           |  value
+           |) VALUES (?, ?)""".stripMargin
+          ) {
+            case ((key, value), s) =>
+              s.bind(
+                ByteBuffer.wrap(keySerde.valueToBytes(key).toArray),
+                ByteBuffer.wrap(valueSerde.valueToBytes(value).toArray)
+              )
+          }
+      )
+      .map(_ => ())
+  }
+
+  override def retrieve(key: Key): Future[Option[Value]] = {
+    val query = s"""SELECT value
+                   |FROM $keyspace.$table
+                   |WHERE key = ?""".stripMargin
+
+    cassandraClient
+      .createSource(
+        query,
+        List(ByteBuffer.wrap(keySerde.valueToBytes(key).toArray))
+      )
+      .map { row =>
+        valueSerde.bytesToValue(ByteVector(row.getBytes("value").array()))
+      }
+      .runFold(List.empty[Value]) {
+        case (rows, row) => row :: rows
+      }
+      .map {
+        case Nil         => None
+        case head :: Nil => Some(head)
+      }
+  }
+
+  override def retrieveAll: Future[SortedMap[Key, Value]] =
+    Future.failed(new UnsupportedOperationException)
+
+  override def retrievePage(cursor: Option[Key], count: Int): Future[SortedMap[Key, Value]] =
+    Future.failed(new UnsupportedOperationException)
+
+  override def delete(key: Key): Future[Option[Value]] = {
+    retrieve(key).flatMap(value =>
+      Source
+        .single(key)
+        .runWith(
+          cassandraClient
+            .createSink[Key](
+              s"""DELETE
+               |FROM $keyspace.$table
+               |WHERE key = ?""".stripMargin
+            ) {
+              case (key, s) =>
+                s.bind(
+                  ByteBuffer.wrap(keySerde.valueToBytes(key).toArray)
+                )
+            }
+        )
+        .map(_ => value)
+    )
+  }
+
+  private def createTableIfNotExists(): Future[Done] = {
+    log.debug("Creating table if not exists", ("keyspace" -> keyspace, "table" -> table))
+    cassandraClient.execute(s"""|CREATE TABLE IF NOT EXISTS $keyspace.$table (
+                                |  key blob,
+                                |  value blob,
+                                |  PRIMARY KEY (key)
+                                |)""".stripMargin)
+  }
+
+  log.debug("Initialized")
 }
 
 object ActorKeyValueStore {
@@ -143,15 +251,17 @@ class InMemoryKeyValueStore[Key: Ordering, Value](initialValues: Map[Key, Value]
 
   override def update(key: Key, value: Value): Future[Option[Value]] = ???
 
-  override def add(key: Key, value: Value): Future[Unit] = Future.successful {
-    valuesByKey = valuesByKey.updated(key, value)
-  }
+  override def add(key: Key, value: Value): Future[Unit] =
+    Future.successful {
+      valuesByKey = valuesByKey.updated(key, value)
+    }
 
   override def retrieveAll: Future[SortedMap[Key, Value]] = Future.successful { valuesByKey }
 
-  override def retrieve(key: Key): Future[Option[Value]] = Future.successful {
-    valuesByKey.get(key)
-  }
+  override def retrieve(key: Key): Future[Option[Value]] =
+    Future.successful {
+      valuesByKey.get(key)
+    }
 
   override def retrievePage(key: Option[Key], count: Int): Future[SortedMap[Key, Value]] =
     Future.successful {
@@ -160,15 +270,16 @@ class InMemoryKeyValueStore[Key: Ordering, Value](initialValues: Map[Key, Value]
         .take(count)
     }
 
-  override def delete(key: Key): Future[Option[Value]] = Future.successful {
-    val value = valuesByKey.get(key)
-    valuesByKey = valuesByKey - key
-    value
-  }
+  override def delete(key: Key): Future[Option[Value]] =
+    Future.successful {
+      val value = valuesByKey.get(key)
+      valuesByKey = valuesByKey - key
+      value
+    }
 }
 
-class ActorKeyValueStore[Key: Ordering, Value](persistenceId: String)(
-    implicit executionContext: ExecutionContext,
+class ActorKeyValueStore[Key: Ordering, Value](persistenceId: String)(implicit
+    executionContext: ExecutionContext,
     actorRefFactory: ActorRefFactory,
     keySerde: Serde[Key],
     valueSerde: Serde[Value]
