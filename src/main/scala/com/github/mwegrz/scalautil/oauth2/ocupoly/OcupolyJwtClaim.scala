@@ -35,11 +35,12 @@ object OcupolyJwtClaim {
     } else {
       Set.empty[String]
     }
-    OcupolyJwtClaim(sub, aud, iat, exp, scope, organization)
+    OcupolyJwtClaim("", sub, aud, iat, exp, scope, organization)
   }
 }
 
 final case class OcupolyJwtClaim(
+    iss: String = "",
     sub: String,
     aud: Set[String],
     iat: Long,
