@@ -14,6 +14,7 @@ import akka.http.scaladsl.unmarshalling.{ FromEntityUnmarshaller, FromResponseUn
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{ Sink, Source }
 import akka.util.Timeout
+import com.github.mwegrz.scalastructlog.KeyValueLogging
 import com.github.mwegrz.scalautil.ConfigOps
 import com.github.mwegrz.scalautil.akka.http.server.directives.routes.{ MultiDocument, Resource, SingleDocument }
 import com.github.mwegrz.scalautil.oauth2.Oauth2Client
@@ -26,7 +27,7 @@ import com.github.mwegrz.scalautil.akka.http.circe.JsonApiErrorAccumulatingCirce
 import com.github.mwegrz.scalautil.akka.stream.scaladsl.{ FlowHub, FlowOps, PolicyRestartSource, RestartPolicy }
 
 import scala.concurrent.{ ExecutionContext, Future }
-import scala.util.{ Success, Try }
+import scala.util.{ Failure, Success, Try }
 import scala.concurrent.duration._
 
 object DisruptiveTechnologiesClient {
@@ -48,7 +49,7 @@ class DisruptiveTechnologiesClient private (config: Config)(implicit
     oauthClient: Oauth2Client,
     sseClient: SseClient,
     restartPolicy: RestartPolicy
-) {
+) extends KeyValueLogging {
   private val baseUri = Uri(config.getString("base-uri"))
   private val http = Http(actorSystem)
   private val connectionPoolSettings = ConnectionPoolSettings(actorSystem)
@@ -62,7 +63,7 @@ class DisruptiveTechnologiesClient private (config: Config)(implicit
 
   def liveEventSource(
       projectId: ProjectId
-  ): Source[Event, NotUsed] = {
+  ): Source[Try[Event], NotUsed] = {
     val uri = baseUri.copy(path = baseUri.path / "projects" / projectId.toString / "devices:stream")
 
     PolicyRestartSource.withBackoff { () =>
@@ -71,9 +72,11 @@ class DisruptiveTechnologiesClient private (config: Config)(implicit
       eventSource
         .map { sse =>
           parse(sse.data).toTry
-            .map(_.as[LiveEventResponse])
-            .flatMap(_.toTry.map(_.result.event))
-            .get
+            .flatMap { data =>
+              data.as[LiveEventResponse].toTry
+            }
+            .recoverWith { throwable => Failure(new Exception(s"Decoding failed: ${sse.data}", throwable)) }
+            .map(_.result.event)
         }
     }
   }

@@ -118,6 +118,7 @@ object ConnectionStatus {
   object Connection {
     case object CELLULAR extends Connection
     case object ETHERNET extends Connection
+    case object OFFLINE extends Connection
 
     implicit val decoder: Decoder[Connection] = deriveEnumerationDecoder[Connection]
   }

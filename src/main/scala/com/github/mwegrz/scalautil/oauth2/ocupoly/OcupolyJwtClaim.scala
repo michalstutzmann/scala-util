@@ -1,4 +1,4 @@
-package com.github.mwegrz.scalautil.oauth2.netemera
+package com.github.mwegrz.scalautil.oauth2.ocupoly
 
 import com.github.mwegrz.scalautil.jwt.{ JwtKey, decode }
 import io.circe.syntax._
@@ -8,19 +8,18 @@ import pdi.jwt.{ JwtAlgorithm, JwtClaim }
 
 import scala.util.Try
 
-object NetemeraJwtClaim {
+object OcupolyJwtClaim {
   final case class JwtClaimContent(scope: String, organization: String)
 
-  def apply(string: String)(implicit key: JwtKey, algorithm: JwtAlgorithm): Try[NetemeraJwtClaim] =
+  def apply(string: String)(implicit key: JwtKey, algorithm: JwtAlgorithm): Try[OcupolyJwtClaim] =
     fromString(string)
 
   def fromString(
       string: String
-  )(implicit key: JwtKey, algorithm: JwtAlgorithm): Try[NetemeraJwtClaim] =
+  )(implicit key: JwtKey, algorithm: JwtAlgorithm): Try[OcupolyJwtClaim] =
     decode(string, key.value, algorithm).map(fromJwtClaim)
 
-  def fromJwtClaim(jwtClaim: JwtClaim): NetemeraJwtClaim = {
-    val iss = jwtClaim.issuer.get
+  def fromJwtClaim(jwtClaim: JwtClaim): OcupolyJwtClaim = {
     val sub = jwtClaim.subject.get
     val aud = jwtClaim.audience.get
     val iat = jwtClaim.issuedAt.get
@@ -36,12 +35,11 @@ object NetemeraJwtClaim {
     } else {
       Set.empty[String]
     }
-    NetemeraJwtClaim(iss, sub, aud, iat, exp, scope, organization)
+    OcupolyJwtClaim(sub, aud, iat, exp, scope, organization)
   }
 }
 
-final case class NetemeraJwtClaim(
-    iss: String,
+final case class OcupolyJwtClaim(
     sub: String,
     aud: Set[String],
     iat: Long,
@@ -51,14 +49,13 @@ final case class NetemeraJwtClaim(
 ) {
   def toJwtClaim: JwtClaim = {
     val jwt = JwtClaim()
-      .by(iss)
       .about(sub)
       .to(aud)
       .issuedAt(iat)
 
     val jwtExpiresAt = exp.fold(jwt)(value => jwt.expiresAt(value))
 
-    jwtExpiresAt + NetemeraJwtClaim
+    jwtExpiresAt + OcupolyJwtClaim
       .JwtClaimContent(scope = scope.mkString(" "), organization = organization.mkString(" "))
       .asJson
       .noSpaces

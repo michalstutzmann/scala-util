@@ -1,4 +1,4 @@
-package com.github.mwegrz.scalautil.oauth2.netemera
+package com.github.mwegrz.scalautil.oauth2.ocupoly
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
@@ -15,24 +15,24 @@ import io.circe.generic.extras.auto._
 
 import scala.concurrent.{ ExecutionContext, Future }
 
-object NetemeraOauth2Client {
+object OcupolyOauth2Client {
   def apply(config: Config)(implicit
       actorSystem: ActorSystem,
       actorMaterializer: ActorMaterializer,
       executionContext: ExecutionContext
-  ): NetemeraOauth2Client =
-    new NetemeraOauth2Client(config.withReferenceDefaults("netemera-oauth2-client"))
+  ): OcupolyOauth2Client =
+    new OcupolyOauth2Client(config.withReferenceDefaults("ocupoly-oauth2-client"))
 
   private implicit val circeConfiguration: Configuration =
     Configuration.default.withSnakeCaseMemberNames.withDefaults
 }
 
-class NetemeraOauth2Client private (config: Config)(implicit
+class OcupolyOauth2Client private (config: Config)(implicit
     actorSystem: ActorSystem,
     actorMaterializer: ActorMaterializer,
     executionContext: ExecutionContext
 ) extends Oauth2Client {
-  import NetemeraOauth2Client._
+  import OcupolyOauth2Client._
 
   private val baseUri = Uri(config.getString("base-uri"))
   private val audience = config.getString("audience")

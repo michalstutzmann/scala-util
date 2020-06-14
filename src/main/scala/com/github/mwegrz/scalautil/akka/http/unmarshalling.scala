@@ -6,7 +6,7 @@ import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.unmarshalling.Unmarshaller
 import com.github.mwegrz.scalautil.jwt.JwtKey
 import com.github.mwegrz.scalautil.oauth2.ResponseType
-import com.github.mwegrz.scalautil.oauth2.netemera.NetemeraJwtClaim
+import com.github.mwegrz.scalautil.oauth2.ocupoly.OcupolyJwtClaim
 import pdi.jwt.JwtAlgorithm
 import shapeless.{ ::, Generic, HNil, Lazy }
 
@@ -17,11 +17,11 @@ object unmarshalling {
   ): Unmarshaller[String, ValueClass] =
     Unmarshaller.strict { value => generic.value.from(value :: HNil) }
 
-  implicit def stringToNetemeraJwtClaimUnmarshaller(implicit
+  implicit def stringToOcupolyJwtClaimUnmarshaller(implicit
       jwtKey: JwtKey,
       jwtAlgorithm: JwtAlgorithm
-  ): Unmarshaller[String, NetemeraJwtClaim] =
-    Unmarshaller.strict(NetemeraJwtClaim.fromString(_).get)
+  ): Unmarshaller[String, OcupolyJwtClaim] =
+    Unmarshaller.strict(OcupolyJwtClaim.fromString(_).get)
 
   implicit val stringToUriUnmarshaller: Unmarshaller[String, Uri] =
     Unmarshaller.strict(Uri(_))

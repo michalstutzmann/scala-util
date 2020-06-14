@@ -8,7 +8,7 @@ import com.typesafe.config.Config
 import pdi.jwt.{ JwtAlgorithm, JwtClaim }
 import com.github.mwegrz.scalautil.jwt.decode
 import com.github.mwegrz.scalautil.oauth2.auth0.Auth0JwtClaim
-import com.github.mwegrz.scalautil.oauth2.netemera.NetemeraJwtClaim
+import com.github.mwegrz.scalautil.oauth2.ocupoly.OcupolyJwtClaim
 
 import scala.concurrent.{ ExecutionContext, Future }
 
@@ -37,8 +37,8 @@ object SecurityDirectives {
   def auth0JwtAuthenticator(config: Config): Authenticator[Auth0JwtClaim] =
     credentials => jwtAuthenticator(config)(credentials).map(Auth0JwtClaim.fromJwtClaim)
 
-  def netemeraJwtAuthenticator(config: Config): Authenticator[NetemeraJwtClaim] =
-    credentials => jwtAuthenticator(config)(credentials).map(NetemeraJwtClaim.fromJwtClaim)
+  def ocupolyJwtAuthenticator(config: Config): Authenticator[OcupolyJwtClaim] =
+    credentials => jwtAuthenticator(config)(credentials).map(OcupolyJwtClaim.fromJwtClaim)
 
   def jwtAuthenticator(config: Config): Authenticator[JwtClaim] = {
     val key = config.getString("key")

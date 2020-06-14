@@ -79,7 +79,7 @@ class TimeSeriesSource[Key, Value](name: String)(implicit
                 val values = until
                   .fold(valueStore.retrieveLast(keys, value))(valueStore.retrieveLastUntil(keys, value, _))
                   .map(_._3)
-                  .map(a => Resource(name, null, Some(a)))
+                  .map(a => Resource(name, "", Some(a)))
                   .toMat(Sink.seq)(Keep.right)
                   .run()
                   .map(_.toList)
@@ -89,7 +89,7 @@ class TimeSeriesSource[Key, Value](name: String)(implicit
                 val values = valueStore
                   .retrieveRange(keys, since.getOrElse(Instant.EPOCH), until.getOrElse(Instant.now))
                   .map(_._3)
-                  .map(a => Resource(name, null, Some(a)))
+                  .map(a => Resource(name, "", Some(a)))
                   .toMat(Sink.seq)(Keep.right)
                   .run()
                   .map(_.toList)
