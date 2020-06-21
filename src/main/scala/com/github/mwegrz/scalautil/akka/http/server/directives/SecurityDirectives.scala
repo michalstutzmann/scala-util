@@ -7,8 +7,7 @@ import com.github.mwegrz.scalautil.store.KeyValueStore
 import com.typesafe.config.Config
 import pdi.jwt.{ JwtAlgorithm, JwtClaim }
 import com.github.mwegrz.scalautil.jwt.decode
-import com.github.mwegrz.scalautil.oauth2.auth0.Auth0JwtClaim
-import com.github.mwegrz.scalautil.oauth2.ocupoly.OcupolyJwtClaim
+import com.github.mwegrz.scalautil.ocupoly.OcupolyJwtClaim
 
 import scala.concurrent.{ ExecutionContext, Future }
 
@@ -33,9 +32,6 @@ object SecurityDirectives {
       }
     case _ => Future.successful(None)
   }
-
-  def auth0JwtAuthenticator(config: Config): Authenticator[Auth0JwtClaim] =
-    credentials => jwtAuthenticator(config)(credentials).map(Auth0JwtClaim.fromJwtClaim)
 
   def ocupolyJwtAuthenticator(config: Config): Authenticator[OcupolyJwtClaim] =
     credentials => jwtAuthenticator(config)(credentials).map(OcupolyJwtClaim.fromJwtClaim)

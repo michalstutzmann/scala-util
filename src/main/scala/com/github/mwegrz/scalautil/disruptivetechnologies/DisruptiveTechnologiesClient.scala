@@ -17,7 +17,6 @@ import akka.util.Timeout
 import com.github.mwegrz.scalastructlog.KeyValueLogging
 import com.github.mwegrz.scalautil.ConfigOps
 import com.github.mwegrz.scalautil.akka.http.server.directives.routes.{ MultiDocument, Resource, SingleDocument }
-import com.github.mwegrz.scalautil.oauth2.Oauth2Client
 import com.typesafe.config.Config
 import io.circe.generic.auto._
 import com.github.mwegrz.scalautil.circe.codecs._
@@ -39,14 +38,14 @@ object DisruptiveTechnologiesClient {
       sseClient: SseClient,
       restartPolicy: RestartPolicy
   ): DisruptiveTechnologiesClient =
-    new DisruptiveTechnologiesClient(config.withReferenceDefaults("disruptive-technologies-client"))
+    new DisruptiveTechnologiesClient(config.withReferenceDefaults("disruptive-technologies.client"))
 }
 
 class DisruptiveTechnologiesClient private (config: Config)(implicit
     actorSystem: ActorSystem,
     actorMaterializer: ActorMaterializer,
     executionContext: ExecutionContext,
-    oauthClient: Oauth2Client,
+    oauthClient: DisruptiveTechnologiesOauth2Client,
     sseClient: SseClient,
     restartPolicy: RestartPolicy
 ) extends KeyValueLogging {
@@ -62,13 +61,14 @@ class DisruptiveTechnologiesClient private (config: Config)(implicit
   }
 
   def liveEventSource(
-      projectId: ProjectId
+      serviceAccount: ServiceAccount
   ): Source[Try[Event], NotUsed] = {
-    val uri = baseUri.copy(path = baseUri.path / "projects" / projectId.toString / "devices:stream")
+    val uri = baseUri.copy(path = baseUri.path / "projects" / serviceAccount.projectId.toString / "devices:stream")
 
     PolicyRestartSource.withBackoff { () =>
+      log.debug("Starting live event source", "project-id" -> serviceAccount.projectId.value)
       val eventSource =
-        sseClient.createSource(uri, None, obtainAccessToken, reconnect = false)
+        sseClient.createSource(uri, None, obtainAccessToken(serviceAccount), reconnect = false)
       eventSource
         .map { sse =>
           parse(sse.data).toTry
@@ -82,13 +82,13 @@ class DisruptiveTechnologiesClient private (config: Config)(implicit
   }
 
   def eventHistorySource(
-      projectId: ProjectId,
+      serviceAccount: ServiceAccount,
       deviceId: DeviceId,
       startTime: Option[Instant],
       endTime: Option[Instant]
   )(implicit pageSize: Option[PageSize] = None, timeout: Timeout): Source[Event, NotUsed] = {
     Source.fromFutureSource(
-      eventHistory(projectId, deviceId, startTime, endTime, None).map {
+      eventHistory(serviceAccount, deviceId, startTime, endTime, None).map {
         case EventHistoryResponse(events, None | Some(PageToken(""))) => Source(events)
         case EventHistoryResponse(events, Some(nextPageToken)) =>
           Source(events)
@@ -97,7 +97,7 @@ class DisruptiveTechnologiesClient private (config: Config)(implicit
                 .unfoldAsync(Option(nextPageToken)) {
                   case None | Some(PageToken("")) => Future.successful(None)
                   case Some(pageToken) =>
-                    eventHistory(projectId, deviceId, startTime, endTime, Some(pageToken)).map {
+                    eventHistory(serviceAccount, deviceId, startTime, endTime, Some(pageToken)).map {
                       case EventHistoryResponse(events, nextPageToken) => Some((nextPageToken, events))
                     }
                 }
@@ -108,14 +108,16 @@ class DisruptiveTechnologiesClient private (config: Config)(implicit
   }.mapMaterializedValue(_ => NotUsed)
 
   def eventHistory(
-      projectId: ProjectId,
+      serviceAccount: ServiceAccount,
       deviceId: DeviceId,
       startTime: Option[Instant],
       endTime: Option[Instant],
       pageToken: Option[PageToken]
   )(implicit pageSize: Option[PageSize] = None, timeout: Timeout): Future[EventHistoryResponse] = {
     val uri = baseUri
-      .copy(path = baseUri.path / "projects" / projectId.toString / "devices" / deviceId.value / "events")
+      .copy(path =
+        baseUri.path / "projects" / serviceAccount.projectId.toString / "devices" / deviceId.value / "events"
+      )
 
     val uriQuery = Uri.Query(
       uri
@@ -128,7 +130,7 @@ class DisruptiveTechnologiesClient private (config: Config)(implicit
         .filter(_._2.nonEmpty)
     )
 
-    obtainAccessToken.flatMap { accessToken =>
+    obtainAccessToken(serviceAccount).flatMap { accessToken =>
       val request =
         HttpRequest(method = HttpMethods.GET, uri.withQuery(uriQuery)).copy(headers = List(Authorization(accessToken)))
       Http()
@@ -146,6 +148,6 @@ class DisruptiveTechnologiesClient private (config: Config)(implicit
     }
   }
 
-  private def obtainAccessToken =
-    oauthClient.obtainToken.map(_.accessToken).map(OAuth2BearerToken)
+  private def obtainAccessToken(serviceAccount: ServiceAccount) =
+    oauthClient.obtainToken(serviceAccount).map(_.accessToken).map(OAuth2BearerToken)
 }

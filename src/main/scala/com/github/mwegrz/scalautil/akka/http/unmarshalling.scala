@@ -6,7 +6,7 @@ import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.unmarshalling.Unmarshaller
 import com.github.mwegrz.scalautil.jwt.JwtKey
 import com.github.mwegrz.scalautil.oauth2.ResponseType
-import com.github.mwegrz.scalautil.oauth2.ocupoly.OcupolyJwtClaim
+import com.github.mwegrz.scalautil.ocupoly.OcupolyJwtClaim
 import pdi.jwt.JwtAlgorithm
 import shapeless.{ ::, Generic, HNil, Lazy }
 

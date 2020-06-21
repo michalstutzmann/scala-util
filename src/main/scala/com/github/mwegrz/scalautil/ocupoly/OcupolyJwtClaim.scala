@@ -1,9 +1,9 @@
-package com.github.mwegrz.scalautil.oauth2.ocupoly
+package com.github.mwegrz.scalautil.ocupoly
 
 import com.github.mwegrz.scalautil.jwt.{ JwtKey, decode }
-import io.circe.syntax._
 import io.circe.generic.auto._
 import io.circe.parser.parse
+import io.circe.syntax._
 import pdi.jwt.{ JwtAlgorithm, JwtClaim }
 
 import scala.util.Try

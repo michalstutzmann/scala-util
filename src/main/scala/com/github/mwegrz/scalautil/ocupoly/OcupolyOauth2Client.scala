@@ -1,4 +1,4 @@
-package com.github.mwegrz.scalautil.oauth2.ocupoly
+package com.github.mwegrz.scalautil.ocupoly
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
@@ -6,10 +6,10 @@ import akka.http.scaladsl.model.headers.BasicHttpCredentials
 import akka.http.scaladsl.model.{ FormData, HttpMethods, HttpRequest, Uri }
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
-import com.github.mwegrz.scalautil.oauth2.{ GrantType, Oauth2Client, TokenObtained }
+import com.github.mwegrz.scalautil.ConfigOps
+import com.github.mwegrz.scalautil.oauth2.{ GrantType, TokenObtained }
 import com.typesafe.config.Config
 import de.heikoseeberger.akkahttpcirce.ErrorAccumulatingCirceSupport.unmarshaller
-import com.github.mwegrz.scalautil.ConfigOps
 import io.circe.generic.extras.Configuration
 import io.circe.generic.extras.auto._
 
@@ -21,7 +21,7 @@ object OcupolyOauth2Client {
       actorMaterializer: ActorMaterializer,
       executionContext: ExecutionContext
   ): OcupolyOauth2Client =
-    new OcupolyOauth2Client(config.withReferenceDefaults("ocupoly-oauth2-client"))
+    new OcupolyOauth2Client(config.withReferenceDefaults("ocupoly.oauth2-client"))
 
   private implicit val circeConfiguration: Configuration =
     Configuration.default.withSnakeCaseMemberNames.withDefaults
@@ -31,7 +31,7 @@ class OcupolyOauth2Client private (config: Config)(implicit
     actorSystem: ActorSystem,
     actorMaterializer: ActorMaterializer,
     executionContext: ExecutionContext
-) extends Oauth2Client {
+) {
   import OcupolyOauth2Client._
 
   private val baseUri = Uri(config.getString("base-uri"))
@@ -45,7 +45,7 @@ class OcupolyOauth2Client private (config: Config)(implicit
 
   private val http = Http(actorSystem)
 
-  override def obtainToken: Future[TokenObtained] = {
+  def obtainToken: Future[TokenObtained] = {
     val uri = baseUri.copy(path = baseUri.path / "token")
 
     val request =
