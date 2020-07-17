@@ -27,7 +27,7 @@ class HostedSmsClientSpec extends TestSpec {
       implicit val actorMaterializer: ActorMaterializer = ActorMaterializer()
       implicit val client: HostedSmsClient =
         HostedSmsClient(config.getConfig("hosted-sms.client"))
-      Await.ready(client.send(Sms(Msisdn("+48732080688"), "Cleaning", "Test6")), 10.seconds)
+      Await.ready(client.send(Sms(Msisdn(""), "Cleaning", "Test6")), 10.seconds)
     }
   }
 }
