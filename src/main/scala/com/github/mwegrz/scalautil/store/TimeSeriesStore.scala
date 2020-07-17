@@ -175,7 +175,7 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
   ): Source[(Key, Instant, Value), NotUsed] = {
     val query = s"""SELECT key, time, value
                    |FROM $keyspace.$table
-                   |WHERE time > ? AND time <= ? ALLOW FILTERING""".stripMargin
+                   |WHERE time >= ? AND time < ? ALLOW FILTERING""".stripMargin
 
     cassandraClient
       .createSource(
@@ -199,7 +199,7 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
     def forKey(key: Key): Source[(Key, Instant, Value), NotUsed] = {
       val query = s"""SELECT time, value
                      |FROM $keyspace.$table
-                     |WHERE key = ? AND time > ? AND time <= ?
+                     |WHERE key = ? AND time >= ? AND time < ?
                      |ORDER BY time ASC""".stripMargin
 
       cassandraClient
@@ -226,7 +226,7 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
     def forKey(key: Key): Source[(Key, Instant, Value), NotUsed] = {
       val query = s"""SELECT time, value
                      |FROM $keyspace.$table
-                     |WHERE key = ? AND time > ?
+                     |WHERE key = ? AND time >= ?
                      |ORDER BY time ASC""".stripMargin
 
       cassandraClient

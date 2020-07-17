@@ -19,16 +19,18 @@ class SmtpClient private (config: Config)(implicit executionContext: ExecutionCo
   private val username = config.getString("username")
   private val password = config.getString("password")
 
-  private val mailer = Mailer(host, port)()
-  //.auth(true)
-  //.as(username, password)
-  //.startTls(true)()
+  private val mailer = Mailer().session
+    .host(host)
+    .port(port)
+    .auth(true)
+    .as(username, password)
+    .startTls(true)()
 
   def sendEmail(email: Email): Future[Unit] = {
     val Email(from, to, subject, content) = email
     val envelope = Envelope
-      .from(from)
-      .to(to)
+      .from(from.toInternetAddress)
+      .to(to.toInternetAddress)
       .subject(subject)
       .content(Text(content))
 

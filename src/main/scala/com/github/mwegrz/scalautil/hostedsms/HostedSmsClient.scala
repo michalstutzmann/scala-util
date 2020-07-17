@@ -1,5 +1,7 @@
 package com.github.mwegrz.scalautil.hostedsms
 
+import java.util.UUID
+
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
@@ -47,7 +49,7 @@ class HostedSmsClient private (config: Config)(implicit
         "Sender" -> sms.sender,
         "Phone" -> sms.recipient.value.stripPrefix("+"),
         "Message" -> sms.message,
-        "v" -> "0"
+        "v" -> UUID.randomUUID.toString
       ).toEntity
     )
     val sending = http

@@ -35,13 +35,13 @@ class DisruptiveTechnologiesClientSpec extends TestSpec {
         DisruptiveTechnologiesOauth2Client(config.getConfig("disruptive-technologies-oauth2-client"))
       val client = DisruptiveTechnologiesClient(config.getConfig("disruptive-technologies-client"))
 
-      Await.result(
+      /*Await.result(
         client.liveEventSource(ProjectId("bj19qhkcl5b000823ld0")).runFold(List.empty[Event]) { (a, b) =>
           println(b)
           b :: a
         },
         360.seconds
-      )
+      )*/
       //Thread.sleep(100000)
       /*Await.result(
         client
