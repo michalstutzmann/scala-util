@@ -5,8 +5,8 @@ import java.time.Instant
 import cats.syntax.functor._
 import io.circe.{ Decoder, HCursor }
 import io.circe.generic.auto._
-import io.circe.generic.extras.semiauto._
 import com.github.mwegrz.scalautil.circe.codecs._
+import io.circe.generic.extras.semiauto._
 
 object Event {
   object EventType {

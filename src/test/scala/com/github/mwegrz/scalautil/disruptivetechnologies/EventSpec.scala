@@ -5,25 +5,26 @@ import io.circe._
 import io.circe.parser._
 
 class EventSpec extends TestSpec {
-  describe("Position 2D") {
-    it("should calculate the bearing at a different 2D position") {
-      Given("two 2D positions")
+  describe("Event") {
+    it("should parse and decode") {
+      Given("raw event")
 
       val eventJsonString =
         """{
-          |  "eventId":"br6fg4gpqua3n832go3g",
-          |  "targetName":"projects/bj19qhkcl5b000823ld0/devices/bhekm69j9bp0009ogvp0",
-          |  "eventType":"networkStatus",
-          |  "data":{
-          |    "networkStatus":{
-          |       "signalStrength":35,
-          |       "updateTime":"2020-05-26T11:05:54.311000Z",
-          |       "cloudConnectors":[{"id":"bh46tg4c0000br7i7ds0","signalStrength":35}],
-          |       "transmissionMode":"LOW_POWER_STANDARD_MODE"
-          |     }
-          |   }
-          |}""".stripMargin
+          |      "eventId": "bsl3lo4ip0ro05965m3g",
+          |      "targetName": "projects/brku1p94jplfqcpoja6g/devices/bhekp869j9fg00ecpct0",
+          |      "eventType": "temperature",
+          |      "data": {
+          |        "temperature": {
+          |          "value": 23.55,
+          |          "updateTime": "2020-08-05T04:51:43.201000Z"
+          |        }
+          |      },
+          |      "timestamp": "2020-08-05T04:51:43.201000Z"
+          |    }
+          |""".stripMargin
       When("parsing and decoding")
+      println(parse(eventJsonString))
       val result = parse(eventJsonString).map(_.as[Event])
       Then("the result is correct")
       println(result)
