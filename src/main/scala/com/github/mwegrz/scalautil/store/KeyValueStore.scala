@@ -155,6 +155,10 @@ object ActorKeyValueStore {
         extends ResourceAvroSerializer[Add](extendedActorSystem, currentVersion = 1)
   }
 
+  final object ExportState
+
+  final case class ImportState(state: State)
+
   final case class Add(key: ByteVector, value: ByteVector)
 
   final case class Retrieve(key: ByteVector)
@@ -214,6 +218,13 @@ object ActorKeyValueStore {
     }
 
     override val receiveCommand: Receive = {
+      case ExportState => sender() ! state
+
+      case ImportState(state) =>
+        this.state = state
+        saveSnapshotIfNeeded()
+        sender() ! ()
+
       case event @ Add(key: ByteVector, value: ByteVector) =>
         persist(event) { _ =>
           state = state.add(key, value)

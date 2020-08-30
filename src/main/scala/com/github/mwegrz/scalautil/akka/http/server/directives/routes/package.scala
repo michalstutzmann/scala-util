@@ -139,6 +139,83 @@ package object routes {
         }
     }
 
+  def keyValueStoreNoListing[Key, Value](name: String)(implicit
+      store: KeyValueStore[Key, Value],
+      keyPathMatcher: PathMatcher1[Key],
+      unitToEntityMarshaller: ToEntityMarshaller[Unit],
+      valueToEntityMarshaller: ToEntityMarshaller[Value],
+      errorDocumentToEntityMarshaller: ToEntityMarshaller[ErrorDocument],
+      singleDocumentToEntityMarshaller: ToEntityMarshaller[SingleDocument[Value]],
+      multiDocumentToEntityMarshaller: ToEntityMarshaller[MultiDocument[Value]],
+      entityToSingleDocumentUnmarshaller: FromEntityUnmarshaller[SingleDocument[Value]],
+      entityToValueUnmarshaller: FromEntityUnmarshaller[Value],
+      fromStringToKeyUnmarshaller: Unmarshaller[String, Key],
+      validator: Validator[Value],
+      executionContext: ExecutionContext
+  ): Route =
+    pathEnd {
+      post {
+        entity(as[SingleDocument[Value]]) {
+          case envelope @ SingleDocument(Some(resource @ Resource(_, _, Some(entity)))) =>
+            validate(entity)(validator) {
+              onComplete(store.add(entity)) {
+                case Success(Some((key, value))) =>
+                  complete(
+                    StatusCodes.Created -> envelope
+                      .copy(data = Some(resource.copy(id = key.toString, attributes = Some(value))))
+                  )
+                case Success(None) =>
+                  complete(StatusCodes.Created -> envelope)
+                case Failure(KeyValueStore.KeyExistsException(_))    => complete(StatusCodes.Conflict)
+                case Failure(KeyValueStore.InvalidValueException(_)) => complete(StatusCodes.BadRequest)
+                case Failure(KeyValueStore.ForbiddenException(_))    => reject(AuthorizationFailedRejection)
+              }
+            }
+        }
+      }
+    } ~ path(keyPathMatcher) { id =>
+      post {
+        entity(as[SingleDocument[Value]]) {
+          case envelope @ SingleDocument(Some(resource @ Resource(_, _, Some(entity)))) =>
+            validate(entity)(validator) {
+              onComplete(store.add(id, entity)) {
+                case Success(value)                                  => complete(StatusCodes.Created -> value)
+                case Failure(KeyValueStore.KeyExistsException(_))    => complete(StatusCodes.Conflict)
+                case Failure(KeyValueStore.InvalidValueException(_)) => complete(StatusCodes.BadRequest)
+                case Failure(KeyValueStore.ForbiddenException(_))    => reject(AuthorizationFailedRejection)
+              }
+            }
+        }
+      } ~
+        patch {
+          entity(as[SingleDocument[Value]]) {
+            case document @ SingleDocument(Some(resource @ Resource(_, _, Some(entity)))) =>
+              validate(entity)(validator) {
+                onComplete(store.update(id, entity)) {
+                  case Success(Some(value)) =>
+                    val updatedResource = resource.copy(attributes = Some(value))
+                    complete(document.copy(data = Some(updatedResource)))
+                  case Success(None) =>
+                    complete(SingleDocument(Option.empty[Resource[Value]]))
+                  case Failure(KeyValueStore.KeyExistsException(_))    => complete(StatusCodes.Conflict)
+                  case Failure(KeyValueStore.InvalidValueException(_)) => complete(StatusCodes.BadRequest)
+                  case Failure(KeyValueStore.ForbiddenException(_))    => reject(AuthorizationFailedRejection)
+                }
+              }
+          }
+        } ~
+        get {
+          onSuccess(store.retrieve(id)) { value =>
+            rejectEmptyResponse {
+              complete(value.map(b => SingleDocument[Value](Some(Resource(name, id.toString, Some(b))))))
+            }
+          }
+        } ~
+        delete {
+          complete(StatusCodes.NoContent -> store.delete(id))
+        }
+    }
+
   def singleValue[Key, Value](name: String, id: Key)(implicit
       store: KeyValueStore[Key, Value],
       unitToEntityMarshaller: ToEntityMarshaller[Unit],
