@@ -29,7 +29,7 @@ class SmtpClient private (config: Config)(implicit executionContext: ExecutionCo
   def sendEmail(email: Email): Future[Unit] = {
     val Email(from, to, subject, content) = email
 
-    log.debug("Sending e-mail")
+    log.debug("Sending e-mail", "email" -> email)
 
     val sending = for {
       envelope <- Future(
@@ -43,8 +43,8 @@ class SmtpClient private (config: Config)(implicit executionContext: ExecutionCo
     } yield result
 
     sending.onComplete {
-      case Success(_)         => log.debug("Email sent", "email" -> email)
-      case Failure(exception) => log.error("Could not send e-mail", exception, "email" -> email)
+      case Success(_)         => log.debug("E-mail sent", "email" -> email)
+      case Failure(exception) => log.error("Sending e-mail failed", exception, "email" -> email)
     }
     sending
   }

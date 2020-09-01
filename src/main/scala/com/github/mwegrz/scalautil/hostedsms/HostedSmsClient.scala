@@ -81,11 +81,11 @@ class HostedSmsClient private (config: Config)(implicit
         }
       }
 
-    log.debug("Sending", "sms" -> sms)
+    log.debug("Sending SMS", "sms" -> sms)
 
     sending.onComplete {
-      case Success(messageId) => log.debug("Sent", ("sms" -> sms, "message-id" -> messageId))
-      case Failure(exception) => log.error("Sending failed", exception, "sms" -> sms)
+      case Success(messageId) => log.debug("SMS Sent", ("sms" -> sms, "message-id" -> messageId))
+      case Failure(exception) => log.error("Sending SMS failed", exception, "sms" -> sms)
     }
     sending
   }
