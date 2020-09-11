@@ -19,6 +19,7 @@ import akka.http.scaladsl.unmarshalling.Unmarshal
 import com.github.mwegrz.scalautil.akka.http.circe.JsonApiErrorAccumulatingCirceSupport.unmarshaller
 
 import scala.concurrent.{ ExecutionContext, Future }
+import scala.util.control.NonFatal
 import scala.util.{ Failure, Success }
 
 object HostedSmsClient {
@@ -65,9 +66,9 @@ class HostedSmsClient private (config: Config)(implicit
         request = request.copy(headers = Accept(`application/json`) :: request.headers.toList),
         settings = connectionPoolSettings
       )
-      .flatMap { e =>
-        if (e.status == StatusCodes.OK) {
-          Unmarshal(e)
+      .flatMap { httpResponse =>
+        if (httpResponse.status == StatusCodes.OK) {
+          Unmarshal(httpResponse)
             .to[Response]
             .map {
               case Response(Some(messageId), None) =>
@@ -75,8 +76,14 @@ class HostedSmsClient private (config: Config)(implicit
               case Response(None, Some(errorMessage)) =>
                 throw new IllegalArgumentException(errorMessage)
             }
+            .recoverWith {
+              case NonFatal(throwable) =>
+                Future.failed(
+                  new IllegalStateException(s"HTTP response unmarshalling failed: $httpResponse}", throwable)
+                )
+            }
         } else {
-          throw new IllegalArgumentException(s"Invalid HTTP status code: ${e.status.value}")
+          throw new IllegalStateException(s"Invalid HTTP status code: ${httpResponse.status.value}")
         }
       }
 
