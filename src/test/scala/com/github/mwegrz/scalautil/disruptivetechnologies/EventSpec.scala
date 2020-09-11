@@ -1,7 +1,6 @@
 package com.github.mwegrz.scalautil.disruptivetechnologies
 
 import com.github.mwegrz.scalautil.scalatest.TestSpec
-import io.circe._
 import io.circe.parser._
 
 class EventSpec extends TestSpec {

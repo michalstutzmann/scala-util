@@ -17,8 +17,8 @@ class HostedSmsClientSpec extends TestSpec {
         .parseString(
           """|hosted-sms.client {
              |  base-uri = "https://api.hostedsms.pl/SimpleApi"
-             |  user-email = ""
-             |  password = ""
+             |  user-email = "notifications@services.ocupoly.com"
+             |  password = "UiHDiXcnhoUFhrJ0"
              |}""".stripMargin
         )
         .withFallback(ConfigFactory.load())
@@ -27,7 +27,7 @@ class HostedSmsClientSpec extends TestSpec {
       implicit val actorMaterializer: ActorMaterializer = ActorMaterializer()
       implicit val client: HostedSmsClient =
         HostedSmsClient(config.getConfig("hosted-sms.client"))
-      val result = client.send(Sms(Msisdn(""), "Services", "Test6"))
+      val result = client.send(Sms(Msisdn("+48732121447"), "Services", "Test6"))
       Await.ready(result, 10.seconds)
       println(result)
     }

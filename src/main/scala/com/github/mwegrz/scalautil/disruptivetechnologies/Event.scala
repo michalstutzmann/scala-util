@@ -6,7 +6,7 @@ import cats.syntax.functor._
 import io.circe.{ Decoder, HCursor }
 import io.circe.generic.auto._
 import com.github.mwegrz.scalautil.circe.codecs._
-import io.circe.generic.extras.semiauto._
+import io.circe.generic.extras.semiauto.deriveEnumerationDecoder
 
 object Event {
   object EventType {

@@ -15,7 +15,6 @@ import com.typesafe.config.Config
 import akka.http.scaladsl.model.headers.Accept
 import io.circe.generic.auto._
 import com.github.mwegrz.scalautil.circe.codecs._
-import io.circe.parser._
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import com.github.mwegrz.scalautil.akka.http.circe.JsonApiErrorAccumulatingCirceSupport.unmarshaller
 
