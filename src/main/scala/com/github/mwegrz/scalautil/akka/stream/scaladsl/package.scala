@@ -17,6 +17,9 @@ package object scaladsl {
   implicit class SourceOps[A, C](source: Source[A, C]) {
     def collectAsync[T](parallelism: Int)(pf: PartialFunction[A, Future[T]]): Source[T, C] =
       source.filter(pf.isDefinedAt).mapAsync(parallelism)(pf)
+
+    def concatLazy[M1](thatSource: => Source[A, M1]): Source[A, NotUsed] =
+      Source(List(() => source, () => thatSource)).flatMapConcat(_())
   }
 
   implicit class FlowOps[A, B, C](flow: Flow[A, B, C]) {

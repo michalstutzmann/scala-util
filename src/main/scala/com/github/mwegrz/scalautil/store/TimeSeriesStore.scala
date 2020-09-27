@@ -6,6 +6,7 @@ import java.time.Instant
 import akka.stream.ActorMaterializer
 import akka.{ Done, NotUsed }
 import akka.stream.scaladsl.{ Sink, Source }
+import com.github.mwegrz.scalautil.akka.stream.scaladsl.SourceOps
 import com.github.mwegrz.scalastructlog.KeyValueLogging
 import com.github.mwegrz.scalautil.cassandra.CassandraClient
 import com.github.mwegrz.scalautil.serialization.Serde
@@ -216,7 +217,7 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
         }
     }
 
-    keys.map(forKey).foldLeft(Source.empty[(Key, Instant, Value)]) { (a, b) => a.concat(b) }
+    keys.map(forKey).foldLeft(Source.empty[(Key, Instant, Value)]) { (a, b) => a.concatLazy(b) }
   }
 
   override def retrieveRange(
@@ -243,7 +244,7 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
         }
     }
 
-    keys.map(forKey).foldLeft(Source.empty[(Key, Instant, Value)]) { (a, b) => a.concat(b) }
+    keys.map(forKey).foldLeft(Source.empty[(Key, Instant, Value)]) { (a, b) => a.concatLazy(b) }
   }
 
   override def retrieveLast(keys: Set[Key], count: Int): Source[(Key, Instant, Value), NotUsed] = {
@@ -271,7 +272,7 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
         .mapConcat(identity)
     }
 
-    keys.map(forKey).foldLeft(Source.empty[(Key, Instant, Value)]) { (a, b) => a.concat(b) }
+    keys.map(forKey).foldLeft(Source.empty[(Key, Instant, Value)]) { (a, b) => a.concatLazy(b) }
   }
 
   override def retrieveLastUntil(
@@ -303,7 +304,7 @@ class CassandraTimeSeriesStore[Key, Value](cassandraClient: CassandraClient, con
         .mapConcat(identity)
     }
 
-    keys.map(forKey).foldLeft(Source.empty[(Key, Instant, Value)]) { (a, b) => a.concat(b) }
+    keys.map(forKey).foldLeft(Source.empty[(Key, Instant, Value)]) { (a, b) => a.concatLazy(b) }
   }
 
   override def retrieveKeys: Source[Key, NotUsed] = {
