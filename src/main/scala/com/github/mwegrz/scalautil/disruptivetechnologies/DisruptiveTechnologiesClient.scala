@@ -5,28 +5,27 @@ import java.time.Instant
 import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.marshalling.{ Marshal, ToEntityMarshaller }
 import akka.http.scaladsl.model.headers.{ Authorization, OAuth2BearerToken }
-import akka.http.scaladsl.model.{ HttpMethods, HttpRequest, RequestEntity, StatusCodes, Uri }
+import akka.http.scaladsl.model.{ HttpMethods, HttpRequest, StatusCodes, Uri }
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.settings.ConnectionPoolSettings
-import akka.http.scaladsl.unmarshalling.{ FromEntityUnmarshaller, FromResponseUnmarshaller, Unmarshal }
+import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{ Sink, Source }
 import akka.util.Timeout
 import com.github.mwegrz.scalastructlog.KeyValueLogging
 import com.github.mwegrz.scalautil.ConfigOps
-import com.github.mwegrz.scalautil.akka.http.server.directives.routes.{ MultiDocument, Resource, SingleDocument }
 import com.typesafe.config.Config
 import io.circe.generic.auto._
 import com.github.mwegrz.scalautil.circe.codecs._
 import com.github.mwegrz.scalautil.sse.SseClient
 import io.circe.parser._
-import com.github.mwegrz.scalautil.akka.http.circe.JsonApiErrorAccumulatingCirceSupport.{ marshaller, unmarshaller }
+import com.github.mwegrz.scalautil.akka.http.circe.JsonApiErrorAccumulatingCirceSupport.unmarshaller
 import com.github.mwegrz.scalautil.akka.stream.scaladsl.{ FlowHub, FlowOps, PolicyRestartSource, RestartPolicy }
+import akka.http.scaladsl.server.Directives.{ as, complete, entity, post }
 
 import scala.concurrent.{ ExecutionContext, Future }
-import scala.util.{ Failure, Success, Try }
+import scala.util.{ Failure, Try }
 import scala.concurrent.duration._
 
 object DisruptiveTechnologiesClient {
@@ -147,6 +146,14 @@ class DisruptiveTechnologiesClient private (config: Config)(implicit
         }
     }
   }
+
+  def dataConnectorEventRoute(implicit sink: Sink[DataConnectorEvent, NotUsed]): Route =
+    post {
+      entity(as[DataConnectorEvent]) { event =>
+        Source.single(event).runWith(sink)
+        complete(StatusCodes.OK -> "")
+      }
+    }
 
   private def obtainAccessToken(serviceAccount: ServiceAccount) =
     oauthClient.obtainToken(serviceAccount).map(_.accessToken).map(OAuth2BearerToken)

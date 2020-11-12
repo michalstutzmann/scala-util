@@ -13,10 +13,13 @@ import com.github.mwegrz.scalautil.ConfigOps
 import com.github.mwegrz.scalautil.mobile.Sms
 import com.typesafe.config.Config
 import akka.http.scaladsl.model.headers.Accept
+import io.circe.syntax._
 import io.circe.generic.auto._
 import com.github.mwegrz.scalautil.circe.codecs._
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import com.github.mwegrz.scalautil.akka.http.circe.JsonApiErrorAccumulatingCirceSupport.unmarshaller
+import io.circe.{ Decoder, Encoder }
+import cats.syntax.functor._
 
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.control.NonFatal
@@ -30,7 +33,22 @@ object HostedSmsClient {
   ): HostedSmsClient =
     new HostedSmsClient(config.withReferenceDefaults("hosted-sms.client"))
 
-  private final case class Response(MessageId: Option[MessageId], ErrorMessage: Option[String])
+  private object Response {
+    implicit val circeEncoder: Encoder[Response] = Encoder.instance {
+      case macCommands @ SuccessfulResponse(_)       => macCommands.asJson
+      case applicationData @ UnsuccessfulResponse(_) => applicationData.asJson
+    }
+
+    implicit val circeDecoder: Decoder[Response] =
+      List[Decoder[Response]](
+        Decoder[SuccessfulResponse].widen,
+        Decoder[UnsuccessfulResponse].widen
+      ).reduceLeft(_ or _)
+  }
+
+  private sealed trait Response
+  private final case class SuccessfulResponse(MessageId: MessageId) extends Response
+  private final case class UnsuccessfulResponse(ErrorMessage: String) extends Response
 }
 
 class HostedSmsClient private (config: Config)(implicit
@@ -70,17 +88,17 @@ class HostedSmsClient private (config: Config)(implicit
         if (httpResponse.status == StatusCodes.OK) {
           Unmarshal(httpResponse)
             .to[Response]
-            .map {
-              case Response(Some(messageId), None) =>
-                messageId
-              case Response(None, Some(errorMessage)) =>
-                throw new IllegalArgumentException(errorMessage)
-            }
             .recoverWith {
               case NonFatal(throwable) =>
                 Future.failed(
                   new IllegalStateException(s"HTTP response unmarshalling failed: $httpResponse}", throwable)
                 )
+            }
+            .map {
+              case SuccessfulResponse(messageId) =>
+                messageId
+              case UnsuccessfulResponse(errorMessage) =>
+                throw new IllegalArgumentException(errorMessage)
             }
         } else {
           throw new IllegalStateException(s"Invalid HTTP status code: ${httpResponse.status.value}")
