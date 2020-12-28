@@ -1,7 +1,7 @@
-import MwegrzLibraryDependencies._
+import MichalStutzmannLibraryDependencies._
 
 lazy val root = (project in file("."))
-  .enablePlugins(MwegrzApache2LibraryPlugin)
+  .enablePlugins(MichalStutzmannApache2LibraryPlugin)
   .settings(
     name := "scala-util",
     libraryDependencies ++= Seq(
@@ -45,11 +45,11 @@ lazy val root = (project in file("."))
       Time4jBase % Optional,
       TapirCore % Optional
     ),
-    homepage := Some(url("http://github.com/mwegrz/scala-util")),
+    homepage := Some(url("http://github.com/michalstutzmann/scala-util")),
     scmInfo := Some(
       ScmInfo(
-        url("https://github.com/mwegrz/scala-util.git"),
-        "scm:git@github.com:mwegrz/scala-util.git"
+        url("https://github.com/michalstutzmann/scala-util.git"),
+        "scm:git@github.com:michalstutzmann/scala-util.git"
       )
     )
   )
